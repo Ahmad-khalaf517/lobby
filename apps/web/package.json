@@ -6,9 +6,11 @@
     "start": "ng serve",
     "dev": "ng serve",
     "build": "ng build",
+    "lint": "eslint \"src/**/*.ts\" --fix",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "serve:ssr:client": "node dist/client/server/server.mjs"
+    "serve:ssr:client": "node dist/client/server/server.mjs",
+    "format": "prettier --write \"**/*.{ts,js,json,md,html,css,scss}\""
   },
   "private": true,
   "packageManager": "pnpm@11.18.0",

@@ -3,6 +3,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "composite": true,
     "types": ["vitest/globals"]
   },
   "include": ["src/**/*.d.ts", "src/**/*.spec.ts"]

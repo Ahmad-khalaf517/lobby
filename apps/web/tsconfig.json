@@ -4,6 +4,7 @@
   "extends": "../../tsconfig.base.json",
   "compileOnSave": false,
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noImplicitReturns": true,

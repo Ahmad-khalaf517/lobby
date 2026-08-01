@@ -17,6 +17,9 @@ build/
 # logs
 *.log
 
+# TypeScript incremental/composite artifacts
+*.tsbuildinfo
+
 # editor
 .vscode/*
 !.vscode/extensions.json

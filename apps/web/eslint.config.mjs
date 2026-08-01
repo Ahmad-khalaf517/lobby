@@ -1,6 +1,5 @@
 // @ts-check
 import rootConfig from '../../eslint.config.js';
-import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
@@ -11,23 +10,15 @@ export default tseslint.config(
   {
     files: ['**/*.ts'],
     languageOptions: {
-      globals: {
-        ...globals.node,
-        ...globals.jest,
-      },
-      sourceType: 'commonjs',
       parserOptions: {
         projectService: false,
-        project: ['./tsconfig.json', '../../packages/shared/tsconfig.json'],
+        project: [
+          './tsconfig.app.json',
+          './tsconfig.spec.json',
+          '../../packages/shared/tsconfig.json',
+        ],
         tsconfigRootDir: import.meta.dirname,
       },
-    },
-  },
-  {
-    files: ['**/*.ts'],
-    rules: {
-      '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn',
     },
   },
 );

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { CreateChannelRequestSchema } from '@lobby/shared';
 import { ChannelRepository } from '../database/channel.repository';
 
@@ -9,6 +9,10 @@ export class ChannelsController {
   @Post()
   create(@Body() body: unknown) {
     const { name } = CreateChannelRequestSchema.parse(body);
+    if (!name) {
+      throw new BadRequestException('name is required');
+    }
+
     return this.channels.createChannel(name);
   }
 

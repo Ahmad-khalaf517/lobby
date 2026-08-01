@@ -13,7 +13,7 @@ import { toChannel, toMessage, toMessages } from './mappers';
 export class ChannelRepository {
   constructor(private readonly supabase: SupabaseService) {}
 
-  async createChannel(name?: string, ttlHours = 24): Promise<Channel> {
+  async createChannel(name: string, ttlHours = 24): Promise<Channel> {
     const { data, error } = await this.supabase.client
       .from('channels')
       .insert({

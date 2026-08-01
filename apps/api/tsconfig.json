@@ -12,8 +12,14 @@
     "allowSyntheticDefaultImports": true,
     "target": "ES2023",
     "sourceMap": true,
+    "rootDir": "./src",
     "outDir": "./dist",
     "incremental": true,
+    // Keep the incremental cache inside outDir so nest-cli's deleteOutDir
+    // wipes it together with dist/ — otherwise, after dist/ is deleted, tsc
+    // sees unchanged sources against a still-valid cache and skips emitting
+    // anything, leaving dist/ empty (a real, 100%-reproducible bug we hit).
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   }
