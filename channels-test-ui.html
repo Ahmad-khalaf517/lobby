@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discord-Clone · UI mockups</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  body { font-family: 'Inter', system-ui, sans-serif; }
+  [data-lucide] { width: 1em; height: 1em; stroke-width: 1.75; }
+</style>
+</head>
+
+<body class="bg-[#08080b] text-zinc-100 antialiased">
+
+<div class="mx-auto max-w-5xl px-6 py-12 space-y-16">
+
+  <header class="space-y-2">
+    <h1 class="text-2xl font-medium tracking-tight">Discord-Clone · UI mockups</h1>
+    <p class="text-sm text-zinc-500">Tailwind CSS + Lucide icons + Inter. Open this file in any browser — no build step.</p>
+  </header>
+
+  <!-- ============ 1. LANDING ============ -->
+  <section class="space-y-4">
+    <div class="flex items-center gap-3">
+      <span class="text-xs font-medium text-violet-400 bg-violet-500/10 border border-violet-500/20 rounded-md px-2 py-1">01</span>
+      <h2 class="text-base font-medium">Landing · name entry</h2>
+    </div>
+
+    <div class="rounded-2xl border border-zinc-800/80 bg-[#0a0a0e] p-10 flex justify-center">
+      <div class="w-[380px] flex flex-col items-center gap-7">
+
+        <div class="flex flex-col items-center gap-4">
+          <div class="w-13 h-13 p-3.5 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+            <i data-lucide="audio-lines" class="text-violet-400 text-2xl"></i>
+          </div>
+          <div class="text-center space-y-1.5">
+            <h3 class="text-[22px] font-medium tracking-tight text-zinc-50">Start talking in seconds</h3>
+            <p class="text-sm text-zinc-500 leading-relaxed">Create a room, share the link, and you're in.<br>No account, no setup.</p>
+          </div>
+        </div>
+
+        <div class="w-full rounded-2xl border border-zinc-800 bg-[#0f0f14] p-5 space-y-4">
+          <div class="space-y-2">
+            <label class="block text-xs text-zinc-500">Display name</label>
+            <input placeholder="Mohammad"
+              class="w-full h-11 rounded-xl bg-[#16161d] border border-zinc-800 px-3.5 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none focus:border-violet-500/50 transition">
+          </div>
+          <button class="w-full h-11 rounded-xl bg-violet-500 hover:bg-violet-400 text-violet-950 text-sm font-medium flex items-center justify-center gap-2 transition">
+            <i data-lucide="plus" class="text-[17px]"></i> Create a room
+          </button>
+        </div>
+
+        <div class="w-full flex items-center gap-3">
+          <div class="flex-1 h-px bg-zinc-800"></div>
+          <span class="text-xs text-zinc-600">or join one</span>
+          <div class="flex-1 h-px bg-zinc-800"></div>
+        </div>
+
+        <div class="w-full flex gap-2">
+          <input placeholder="Enter room code"
+            class="flex-1 h-11 rounded-xl bg-[#0f0f14] border border-zinc-800 px-3.5 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none focus:border-violet-500/50 transition">
+          <button class="h-11 px-5 rounded-xl bg-[#16161d] border border-zinc-800 hover:border-zinc-700 text-sm font-medium transition">Join</button>
+        </div>
+
+        <div class="flex items-center gap-2 text-xs text-zinc-600">
+          <i data-lucide="lock" class="text-sm"></i> Rooms and messages expire automatically
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 2. CHANNEL ============ -->
+  <section class="space-y-4">
+    <div class="flex items-center gap-3">
+      <span class="text-xs font-medium text-violet-400 bg-violet-500/10 border border-violet-500/20 rounded-md px-2 py-1">02</span>
+      <h2 class="text-base font-medium">Channel · chat, typing indicator, members</h2>
+    </div>
+
+    <div class="rounded-2xl border border-zinc-800/80 overflow-hidden flex h-[420px]">
+
+      <aside class="w-52 bg-[#0d0d11] border-r border-zinc-800/80 p-4 flex flex-col gap-5">
+        <div class="space-y-2">
+          <p class="text-sm font-medium text-zinc-50">Frontend sprint</p>
+          <button class="inline-flex items-center gap-1.5 bg-[#16161d] rounded-md px-2 py-1 text-[11px] text-zinc-400 font-mono hover:text-zinc-200 transition">
+            LBY-7X3Q <i data-lucide="copy" class="text-xs"></i>
+          </button>
+        </div>
+
+        <div class="space-y-2.5">
+          <p class="text-[11px] tracking-wide text-zinc-600">IN THIS ROOM · 4</p>
+          <div class="space-y-0.5">
+
+            <div class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-[#16161d]">
+              <div class="relative">
+                <div class="w-7 h-7 rounded-[10px] bg-violet-500 text-violet-950 text-[11px] font-medium grid place-items-center">MH</div>
+                <span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#0d0d11]"></span>
+              </div>
+              <span class="text-[13px] text-zinc-100">Mohammad</span>
+            </div>
+
+            <div class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-[#131318] transition">
+              <div class="relative">
+                <div class="w-7 h-7 rounded-[10px] bg-emerald-400 text-emerald-950 text-[11px] font-medium grid place-items-center">NA</div>
+                <span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#0d0d11]"></span>
+              </div>
+              <span class="text-[13px] text-zinc-300">Nada</span>
+            </div>
+
+            <div class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-[#131318] transition">
+              <div class="w-7 h-7 rounded-[10px] bg-orange-400 text-orange-950 text-[11px] font-medium grid place-items-center">YA</div>
+              <span class="text-[13px] text-zinc-300">Youssef</span>
+              <i data-lucide="mic-off" class="ml-auto text-sm text-zinc-600"></i>
+            </div>
+
+            <div class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-[#131318] transition">
+              <div class="w-7 h-7 rounded-[10px] bg-pink-400 text-pink-950 text-[11px] font-medium grid place-items-center">LI</div>
+              <span class="text-[13px] text-zinc-300">Lina</span>
+            </div>
+
+          </div>
+        </div>
+
+        <button class="mt-auto h-9 rounded-xl border border-zinc-800 hover:border-zinc-700 text-[13px] text-zinc-300 flex items-center justify-center gap-2 transition">
+          <i data-lucide="link" class="text-base"></i> Copy invite
+        </button>
+      </aside>
+
+      <div class="flex-1 flex flex-col bg-[#0a0a0e]">
+
+        <div class="h-14 border-b border-zinc-800/80 flex items-center justify-between px-5">
+          <div>
+            <p class="text-sm font-medium text-zinc-50">Room chat</p>
+            <p class="text-[11px] text-zinc-600 mt-0.5">Messages clear when the room ends</p>
+          </div>
+          <button class="h-9 px-4 rounded-xl bg-violet-500 hover:bg-violet-400 text-violet-950 text-[13px] font-medium flex items-center gap-2 transition">
+            <i data-lucide="phone" class="text-base"></i> Start call
+          </button>
+        </div>
+
+        <div class="flex-1 p-5 flex flex-col gap-4 overflow-hidden">
+
+          <div class="flex gap-3">
+            <div class="w-8 h-8 shrink-0 rounded-[11px] bg-emerald-400 text-emerald-950 text-xs font-medium grid place-items-center">NA</div>
+            <div>
+              <div class="flex items-baseline gap-2">
+                <span class="text-[13px] font-medium text-zinc-50">Nada</span>
+                <span class="text-[11px] text-zinc-600">7:18 PM</span>
+              </div>
+              <p class="text-sm text-zinc-300 mt-1 leading-relaxed">The room link worked, I joined without an account.</p>
+            </div>
+          </div>
+
+          <div class="flex gap-3">
+            <div class="w-8 h-8 shrink-0 rounded-[11px] bg-orange-400 text-orange-950 text-xs font-medium grid place-items-center">YA</div>
+            <div>
+              <div class="flex items-baseline gap-2">
+                <span class="text-[13px] font-medium text-zinc-50">Youssef</span>
+                <span class="text-[11px] text-zinc-600">7:19 PM</span>
+              </div>
+              <p class="text-sm text-zinc-300 mt-1 leading-relaxed">Perfect, share your screen when you're ready.</p>
+            </div>
+          </div>
+
+          <div class="mt-auto flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-[11px] bg-violet-500 text-violet-950 text-xs font-medium grid place-items-center">MH</div>
+            <span class="text-xs text-zinc-500">Mohammad is typing<span class="animate-pulse">…</span></span>
+          </div>
+
+        </div>
+
+        <div class="px-5 pb-5 pt-3.5">
+          <div class="h-11 rounded-2xl bg-[#0f0f14] border border-zinc-800 flex items-center pl-4 pr-2 gap-2.5">
+            <span class="flex-1 text-sm text-zinc-600">Message the room</span>
+            <button aria-label="Send" class="w-8 h-8 rounded-[10px] bg-violet-500 hover:bg-violet-400 grid place-items-center transition">
+              <i data-lucide="arrow-up" class="text-violet-950 text-[17px]"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3. ACTIVE CALL ============ -->
+  <section class="space-y-4">
+    <div class="flex items-center gap-3">
+      <span class="text-xs font-medium text-violet-400 bg-violet-500/10 border border-violet-500/20 rounded-md px-2 py-1">03</span>
+      <h2 class="text-base font-medium">Active voice call</h2>
+    </div>
+
+    <div class="rounded-2xl border border-zinc-800/80 bg-[#0a0a0e] p-6">
+
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <p class="text-[15px] font-medium text-zinc-50">Frontend sprint</p>
+          <div class="flex items-center gap-2 mt-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span class="text-xs text-zinc-500">4 connected · 12:04</span>
+          </div>
+        </div>
+        <button class="h-8 px-3 rounded-[10px] bg-[#0f0f14] border border-zinc-800 hover:border-zinc-700 text-xs text-zinc-300 flex items-center gap-1.5 transition">
+          <i data-lucide="user-plus" class="text-[15px]"></i> Invite
+        </button>
+      </div>
+
+      <div class="grid grid-cols-4 gap-3 mb-6">
+
+        <div class="rounded-2xl bg-[#0f0f14] border-[1.5px] border-violet-500 pt-5 pb-3.5 flex flex-col items-center gap-3">
+          <div class="w-13 h-13 p-3.5 rounded-[18px] bg-violet-500 text-violet-950 text-base font-medium grid place-items-center">MH</div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs text-zinc-100">Mohammad</span>
+            <span class="text-[11px] text-zinc-500">(you)</span>
+          </div>
+          <div class="flex items-end gap-0.5 h-2.5">
+            <span class="w-0.5 h-1.5 rounded-sm bg-violet-400"></span>
+            <span class="w-0.5 h-2.5 rounded-sm bg-violet-400"></span>
+            <span class="w-0.5 h-2 rounded-sm bg-violet-400"></span>
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-[#0f0f14] border border-zinc-800 pt-5 pb-3.5 flex flex-col items-center gap-3">
+          <div class="w-13 h-13 p-3.5 rounded-[18px] bg-emerald-400 text-emerald-950 text-base font-medium grid place-items-center">NA</div>
+          <span class="text-xs text-zinc-300">Nada</span>
+          <div class="h-2.5"></div>
+        </div>
+
+        <div class="relative rounded-2xl bg-[#0f0f14] border border-zinc-800 pt-5 pb-3.5 flex flex-col items-center gap-3">
+          <div class="w-13 h-13 p-3.5 rounded-[18px] bg-orange-400 text-orange-950 text-base font-medium grid place-items-center">YA</div>
+          <span class="text-xs text-zinc-300">Youssef</span>
+          <div class="h-2.5"></div>
+          <div class="absolute top-3 right-3 w-5.5 h-5.5 p-1 rounded-lg bg-red-500/15 grid place-items-center">
+            <i data-lucide="mic-off" class="text-[13px] text-red-400"></i>
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-[#0f0f14] border border-zinc-800 pt-5 pb-3.5 flex flex-col items-center gap-3">
+          <div class="w-13 h-13 p-3.5 rounded-[18px] bg-pink-400 text-pink-950 text-base font-medium grid place-items-center">LI</div>
+          <span class="text-xs text-zinc-300">Lina</span>
+          <div class="h-2.5"></div>
+        </div>
+
+      </div>
+
+      <div class="flex justify-center">
+        <div class="flex items-center gap-2 bg-[#0f0f14] border border-zinc-800 rounded-[18px] p-2">
+          <button aria-label="Mute" class="w-10.5 h-10.5 p-2.5 rounded-[13px] bg-[#16161d] hover:bg-[#1c1c24] grid place-items-center transition">
+            <i data-lucide="mic" class="text-[19px] text-zinc-100"></i>
+          </button>
+          <button aria-label="Share screen" class="w-10.5 h-10.5 p-2.5 rounded-[13px] bg-[#16161d] hover:bg-[#1c1c24] grid place-items-center transition">
+            <i data-lucide="screen-share" class="text-[19px] text-zinc-100"></i>
+          </button>
+          <button aria-label="Room chat" class="w-10.5 h-10.5 p-2.5 rounded-[13px] bg-[#16161d] hover:bg-[#1c1c24] grid place-items-center transition">
+            <i data-lucide="message-circle" class="text-[19px] text-zinc-100"></i>
+          </button>
+          <div class="w-px h-6 bg-zinc-800 mx-1"></div>
+          <button class="h-10.5 px-4 rounded-[13px] bg-red-500 hover:bg-red-400 text-white text-[13px] font-medium flex items-center gap-2 transition">
+            <i data-lucide="phone-off" class="text-[17px]"></i> Leave
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ 4. SCREEN SHARE ============ -->
+  <section class="space-y-4">
+    <div class="flex items-center gap-3">
+      <span class="text-xs font-medium text-violet-400 bg-violet-500/10 border border-violet-500/20 rounded-md px-2 py-1">04</span>
+      <h2 class="text-base font-medium">Screen sharing · presenter view</h2>
+    </div>
+
+    <div class="rounded-2xl border border-zinc-800/80 bg-[#0a0a0e] p-5">
+
+      <div class="flex items-center justify-between mb-3.5">
+        <div class="flex items-center gap-2.5">
+          <span class="flex items-center gap-1.5 bg-violet-500/10 border border-violet-500/20 rounded-lg px-2.5 py-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-violet-400"></span>
+            <span class="text-[11px] font-medium text-violet-400">Presenting</span>
+          </span>
+          <span class="text-xs text-zinc-500">Mohammad · localhost:4200</span>
+        </div>
+        <span class="text-xs text-zinc-600">4 watching</span>
+      </div>
+
+      <div class="h-52 rounded-2xl bg-[#0f0f14] border border-zinc-800 flex flex-col items-center justify-center gap-3 mb-3.5">
+        <div class="w-14 h-14 p-4 rounded-[18px] bg-[#16161d] grid place-items-center">
+          <i data-lucide="monitor" class="text-2xl text-violet-400"></i>
+        </div>
+        <p class="text-sm font-medium text-zinc-50">Your screen is visible to the room</p>
+        <p class="text-xs text-zinc-600">Sharing a browser tab · audio included</p>
+      </div>
+
+      <div class="flex gap-2.5 mb-4">
+        <div class="flex-1 rounded-[13px] bg-[#0f0f14] border-[1.5px] border-violet-500 py-3 flex flex-col items-center gap-2">
+          <div class="w-8 h-8 rounded-[11px] bg-violet-500 text-violet-950 text-xs font-medium grid place-items-center">MH</div>
+          <span class="text-[11px] text-zinc-100">Mohammad</span>
+        </div>
+        <div class="flex-1 rounded-[13px] bg-[#0f0f14] border border-zinc-800 py-3 flex flex-col items-center gap-2">
+          <div class="w-8 h-8 rounded-[11px] bg-emerald-400 text-emerald-950 text-xs font-medium grid place-items-center">NA</div>
+          <span class="text-[11px] text-zinc-300">Nada</span>
+        </div>
+        <div class="relative flex-1 rounded-[13px] bg-[#0f0f14] border border-zinc-800 py-3 flex flex-col items-center gap-2">
+          <div class="w-8 h-8 rounded-[11px] bg-orange-400 text-orange-950 text-xs font-medium grid place-items-center">YA</div>
+          <span class="text-[11px] text-zinc-300">Youssef</span>
+          <i data-lucide="mic-off" class="absolute top-2 right-2.5 text-[13px] text-red-400"></i>
+        </div>
+        <div class="flex-1 rounded-[13px] bg-[#0f0f14] border border-zinc-800 py-3 flex flex-col items-center gap-2">
+          <div class="w-8 h-8 rounded-[11px] bg-pink-400 text-pink-950 text-xs font-medium grid place-items-center">LI</div>
+          <span class="text-[11px] text-zinc-300">Lina</span>
+        </div>
+      </div>
+
+      <div class="flex justify-center">
+        <div class="flex items-center gap-2 bg-[#0f0f14] border border-zinc-800 rounded-[18px] p-2">
+          <button aria-label="Mute" class="w-10.5 h-10.5 p-2.5 rounded-[13px] bg-[#16161d] hover:bg-[#1c1c24] grid place-items-center transition">
+            <i data-lucide="mic" class="text-[19px] text-zinc-100"></i>
+          </button>
+          <button class="h-10.5 px-4 rounded-[13px] bg-violet-500/10 border border-violet-500/25 text-violet-300 text-[13px] font-medium flex items-center gap-2 hover:bg-violet-500/15 transition">
+            <i data-lucide="square" class="text-[17px]"></i> Stop sharing
+          </button>
+          <div class="w-px h-6 bg-zinc-800 mx-1"></div>
+          <button class="h-10.5 px-4 rounded-[13px] bg-red-500 hover:bg-red-400 text-white text-[13px] font-medium flex items-center gap-2 transition">
+            <i data-lucide="phone-off" class="text-[17px]"></i> Leave
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</div>
+
+<script>
+  lucide.createIcons();
+</script>
+
+</body>
+</html>
