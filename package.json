@@ -1,14 +1,16 @@
 {
   "name": "lobby",
   "private": true,
+  "type": "module",
   "engines": {
     "node": ">=20",
     "pnpm": ">=9"
   },
   "scripts": {
-    "dev": "pnpm --parallel --filter=./apps/* dev",
+    "dev": "pnpm --parallel --filter=./packages/* --filter=./apps/* dev",
     "dev:api": "pnpm --filter api dev",
     "dev:web": "pnpm --filter web dev",
+    "dev:shared": "pnpm --filter @lobby/shared dev",
     "build": "pnpm --filter @lobby/shared build && pnpm --filter api build && pnpm --filter web build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

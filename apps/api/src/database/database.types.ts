@@ -6,52 +6,66 @@
  * boundary out of this folder must go through a mapper in ./mappers.ts —
  * a snake_case field should never reach apps/web.
  *
+ * Declared with `type`, not `interface`: @supabase/postgrest-js's generic
+ * constraints require each Row/Insert/Update to structurally satisfy
+ * `Record<string, unknown>`, which plain `interface` declarations don't
+ * (they lack the implicit index signature `type` object literals get) —
+ * using `interface` here silently collapses every query's payload type to
+ * `never`. This is also why `supabase gen types typescript` itself always
+ * emits `type`, never `interface`.
+ *
  * You can regenerate this file from your live schema instead of hand-editing:
  *   pnpm dlx supabase gen types typescript --project-id <your-id> > database.types.ts
  */
 
-export interface ChannelRow {
+export type ChannelRow = {
   id: string;
   name: string;
   created_at: string;
   expires_at: string | null;
-}
+};
 
-export interface MessageRow {
+export type MessageRow = {
   id: string;
   channel_id: string;
   author_name: string;
   text: string;
   created_at: string;
-}
+};
 
 /** Insert shapes — columns with database defaults are omitted. */
-export interface ChannelInsert {
+export type ChannelInsert = {
   id: string;
   name: string;
   expires_at?: string | null;
-}
+};
 
-export interface MessageInsert {
+export type MessageInsert = {
   channel_id: string;
   author_name: string;
   text: string;
-}
+};
 
 /** Typed Supabase client schema, so `.from('channels')` is type-checked. */
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       channels: {
         Row: ChannelRow;
         Insert: ChannelInsert;
         Update: Partial<ChannelInsert>;
+        Relationships: [];
       };
       messages: {
         Row: MessageRow;
         Insert: MessageInsert;
         Update: Partial<MessageInsert>;
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
-}
+};

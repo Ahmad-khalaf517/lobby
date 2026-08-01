@@ -45,11 +45,7 @@ export class ChannelRepository {
    * the same id and timestamp the database assigned, rather than each one
    * generating its own.
    */
-  async addMessage(
-    channelId: string,
-    authorName: string,
-    text: string,
-  ): Promise<Message> {
+  async addMessage(channelId: string, authorName: string, text: string): Promise<Message> {
     const { data, error } = await this.supabase.client
       .from('messages')
       .insert({ channel_id: channelId, author_name: authorName, text })
@@ -75,10 +71,7 @@ export class ChannelRepository {
 
   /** Messages cascade automatically via the foreign key. */
   async deleteChannel(id: string): Promise<void> {
-    const { error } = await this.supabase.client
-      .from('channels')
-      .delete()
-      .eq('id', id);
+    const { error } = await this.supabase.client.from('channels').delete().eq('id', id);
     if (error) throw error;
   }
 }

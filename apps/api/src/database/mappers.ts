@@ -28,7 +28,5 @@ export function toMessage(row: MessageRow): Message {
   };
 }
 
-export const toChannels = (rows: ChannelRow[]): Channel[] =>
-  rows.map(toChannel);
-export const toMessages = (rows: MessageRow[]): Message[] =>
-  rows.map(toMessage);
+export const toChannels = (rows: ChannelRow[]): Channel[] => rows.map(toChannel);
+export const toMessages = (rows: MessageRow[]): Message[] => rows.map(toMessage);

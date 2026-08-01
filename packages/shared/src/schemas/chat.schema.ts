@@ -19,7 +19,9 @@ export const MessageSchema = z.object({
   channelId: z.string(),
   authorName: z.string(),
   text: z.string(),
-  createdAt: z.string().datetime(),
+  // { offset: true } — Supabase/PostgREST serializes timestamptz as
+  // "...+00:00", not the "Z" suffix z.string().datetime() requires by default.
+  createdAt: z.string().datetime({ offset: true }),
 });
 export type Message = z.infer<typeof MessageSchema>;
 
