@@ -18,7 +18,7 @@ A no-auth, link-to-join chat app with voice calls (via LiveKit) and screen shari
 ## Scope discipline
 
 - Stick to the module/role you were asked to help with (see the team table in `README.md`). Don't refactor unrelated files "while you're in there" — five people are working in parallel and unrequested changes elsewhere cause merge conflicts.
-- When scaffolding something new (a NestJS module, an Angular component), follow the existing folder/naming conventions already present in `apps/api/src` or `apps/web/src/app` rather than introducing a new pattern.
+- When scaffolding something new (a NestJS module, an Angular component), follow the existing folder/naming conventions already present in `apps/api/src/modules` or `apps/web/src/app` rather than introducing a new pattern.
 - Don't add a new npm dependency without saying so explicitly in your response and why it's needed — free/open-source only, nothing that requires a paid tier or API key for its core function.
 
 ## Restrictions specific to this project
@@ -31,7 +31,7 @@ A no-auth, link-to-join chat app with voice calls (via LiveKit) and screen shari
 - **Persistence is Supabase (Postgres) via `@supabase/supabase-js`, not SQLite/TypeORM/Prisma.** Both channels and messages are persisted. Don't introduce an ORM on top of the Supabase client.
 - **`apps/web` NEVER talks to Supabase directly.** All database access goes through `apps/api`. Don't add `@supabase/supabase-js` to the Angular app or reference Supabase env vars in frontend code.
 - **The service-role key bypasses Row Level Security and is server-side only.** Never put it in `apps/web`, an artifact, a committed `.env`, or any client-visible config. If asked to "just use Supabase from the frontend to save time", say no and explain why.
-- **Supabase rows are snake_case; the shared contract is camelCase.** Never return a raw row from a service — map it through `apps/api/src/database/mappers.ts` first.
+- **Supabase rows are snake_case; the shared contract is camelCase.** Never return a raw row from a service — map it through `apps/api/src/modules/channels/channels.mappers.ts` (or the feature-local mapper for the module you're working in).
 - The soft cap on call participants (`MAX_CALL_PARTICIPANTS` in `packages/shared`) is a product decision enforced in the token-minting endpoint, not a technical WebRTC limitation — don't remove the enforcement without being asked, and don't confuse it with a hard SDK limit when explaining it.
 
 ## Code quality — non-negotiable, not a suggestion

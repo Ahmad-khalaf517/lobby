@@ -1,6 +1,6 @@
 # Event & Endpoint Contract
 
-This is the contract between `apps/api` and `apps/web`. Every event/endpoint here has a matching Zod schema in `packages/shared/src/schemas`. **Don't add or change an event/endpoint here without updating the corresponding schema in the same change, and vice versa.**
+This is the contract between `apps/api` and `apps/web`. Every event/endpoint here has a matching Zod schema in `packages/shared/src/schemas`. Runtime guards may be stricter than schema minimums for product behavior. **Don't add or change an event/endpoint here without updating the corresponding schema in the same change, and vice versa.**
 
 Lock this before parallel work starts (Day 1 morning) — see the project plan.
 
@@ -8,12 +8,12 @@ Calls (voice + screen share) are **not** part of the Socket.IO contract below �
 
 ## REST
 
-| Method & Path                   | Request     | Response                             | Schema                                                       |
-| ------------------------------- | ----------- | ------------------------------------ | ------------------------------------------------------------ |
-| `POST /channels`                | `{ name? }` | `{ id, name, createdAt, expiresAt }` | `CreateChannelRequestSchema` / `CreateChannelResponseSchema` |
-| `GET /channels/:id`             | —           | `{ id, name, createdAt, expiresAt }` | `ChannelSchema`                                              |
-| `GET /channels/:id/messages`    | —           | `{ messages: [...] }`                | `MessageHistorySchema`                                       |
-| `POST /channels/:id/call-token` | `{ name }`  | `{ token, livekitUrl, roomName }`    | `CallTokenRequestSchema` / `CallTokenResponseSchema`         |
+| Method & Path                   | Request    | Response                             | Schema                                                                          |
+| ------------------------------- | ---------- | ------------------------------------ | ------------------------------------------------------------------------------- |
+| `POST /channels`                | `{ name }` | `{ id, name, createdAt, expiresAt }` | `CreateChannelRequestSchema` + controller guard / `CreateChannelResponseSchema` |
+| `GET /channels/:id`             | —          | `{ id, name, createdAt, expiresAt }` | `ChannelSchema`                                                                 |
+| `GET /channels/:id/messages`    | —          | `{ messages: [...] }`                | `MessageHistorySchema`                                                          |
+| `POST /channels/:id/call-token` | `{ name }` | `{ token, livekitUrl, roomName }`    | `CallTokenRequestSchema` / `CallTokenResponseSchema`                            |
 
 ## Socket.IO — Client → Server
 

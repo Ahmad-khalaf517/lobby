@@ -17,7 +17,7 @@ import {
   TypingPayloadSchema,
   type Member,
 } from '@lobby/shared';
-import { ChannelRepository } from '../database/channel.repository';
+import { ChannelsService } from '../channels/channels.service';
 
 /**
  * cors: { origin: true } reflects whatever Origin the client sent (including
@@ -43,7 +43,7 @@ export class ChannelGateway implements OnGatewayDisconnect {
   /** socketId -> channelId, so disconnect/leave cleanup doesn't scan every channel. */
   private readonly socketChannel = new Map<string, string>();
 
-  constructor(private readonly channels: ChannelRepository) {}
+  constructor(private readonly channels: ChannelsService) {}
 
   @SubscribeMessage(SOCKET_EVENTS.JOIN_CHANNEL)
   async handleJoinChannel(

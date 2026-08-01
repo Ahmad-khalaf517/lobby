@@ -1,10 +1,10 @@
 import { BadRequestException, Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { CreateChannelRequestSchema } from '@lobby/shared';
-import { ChannelRepository } from '../database/channel.repository';
+import { ChannelsService } from './channels.service';
 
 @Controller('channels')
 export class ChannelsController {
-  constructor(private readonly channels: ChannelRepository) {}
+  constructor(private readonly channels: ChannelsService) {}
 
   @Post()
   create(@Body() body: unknown) {

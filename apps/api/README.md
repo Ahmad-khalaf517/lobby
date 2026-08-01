@@ -1,13 +1,15 @@
 # apps/api (NestJS)
 
-This folder is a placeholder wired into the pnpm workspace and the shared package. Scaffold the real NestJS app here using the official CLI rather than hand-writing the boilerplate:
+This is the NestJS backend app for the project. It handles REST + Socket.IO for channels/chat/presence and mints LiveKit call tokens.
+
+If you ever need to re-scaffold from scratch, use:
 
 ```bash
 cd apps/api
 pnpm dlx @nestjs/cli new . --skip-git --package-manager pnpm
 ```
 
-After scaffolding:
+After re-scaffolding:
 
 1. **Merge, don't overwrite,** the generated `package.json` with this folder's existing one — keep the `@lobby/shared` dependency and the `dev`/`build`/`lint` scripts already defined.
 2. **Merge** the generated `tsconfig.json` with the one already here — keep `extends: "../../tsconfig.base.json"` so this app inherits the shared strict TS settings instead of Nest's defaults.
@@ -22,11 +24,11 @@ After scaffolding:
 
 ## What goes where once scaffolded
 
-| Folder          | Owner (see root README team table) | Contents                                                           |
-| --------------- | ---------------------------------- | ------------------------------------------------------------------ |
-| `src/channels/` | Backend — Core Gateway             | REST: create/join channel, message history                         |
-| `src/database/` | Backend — Core Gateway             | Supabase client, row types, mappers, repository (already provided) |
-| `src/gateway/`  | Backend — Core Gateway             | Socket.IO gateway: chat, typing, presence                          |
-| `src/calls/`    | Backend — Infra                    | REST endpoint that mints LiveKit access tokens                     |
+| Folder                  | Owner (see root README team table) | Contents                                                          |
+| ----------------------- | ---------------------------------- | ----------------------------------------------------------------- |
+| `src/modules/channels/` | Backend — Core Gateway             | REST controller + service + repository + mappers for channel flow |
+| `src/modules/database/` | Backend — Core Gateway             | Shared DB infra only (Supabase client + row types)                |
+| `src/modules/gateway/`  | Backend — Core Gateway             | Socket.IO gateway: chat, typing, presence                         |
+| `src/modules/calls/`    | Backend — Infra                    | REST endpoint that mints LiveKit access tokens (planned module)   |
 
 Every payload in and out of this app should be validated against a schema from `@lobby/shared` — see `CLAUDE.md` at the repo root for the rule and `docs/EVENT_CONTRACT.md` for the full event/endpoint list.

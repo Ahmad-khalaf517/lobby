@@ -1,13 +1,15 @@
 # apps/web (Angular)
 
-This folder is a placeholder wired into the pnpm workspace and the shared package. Scaffold the real Angular app here using the official CLI rather than hand-writing the boilerplate:
+This is the Angular frontend app for the project. It handles channel/chat UI plus LiveKit voice/screen-share UX.
+
+If you ever need to re-scaffold from scratch, use:
 
 ```bash
 cd apps/web
 pnpm dlx @angular/cli new . --skip-git --package-manager pnpm --style scss --routing
 ```
 
-After scaffolding:
+After re-scaffolding:
 
 1. **Merge, don't overwrite,** the generated `package.json` with this folder's existing one — keep the `@lobby/shared` dependency and the `dev`/`build`/`lint`/`test` scripts already defined (Angular's `ng serve`/`ng build`/`ng test` are already mapped to them).
 2. **Merge** the generated `tsconfig.json` with the one already here — keep `extends: "../../tsconfig.base.json"`.
@@ -34,4 +36,4 @@ Every payload sent to or received from `apps/api` should be typed/validated agai
 
 ## Building without waiting on the backend
 
-`@lobby/shared/mocks` exports fixture data (`mockChannel`, `mockMembers`, `mockChatMessages`, `mockCallTokenResponse`) matching the real schemas. Use these to build and demo components before `apps/api`'s corresponding endpoint/event exists — see the root `docs/ARCHITECTURE.md` "Parallel development" section.
+`@lobby/shared/mocks` exports fixture data (`mockChannel`, `mockMembers`, `mockMessages`, `mockCallTokenResponse`) matching the real schemas. Use these to build and demo components before `apps/api`'s corresponding endpoint/event exists — see the root `docs/ARCHITECTURE.md` "Parallel development" section.
