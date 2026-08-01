@@ -7,7 +7,8 @@ lobby/
 ├── apps/
 │   ├── api/                          # NestJS
 │   │   ├── src/
-│   │   │   ├── channels/             # REST: create/join channel, persistence
+│   │   │   ├── channels/             # REST: create/join channel, message history
+│   │   ├── database/             # Supabase client, row types, mappers, repository
 │   │   │   ├── gateway/              # Socket.IO gateway: chat, typing, presence
 │   │   │   ├── calls/                # REST: mints LiveKit access tokens
 │   │   │   └── main.ts
@@ -83,10 +84,10 @@ Two structurally different real-time paths exist in this app — don't conflate 
 ### 1. Application events (chat, typing, presence) — via Socket.IO, through apps/api
 
 ```
-Angular (apps/web) <──Socket.IO──> NestJS (apps/api) <──> SQLite (channel metadata only)
+Angular (apps/web) <──Socket.IO──> NestJS (apps/api) <──> Supabase (channels + messages)
 ```
 
-NestJS is an active participant here: it stores/broadcasts chat, typing state, and presence. Every payload is validated against a `packages/shared` schema on both ends.
+NestJS is an active participant here: it persists chat to Supabase and broadcasts the stored row, and tracks typing state and presence in memory. Every payload is validated against a `packages/shared` schema on both ends.
 
 ### 2. Voice calls + screen share — via LiveKit, NOT through Socket.IO
 
@@ -100,6 +101,7 @@ Angular (apps/web) ──REST──> NestJS (apps/api) ──mints token──> 
 ```
 
 The flow, step by step:
+
 1. Angular calls `POST /channels/:channelId/call-token` on NestJS with the participant's name.
 2. NestJS uses `livekit-server-sdk` to mint a short-lived access token scoped to a room named after the channel, and returns `{ token, livekitUrl, roomName }` (see `CallTokenResponseSchema`).
 3. Angular connects directly to LiveKit Cloud using `livekit-client`'s `Room.connect(livekitUrl, token)` — NestJS is not involved from this point on.

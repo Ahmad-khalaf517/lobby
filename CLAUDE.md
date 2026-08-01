@@ -28,7 +28,10 @@ A no-auth, link-to-join chat app with voice calls (via LiveKit) and screen shari
 - **`apps/api` never touches call media**, only issues short-lived LiveKit access tokens via REST. There is no socket event for joining a call — don't add one.
 - **Use LiveKit Cloud's free "Build" tier**, not self-hosted — this project intentionally avoids operating its own media server. Don't add coturn, mediasoup, or a self-hosted LiveKit deployment unless explicitly asked.
 - **No authentication system** — display name + channel link only. Don't add login/JWT-for-users/session auth unless explicitly asked to change this. (The LiveKit access token is a call-specific credential, not a user auth system — don't conflate the two.)
-- Chat history is in-memory/session-scoped by design; only channel metadata (id, name, createdAt) is persisted to SQLite. Don't silently expand what's persisted.
+- **Persistence is Supabase (Postgres) via `@supabase/supabase-js`, not SQLite/TypeORM/Prisma.** Both channels and messages are persisted. Don't introduce an ORM on top of the Supabase client.
+- **`apps/web` NEVER talks to Supabase directly.** All database access goes through `apps/api`. Don't add `@supabase/supabase-js` to the Angular app or reference Supabase env vars in frontend code.
+- **The service-role key bypasses Row Level Security and is server-side only.** Never put it in `apps/web`, an artifact, a committed `.env`, or any client-visible config. If asked to "just use Supabase from the frontend to save time", say no and explain why.
+- **Supabase rows are snake_case; the shared contract is camelCase.** Never return a raw row from a service — map it through `apps/api/src/database/mappers.ts` first.
 - The soft cap on call participants (`MAX_CALL_PARTICIPANTS` in `packages/shared`) is a product decision enforced in the token-minting endpoint, not a technical WebRTC limitation — don't remove the enforcement without being asked, and don't confuse it with a hard SDK limit when explaining it.
 
 ## Code quality — non-negotiable, not a suggestion

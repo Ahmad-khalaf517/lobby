@@ -1,6 +1,6 @@
 # Lobby
 
-A lightweight, no-auth, link-to-join chat + voice + screen-share app. NestJS backend, Angular frontend, shared contracts between them, built as a pnpm monorepo.
+**Drop in, talk, drop out.** A lightweight, no-auth, link-to-join chat + voice + screen-share app — rooms are temporary and expire on their own. NestJS backend, Angular frontend, shared contracts between them, built as a pnpm monorepo.
 
 ## Stack
 
@@ -8,7 +8,7 @@ A lightweight, no-auth, link-to-join chat + voice + screen-share app. NestJS bac
 - **Frontend:** Angular
 - **Real-time chat/presence:** Socket.IO (chat, presence, typing — calls do NOT go through this)
 - **Voice + screen share:** [LiveKit](https://livekit.io) (open-source SFU) — Cloud free tier
-- **DB:** SQLite + TypeORM (channel persistence only)
+- **DB:** Supabase (Postgres), via `@supabase/supabase-js` — channels + message history
 - **Shared contracts:** Zod schemas in `packages/shared`, used by both apps
 - **Package manager:** pnpm (workspaces)
 - **Code quality:** ESLint (flat config) + Prettier + Husky + lint-staged, enforced on commit
@@ -84,22 +84,22 @@ This is the part that matters most for a 5-person team on a tight budget:
 
 ## Where things live
 
-| I need to... | Go to |
-|---|---|
-| Add/change a chat, presence, or typing event | `packages/shared/src/schemas` + `packages/shared/src/constants/socket-events.ts`, then `docs/EVENT_CONTRACT.md` — **not** directly in `apps/api` or `apps/web` |
-| Add a NestJS module/gateway | `apps/api/src` |
-| Add an Angular component/service | `apps/web/src/app` |
-| Understand the overall data flow, including the LiveKit token flow | `docs/ARCHITECTURE.md` |
-| Understand what an AI assistant is/isn't allowed to touch | `CLAUDE.md` |
+| I need to...                                                       | Go to                                                                                                                                                          |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Add/change a chat, presence, or typing event                       | `packages/shared/src/schemas` + `packages/shared/src/constants/socket-events.ts`, then `docs/EVENT_CONTRACT.md` — **not** directly in `apps/api` or `apps/web` |
+| Add a NestJS module/gateway                                        | `apps/api/src`                                                                                                                                                 |
+| Add an Angular component/service                                   | `apps/web/src/app`                                                                                                                                             |
+| Understand the overall data flow, including the LiveKit token flow | `docs/ARCHITECTURE.md`                                                                                                                                         |
+| Understand what an AI assistant is/isn't allowed to touch          | `CLAUDE.md`                                                                                                                                                    |
 
 ## Team
 
-| Role | Owns |
-|---|---|
-| Backend — Core Gateway | `apps/api` chat/presence/typing/persistence |
-| Backend — Infra | `apps/api` LiveKit call-token endpoint, LiveKit Cloud project config, deployment |
-| Frontend — Chat & Channel UI | `apps/web` channel/chat/typing UI |
-| Frontend — Call UI | `apps/web` LiveKit `Room` integration, call controls |
-| Frontend — Screen Share & Polish | `apps/web` screen share, responsive/UI polish, testing |
+| Role                             | Owns                                                                             |
+| -------------------------------- | -------------------------------------------------------------------------------- |
+| Backend — Core Gateway           | `apps/api` chat/presence/typing, Supabase persistence                            |
+| Backend — Infra                  | `apps/api` LiveKit call-token endpoint, LiveKit Cloud project config, deployment |
+| Frontend — Chat & Channel UI     | `apps/web` channel/chat/typing UI                                                |
+| Frontend — Call UI               | `apps/web` LiveKit `Room` integration, call controls                             |
+| Frontend — Screen Share & Polish | `apps/web` screen share, responsive/UI polish, testing                           |
 
 See the project plan for the hour budget, schedule, and known risks.

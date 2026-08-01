@@ -1,11 +1,13 @@
 import { z } from 'zod';
 import { MAX_CHANNEL_NAME_LENGTH, MAX_NAME_LENGTH } from '../constants/limits.js';
 
-/** A persisted channel record (matches the SQLite row in apps/api). */
+/** A persisted channel record (matches the `channels` row in Supabase). */
 export const ChannelSchema = z.object({
   id: z.string(),
   name: z.string().min(1).max(MAX_CHANNEL_NAME_LENGTH),
   createdAt: z.string().datetime(),
+  /** When the room and its messages expire. Null means no expiry. */
+  expiresAt: z.string().datetime().nullable(),
 });
 export type Channel = z.infer<typeof ChannelSchema>;
 
