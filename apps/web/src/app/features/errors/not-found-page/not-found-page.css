@@ -1,0 +1,45 @@
+:host {
+  display: block;
+}
+
+.not-found-door {
+  animation: door-float 5s ease-in-out infinite;
+}
+
+.not-found-orbit {
+  animation: orbit-float 7s ease-in-out infinite;
+}
+
+.not-found-orbit-delayed {
+  animation: orbit-float 8s ease-in-out infinite reverse;
+}
+
+@keyframes door-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes orbit-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(8px, -10px, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .not-found-door,
+  .not-found-orbit,
+  .not-found-orbit-delayed {
+    animation: none;
+  }
+}
