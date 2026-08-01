@@ -17,7 +17,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "pnpm -r test",
-    "prepare": "husky"
+    "prepare": "husky",
+    "web:ng": "docker compose exec web pnpm --dir apps/web exec ng"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",

@@ -65,3 +65,13 @@ body {
     background: transparent;
   }
 }
+
+@layer base {
+  ::selection {
+    @apply bg-primary/35 text-app-foreground;
+  }
+
+  ::-moz-selection {
+    @apply bg-primary/35 text-app-foreground;
+  }
+}
