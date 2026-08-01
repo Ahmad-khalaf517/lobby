@@ -1,3 +1,67 @@
-/* You can add global styles to this file, and also import other style files */
-
 @import 'tailwindcss';
+
+@theme {
+  --color-app-background: #0f1117;
+  --color-server-sidebar: #090b10;
+  --color-channel-sidebar: #151923;
+  --color-surface: #1c2230;
+  --color-surface-hover: #252c3a;
+  --color-app-border: #2b3342;
+
+  --color-primary: #7c5cfc;
+  --color-primary-hover: #6d4bed;
+
+  --color-app-foreground: #f4f7fb;
+  --color-app-muted: #9aa4b2;
+
+  --color-online: #22c55e;
+  --color-warning: #f59e0b;
+  --color-destructive: #ef4444;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-app-background);
+  color: var(--color-app-foreground);
+}
+
+@utility lobby-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #384153 transparent;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    min-height: 40px;
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background: #384153;
+    background-clip: content-box;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #4a5568;
+    background-clip: content-box;
+  }
+
+  &::-webkit-scrollbar-thumb:active {
+    background: #7c5cfc;
+    background-clip: content-box;
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
