@@ -1,0 +1,8 @@
+dist
+build
+node_modules
+coverage
+.angular
+pnpm-lock.yaml
+pnpm-workspace.yaml
+*.min.js
