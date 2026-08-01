@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lobby · Socket dev console</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4/dist/socket.io.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+      }
+      code,
+      pre,
+      textarea,
+      .mono {
+        font-family: 'JetBrains Mono', monospace;
+      }
+      [data-lucide] {
+        width: 1em;
+        height: 1em;
+        stroke-width: 1.75;
+      }
+    </style>
+  </head>
+
+  <body class="bg-[#08080b] text-zinc-100 antialiased">
+    <div class="mx-auto max-w-6xl px-6 py-10 space-y-6">
+      <header class="space-y-1">
+        <h1 class="text-xl font-medium tracking-tight">Socket dev console</h1>
+        <p class="text-sm text-zinc-500">
+          Emit client→server events, watch server→client events land. No build step — open this file
+          directly.
+        </p>
+      </header>
+
+      <!-- connection -->
+      <div
+        class="rounded-2xl border border-zinc-800 bg-[#0f0f14] p-4 flex flex-wrap items-end gap-3"
+      >
+        <div class="flex-1 min-w-[220px] space-y-1.5">
+          <label class="block text-xs text-zinc-500">Gateway URL</label>
+          <input
+            id="url"
+            value="http://localhost:3000"
+            class="w-full h-10 rounded-xl bg-[#16161d] border border-zinc-800 px-3 text-sm mono outline-none focus:border-violet-500/50 transition"
+          />
+        </div>
+        <button
+          id="connectBtn"
+          class="h-10 px-4 rounded-xl bg-violet-500 hover:bg-violet-400 text-violet-950 text-sm font-medium flex items-center gap-2 transition"
+        >
+          <i data-lucide="plug"></i> Connect
+        </button>
+        <div
+          class="flex items-center gap-2 h-10 px-3 rounded-xl bg-[#16161d] border border-zinc-800"
+        >
+          <span id="dot" class="w-2 h-2 rounded-full bg-zinc-600"></span>
+          <span id="status" class="text-xs text-zinc-400">disconnected</span>
+        </div>
+        <div
+          class="flex items-center gap-2 h-10 px-3 rounded-xl bg-[#16161d] border border-zinc-800"
+        >
+          <span class="text-xs text-zinc-500">socket</span>
+          <span id="sid" class="text-xs mono text-zinc-300">—</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- emitter -->
+        <div class="rounded-2xl border border-zinc-800 bg-[#0f0f14] p-5 space-y-4">
+          <div class="flex items-center gap-2">
+            <i data-lucide="arrow-up-right" class="text-violet-400"></i>
+            <h2 class="text-sm font-medium">Client → server</h2>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-1.5">
+              <label class="block text-xs text-zinc-500">Channel ID</label>
+              <input
+                id="channelId"
+                value="ch_demo123"
+                class="w-full h-10 rounded-xl bg-[#16161d] border border-zinc-800 px-3 text-sm mono outline-none focus:border-violet-500/50 transition"
+              />
+            </div>
+            <div class="space-y-1.5">
+              <label class="block text-xs text-zinc-500">Display name</label>
+              <input
+                id="name"
+                value="Tester"
+                class="w-full h-10 rounded-xl bg-[#16161d] border border-zinc-800 px-3 text-sm outline-none focus:border-violet-500/50 transition"
+              />
+            </div>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="block text-xs text-zinc-500">Event</label>
+            <select
+              id="event"
+              class="w-full h-10 rounded-xl bg-[#16161d] border border-zinc-800 px-3 text-sm mono outline-none focus:border-violet-500/50 transition"
+            >
+              <option value="joinChannel">joinChannel</option>
+              <option value="chatMessage">chatMessage</option>
+              <option value="typing">typing</option>
+              <option value="leaveChannel">leaveChannel</option>
+              <option value="__custom">— custom event —</option>
+            </select>
+          </div>
+
+          <div id="customWrap" class="space-y-1.5 hidden">
+            <label class="block text-xs text-zinc-500">Custom event name</label>
+            <input
+              id="customEvent"
+              placeholder="myNewEvent"
+              class="w-full h-10 rounded-xl bg-[#16161d] border border-zinc-800 px-3 text-sm mono outline-none focus:border-violet-500/50 transition"
+            />
+          </div>
+
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label class="block text-xs text-zinc-500">Payload (JSON)</label>
+              <button
+                id="resetPayload"
+                class="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-1 transition"
+              >
+                <i data-lucide="rotate-ccw" class="text-[13px]"></i> reset to template
+              </button>
+            </div>
+            <textarea
+              id="payload"
+              rows="7"
+              class="w-full rounded-xl bg-[#16161d] border border-zinc-800 p-3 text-[13px] leading-relaxed outline-none focus:border-violet-500/50 transition resize-y"
+            ></textarea>
+            <p id="jsonErr" class="text-xs text-red-400 hidden"></p>
+          </div>
+
+          <button
+            id="sendBtn"
+            class="w-full h-11 rounded-xl bg-violet-500 hover:bg-violet-400 disabled:opacity-40 disabled:cursor-not-allowed text-violet-950 text-sm font-medium flex items-center justify-center gap-2 transition"
+          >
+            <i data-lucide="send"></i> Emit event
+          </button>
+
+          <div class="pt-2 border-t border-zinc-800 space-y-2">
+            <p class="text-xs text-zinc-500">Quick actions</p>
+            <div class="flex flex-wrap gap-2">
+              <button
+                data-quick="join"
+                class="h-8 px-3 rounded-lg bg-[#16161d] border border-zinc-800 hover:border-zinc-700 text-xs transition"
+              >
+                Join channel
+              </button>
+              <button
+                data-quick="msg"
+                class="h-8 px-3 rounded-lg bg-[#16161d] border border-zinc-800 hover:border-zinc-700 text-xs transition"
+              >
+                Send "hello"
+              </button>
+              <button
+                data-quick="typeOn"
+                class="h-8 px-3 rounded-lg bg-[#16161d] border border-zinc-800 hover:border-zinc-700 text-xs transition"
+              >
+                Typing on
+              </button>
+              <button
+                data-quick="typeOff"
+                class="h-8 px-3 rounded-lg bg-[#16161d] border border-zinc-800 hover:border-zinc-700 text-xs transition"
+              >
+                Typing off
+              </button>
+              <button
+                data-quick="leave"
+                class="h-8 px-3 rounded-lg bg-[#16161d] border border-zinc-800 hover:border-zinc-700 text-xs transition"
+              >
+                Leave
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- log -->
+        <div class="rounded-2xl border border-zinc-800 bg-[#0f0f14] p-5 space-y-4 flex flex-col">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i data-lucide="activity" class="text-emerald-400"></i>
+              <h2 class="text-sm font-medium">Event log</h2>
+              <span id="count" class="text-xs text-zinc-600">0</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="flex items-center gap-1.5 text-xs text-zinc-500">
+                <input id="autoscroll" type="checkbox" checked class="accent-violet-500" />
+                autoscroll
+              </label>
+              <button
+                id="clearBtn"
+                class="h-8 px-3 rounded-lg bg-[#16161d] border border-zinc-800 hover:border-zinc-700 text-xs flex items-center gap-1.5 transition"
+              >
+                <i data-lucide="trash-2" class="text-[13px]"></i> Clear
+              </button>
+            </div>
+          </div>
+
+          <div id="log" class="flex-1 min-h-[420px] max-h-[560px] overflow-y-auto space-y-2 pr-1">
+            <p class="text-xs text-zinc-600 py-8 text-center">
+              Nothing yet — connect and emit an event.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <p class="text-xs text-zinc-600">
+        Server→client events are caught with <code class="text-zinc-500">socket.onAny()</code>, so
+        anything your gateway emits shows up here — including events that aren't in the contract
+        yet.
+      </p>
+    </div>
+
+    <script>
+      lucide.createIcons();
+
+      const TEMPLATES = {
+        joinChannel: (c, n) => ({ channelId: c, name: n }),
+        chatMessage: (c, n) => ({ channelId: c, name: n, text: 'hello from the dev console' }),
+        typing: (c, n) => ({ channelId: c, name: n, isTyping: true }),
+        leaveChannel: (c) => ({ channelId: c }),
+        __custom: () => ({}),
+      };
+
+      const $ = (id) => document.getElementById(id);
+      let socket = null;
+      let n = 0;
+
+      function fillTemplate() {
+        const ev = $('event').value;
+        const t = TEMPLATES[ev];
+        if (t)
+          $('payload').value = JSON.stringify(t($('channelId').value, $('name').value), null, 2);
+        $('customWrap').classList.toggle('hidden', ev !== '__custom');
+      }
+
+      function setStatus(text, color) {
+        $('status').textContent = text;
+        $('dot').className = 'w-2 h-2 rounded-full ' + color;
+      }
+
+      function add(dir, name, data) {
+        const empty = $('log').querySelector('p');
+        if (empty) empty.remove();
+
+        const out = dir === 'out';
+        const sys = dir === 'sys';
+        const accent = sys ? 'text-zinc-500' : out ? 'text-violet-400' : 'text-emerald-400';
+        const icon = sys ? 'info' : out ? 'arrow-up-right' : 'arrow-down-left';
+        const time = new Date().toLocaleTimeString();
+
+        const el = document.createElement('div');
+        el.className = 'rounded-xl bg-[#16161d] border border-zinc-800 p-3 space-y-2';
+        el.innerHTML = `
+    <div class="flex items-center gap-2">
+      <i data-lucide="${icon}" class="${accent} text-sm"></i>
+      <span class="text-[13px] mono ${accent}">${name}</span>
+      <span class="ml-auto text-[11px] text-zinc-600">${time}</span>
+    </div>
+    ${data === undefined ? '' : `<pre class="text-[12px] text-zinc-400 leading-relaxed whitespace-pre-wrap break-all">${JSON.stringify(data, null, 2)}</pre>`}
+  `;
+        $('log').appendChild(el);
+        lucide.createIcons();
+        $('count').textContent = ++n;
+        if ($('autoscroll').checked) $('log').scrollTop = $('log').scrollHeight;
+      }
+
+      $('connectBtn').addEventListener('click', () => {
+        if (socket && socket.connected) {
+          socket.disconnect();
+          return;
+        }
+
+        setStatus('connecting…', 'bg-amber-400');
+        socket = io($('url').value, { transports: ['websocket', 'polling'] });
+
+        socket.on('connect', () => {
+          setStatus('connected', 'bg-emerald-400');
+          $('sid').textContent = socket.id;
+          $('connectBtn').innerHTML = '<i data-lucide="unplug"></i> Disconnect';
+          lucide.createIcons();
+          add('sys', 'connected', { socketId: socket.id });
+        });
+
+        socket.on('disconnect', (reason) => {
+          setStatus('disconnected', 'bg-zinc-600');
+          $('sid').textContent = '—';
+          $('connectBtn').innerHTML = '<i data-lucide="plug"></i> Connect';
+          lucide.createIcons();
+          add('sys', 'disconnected', { reason });
+        });
+
+        socket.on('connect_error', (err) => {
+          setStatus('error', 'bg-red-400');
+          add('sys', 'connect_error', { message: err.message });
+        });
+
+        socket.onAny((event, ...args) => add('in', event, args.length > 1 ? args : args[0]));
+      });
+
+      $('sendBtn').addEventListener('click', () => {
+        $('jsonErr').classList.add('hidden');
+
+        if (!socket || !socket.connected) {
+          $('jsonErr').textContent = 'Not connected.';
+          $('jsonErr').classList.remove('hidden');
+          return;
+        }
+
+        let data;
+        try {
+          data = JSON.parse($('payload').value || '{}');
+        } catch (e) {
+          $('jsonErr').textContent = 'Invalid JSON: ' + e.message;
+          $('jsonErr').classList.remove('hidden');
+          return;
+        }
+
+        const ev = $('event').value;
+        const name = ev === '__custom' ? $('customEvent').value || 'unnamed' : ev;
+
+        socket.emit(name, data, (ack) => add('in', name + ' (ack)', ack));
+        add('out', name, data);
+      });
+
+      document.querySelectorAll('[data-quick]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const c = $('channelId').value,
+            nm = $('name').value;
+          const map = {
+            join: ['joinChannel', { channelId: c, name: nm }],
+            msg: ['chatMessage', { channelId: c, name: nm, text: 'hello' }],
+            typeOn: ['typing', { channelId: c, name: nm, isTyping: true }],
+            typeOff: ['typing', { channelId: c, name: nm, isTyping: false }],
+            leave: ['leaveChannel', { channelId: c }],
+          };
+          const [ev, data] = map[btn.dataset.quick];
+          $('event').value = ev;
+          $('payload').value = JSON.stringify(data, null, 2);
+          $('customWrap').classList.add('hidden');
+          $('sendBtn').click();
+        });
+      });
+
+      $('event').addEventListener('change', fillTemplate);
+      $('resetPayload').addEventListener('click', fillTemplate);
+      $('clearBtn').addEventListener('click', () => {
+        $('log').innerHTML = '<p class="text-xs text-zinc-600 py-8 text-center">Cleared.</p>';
+        n = 0;
+        $('count').textContent = 0;
+      });
+
+      fillTemplate();
+    </script>
+  </body>
+</html>
