@@ -1,13 +1,5 @@
-/**
- * Row → contract mappers.
- *
- * This is the ONLY place snake_case becomes camelCase. Every service that
- * reads from Supabase returns mapped objects, never raw rows — that way a
- * column rename is a one-file change here instead of a breaking change to
- * apps/web.
- */
 import type { Channel, Message } from '@lobby/shared';
-import type { ChannelRow, MessageRow } from './database.types';
+import type { ChannelRow, MessageRow } from '../database/database.types';
 
 export function toChannel(row: ChannelRow): Channel {
   return {
@@ -28,5 +20,4 @@ export function toMessage(row: MessageRow): Message {
   };
 }
 
-export const toChannels = (rows: ChannelRow[]): Channel[] => rows.map(toChannel);
 export const toMessages = (rows: MessageRow[]): Message[] => rows.map(toMessage);

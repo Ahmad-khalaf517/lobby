@@ -3,7 +3,7 @@
 This walks through the full lifecycle of a channel — creation, joining, chat, typing,
 presence, and leaving — from both the backend (NestJS) and frontend (Angular)
 implementation perspective. It reflects the actual working implementation in
-`apps/api/src/channels` and `apps/api/src/gateway`, verified end-to-end against a real
+`apps/api/src/modules/channels` and `apps/api/src/modules/gateway`, verified end-to-end against a real
 Supabase project (see "How this was tested" at the bottom).
 
 Every payload shape referenced here is defined once in `packages/shared` and is not
@@ -11,7 +11,7 @@ duplicated anywhere — see `docs/EVENT_CONTRACT.md` for the full reference tabl
 
 ## 1. Creating a channel (REST)
 
-**`POST /channels`** — `apps/api/src/channels/channels.controller.ts` →
+**`POST /channels`** — `apps/api/src/modules/channels/channels.controller.ts` →
 `ChannelsController.create`
 
 ```
@@ -21,9 +21,9 @@ Content-Type: application/json
 { "name": "Test Room" }
 ```
 
-`name` is optional (`CreateChannelRequestSchema` in `packages/shared/src/schemas/channel.schema.ts`) —
-omit it and the server defaults to `"New room"` (`ChannelRepository.createChannel`,
-`apps/api/src/database/channel.repository.ts`).
+`name` is required by the API controller (`CreateChannelRequestSchema` in
+`packages/shared/src/schemas/channel.schema.ts` + a controller guard in
+`apps/api/src/modules/channels/channels.controller.ts`). If omitted, the API returns 400.
 
 Response (`CreateChannelResponseSchema` = `ChannelSchema`):
 
@@ -76,10 +76,10 @@ connects to the Socket.IO gateway and emits `joinChannel`:
 socket.emit(SOCKET_EVENTS.JOIN_CHANNEL, { channelId, name } satisfies JoinChannelPayload);
 ```
 
-Handled by `ChannelGateway.handleJoinChannel` (`apps/api/src/gateway/channel.gateway.ts`):
+Handled by `ChannelGateway.handleJoinChannel` (`apps/api/src/modules/gateway/channel.gateway.ts`):
 
 1. Validates the payload against `JoinChannelPayloadSchema`.
-2. Confirms the channel actually exists via `ChannelRepository.findChannel` — if it
+2. Confirms the channel actually exists via `ChannelsService.findChannel` — if it
    doesn't (deleted/expired/typo'd id), the client receives a Socket.IO `exception` event:
    `{ status: 'error', message: 'Channel not found or expired' }` (a `NotFoundException`
    from the repository is caught and rethrown as a `WsException` specifically so the
@@ -104,7 +104,7 @@ socket.emit(SOCKET_EVENTS.CHAT_MESSAGE, { channelId, name, text } satisfies Chat
 `ChannelGateway.handleChatMessage`:
 
 1. Validates against `ChatMessagePayloadSchema`.
-2. Persists via `ChannelRepository.addMessage` (insert into Supabase `messages` table).
+2. Persists via `ChannelsService.addMessage` (insert into Supabase `messages` table).
 3. Broadcasts the **stored row** (not a reshaping of the inbound payload) to the entire
    room, including the sender:
 

@@ -24,8 +24,11 @@ lobby/
 │   └── shared/                 # Zod schemas, inferred types, socket event constants, mock fixtures
 ├── docs/
 │   ├── ARCHITECTURE.md
-│   └── EVENT_CONTRACT.md
+│   ├── EVENT_CONTRACT.md
+│   ├── PROJECT_PLAN.md
+│   └── AI_AGENT_GUIDE.md
 ├── CLAUDE.md                    # AI assistant guidelines for this repo
+├── AGENTS.md                    # cross-agent entrypoint for AI coding tools
 ├── eslint.config.js
 ├── .prettierrc.json
 ├── .husky/pre-commit
@@ -47,7 +50,7 @@ pnpm install
 
 This installs dependencies for every workspace (`apps/*` and `packages/*`) in one pass, links `packages/shared` into both apps, and sets up the Husky git hooks (`prepare` script runs automatically).
 
-`apps/api` and `apps/web` start as placeholders — see `apps/api/README.md` and `apps/web/README.md` for the one-time scaffold step using the official Nest/Angular CLIs. Do this once, at the start, before the team splits up to build features in parallel.
+`apps/api` and `apps/web` are already scaffolded in this repository. See `apps/api/README.md` and `apps/web/README.md` for folder ownership and implementation conventions.
 
 ## Running the apps
 
@@ -97,7 +100,7 @@ This is the part that matters most for a 5-person team on a tight budget:
 | I need to...                                                       | Go to                                                                                                                                                          |
 | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Add/change a chat, presence, or typing event                       | `packages/shared/src/schemas` + `packages/shared/src/constants/socket-events.ts`, then `docs/EVENT_CONTRACT.md` — **not** directly in `apps/api` or `apps/web` |
-| Add a NestJS module/gateway                                        | `apps/api/src`                                                                                                                                                 |
+| Add a NestJS module/gateway                                        | `apps/api/src/modules`                                                                                                                                         |
 | Add an Angular component/service                                   | `apps/web/src/app`                                                                                                                                             |
 | Understand the overall data flow, including the LiveKit token flow | `docs/ARCHITECTURE.md`                                                                                                                                         |
 | Understand what an AI assistant is/isn't allowed to touch          | `CLAUDE.md`                                                                                                                                                    |

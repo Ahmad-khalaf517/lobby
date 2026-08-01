@@ -7,10 +7,12 @@ lobby/
 ├── apps/
 │   ├── api/                          # NestJS
 │   │   ├── src/
-│   │   │   ├── channels/             # REST: create/join channel, message history
-│   │   ├── database/             # Supabase client, row types, mappers, repository
-│   │   │   ├── gateway/              # Socket.IO gateway: chat, typing, presence
-│   │   │   ├── calls/                # REST: mints LiveKit access tokens
+│   │   │   ├── modules/
+│   │   │   │   ├── app/              # app feature module + app controller/service
+│   │   │   │   ├── channels/         # REST + service + repository + mappers for channel flow
+│   │   │   │   ├── database/         # Shared DB infra (Supabase client + row types)
+│   │   │   │   ├── gateway/          # Socket.IO gateway: chat, typing, presence
+│   │   │   │   └── calls/            # REST: mints LiveKit access tokens
 │   │   │   └── main.ts
 │   │   ├── package.json
 │   │   └── tsconfig.json             # extends ../../tsconfig.base.json
@@ -43,7 +45,9 @@ lobby/
 │
 ├── docs/
 │   ├── ARCHITECTURE.md               # this file
-│   └── EVENT_CONTRACT.md
+│   ├── EVENT_CONTRACT.md
+│   ├── PROJECT_PLAN.md
+│   └── AI_AGENT_GUIDE.md
 ├── CLAUDE.md
 ├── README.md
 ├── eslint.config.js
@@ -114,7 +118,7 @@ The flow, step by step:
 With five people building simultaneously against two apps that don't exist as working software yet on day 1, the shared package is what prevents everyone from blocking on everyone else:
 
 - **The schemas are the spec.** Once `docs/EVENT_CONTRACT.md` is agreed on day 1, every payload shape is fixed in `packages/shared` — a frontend dev doesn't need the real backend running to know exactly what shape of data they'll receive.
-- **`packages/shared/src/mocks/fixtures.ts`** provides real, schema-valid sample data (`mockChannel`, `mockMembers`, `mockChatMessages`, `mockCallTokenResponse`). The Chat/Channel UI and Call UI roles can build and visually test their components against these fixtures before the corresponding NestJS endpoint or gateway handler exists.
+- **`packages/shared/src/mocks/fixtures.ts`** provides real, schema-valid sample data (`mockChannel`, `mockMembers`, `mockMessages`, `mockCallTokenResponse`). The Chat/Channel UI and Call UI roles can build and visually test their components against these fixtures before the corresponding NestJS endpoint or gateway handler exists.
 - **Backend roles work the same way in reverse** — they can write and test a handler against the Zod schema and fixture data without a working Angular UI to click through, using any REST client or a Socket.IO test client/script.
 - **Ownership boundaries are explicit** (see the team table in `README.md`) so parallel work doesn't collide on the same files. The only shared surface anyone touches is `packages/shared` itself, which is exactly why changes there get flagged in `CLAUDE.md`.
 
@@ -140,6 +144,6 @@ pnpm resolves `workspace:*` to a symlink into `packages/shared` — no publishin
 
 ## Code quality tooling
 
-- **ESLint** (`eslint.config.js`, flat config) — shared base rules for all workspaces; `apps/web` layers Angular ESLint on top via the official schematic (see `apps/web/README.md`).
+- **ESLint** (`eslint.config.js`, flat config) — shared base rules for all workspaces; `apps/api/eslint.config.mjs` and `apps/web/eslint.config.mjs` extend root with app-specific parser options.
 - **Prettier** (`.prettierrc.json`) — formatting only; `eslint-config-prettier` disables any ESLint rule that would conflict with it.
 - **Husky + lint-staged** — a pre-commit hook (`.husky/pre-commit`) runs ESLint (`--fix`) and Prettier on staged files automatically, so formatting/lint issues never reach a commit.

@@ -135,10 +135,10 @@ LiveKit handles NAT traversal for you, but network conditions (packet loss, low 
 **5. Persistence + in-memory state overlap.**
 Channels and messages are persisted (Supabase), but live presence and typing state are in-memory — make sure it's clear which parts of state survive a restart and which don't.
 
-**7. The Supabase service-role key bypasses Row Level Security.**
+**6. The Supabase service-role key bypasses Row Level Security.**
 Because there's no user auth, RLS is enabled with no public policies and `apps/api` connects with the service-role key. That key must never reach the Angular app or a committed `.env` — if it leaks, anyone can read and delete every room. Keep `.env` gitignored and make sure nobody pastes keys into a shared doc or screenshare.
 
-**6. The call-token endpoint is a real access-control surface, even without user auth.**
+**7. The call-token endpoint is a real access-control surface, even without user auth.**
 Anyone who can call `POST /channels/:id/call-token` can join that channel's LiveKit room. Since there's no login system, the channel link/ID itself is the access control — make sure token minting doesn't leak channel IDs or allow enumerating them.
 
 ---
@@ -156,7 +156,9 @@ lobby/
 │   └── shared/                 # Zod schemas + inferred types + socket event constants + mock fixtures
 ├── docs/
 │   ├── ARCHITECTURE.md
-│   └── EVENT_CONTRACT.md
+│   ├── EVENT_CONTRACT.md
+│   ├── PROJECT_PLAN.md
+│   └── AI_AGENT_GUIDE.md
 ├── CLAUDE.md                    # AI assistant guidelines/restrictions for this repo
 ├── README.md
 ├── eslint.config.js

@@ -1,24 +1,19 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { nanoid } from 'nanoid';
 import type { Channel, Message } from '@lobby/shared';
-import { SupabaseService } from './supabase.service';
-import { toChannel, toMessage, toMessages } from './mappers';
+import { SupabaseService } from '../database/supabase.service';
+import { toChannel, toMessage, toMessages } from './channels.mappers';
 
-/**
- * Reference implementation of every query this app makes. Two tables, five
- * queries — if you find yourself adding a sixth, check whether it belongs
- * in the plan's scope first.
- */
 @Injectable()
-export class ChannelRepository {
+export class ChannelsRepository {
   constructor(private readonly supabase: SupabaseService) {}
 
-  async createChannel(name?: string, ttlHours = 24): Promise<Channel> {
+  async createChannel(name: string, ttlHours = 24): Promise<Channel> {
     const { data, error } = await this.supabase.client
       .from('channels')
       .insert({
         id: nanoid(8),
-        name: name ?? 'New room',
+        name,
         expires_at: new Date(Date.now() + ttlHours * 3_600_000).toISOString(),
       })
       .select()
@@ -40,11 +35,6 @@ export class ChannelRepository {
     return toChannel(data);
   }
 
-  /**
-   * Insert first, then broadcast the returned row — so every client receives
-   * the same id and timestamp the database assigned, rather than each one
-   * generating its own.
-   */
   async addMessage(channelId: string, authorName: string, text: string): Promise<Message> {
     const { data, error } = await this.supabase.client
       .from('messages')
@@ -56,7 +46,6 @@ export class ChannelRepository {
     return toMessage(data);
   }
 
-  /** Backfill for a client that just opened the channel. Oldest → newest. */
   async getMessages(channelId: string, limit = 100): Promise<Message[]> {
     const { data, error } = await this.supabase.client
       .from('messages')
@@ -69,7 +58,6 @@ export class ChannelRepository {
     return toMessages(data ?? []);
   }
 
-  /** Messages cascade automatically via the foreign key. */
   async deleteChannel(id: string): Promise<void> {
     const { error } = await this.supabase.client.from('channels').delete().eq('id', id);
     if (error) throw error;
