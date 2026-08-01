@@ -6,7 +6,7 @@ This folder is a placeholder wired into the pnpm workspace and the shared packag
 cd apps/api
 pnpm dlx @nestjs/cli new . --skip-git --package-manager pnpm
 ```
-
+test
 After scaffolding:
 
 1. **Merge, don't overwrite,** the generated `package.json` with this folder's existing one — keep the `@lobby/shared` dependency and the `dev`/`build`/`lint` scripts already defined.
