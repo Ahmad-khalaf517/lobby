@@ -1,0 +1,17 @@
+.git
+.husky
+.idea
+.vscode
+**/.angular
+**/.DS_Store
+**/.env
+**/.env.*
+!**/.env.example
+**/*.log
+**/build
+**/coverage
+**/dist
+**/node_modules
+**/test-results
+apps/*/pnpm-lock.yaml
+

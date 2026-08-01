@@ -1,0 +1,44 @@
+name: lobby
+
+services:
+  api:
+    container_name: lobby-api
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: development
+    init: true
+    env_file:
+      - ./apps/api/.env
+    environment:
+      PORT: 3000
+      CORS_ORIGIN: http://localhost:4200
+      TSC_WATCHFILE: DynamicPriorityPolling
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./apps/api/src:/workspace/apps/api/src
+      - ./apps/api/test:/workspace/apps/api/test
+      - ./packages/shared/src:/workspace/packages/shared/src
+    networks:
+      - lobby
+
+  web:
+    container_name: lobby-web
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: development
+    init: true
+    ports:
+      - '4200:4200'
+    volumes:
+      - ./apps/web/public:/workspace/apps/web/public
+      - ./apps/web/src:/workspace/apps/web/src
+      - ./packages/shared/src:/workspace/packages/shared/src
+    networks:
+      - lobby
+
+networks:
+  lobby:
+    name: lobby-network

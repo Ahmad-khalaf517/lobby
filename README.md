@@ -57,6 +57,16 @@ pnpm dev:web      # Angular on :4200
 pnpm dev          # both in parallel
 ```
 
+### Optional Docker development
+
+Docker can provide the project Node.js and pnpm versions without changing the local workflow. After copying `apps/api/.env.example` to `apps/api/.env` and filling in the required hosted-service credentials, run:
+
+```bash
+docker compose up --build
+```
+
+Angular is available at `http://localhost:4200` and NestJS at `http://localhost:3000`. See [Docker development](docs/docker-development.md) for networking, live reload, production targets, and troubleshooting.
+
 ## Code quality
 
 ```bash
