@@ -1,6 +1,8 @@
 # Lobby Project Plan (Updated — LiveKit version)
 
-**Stack:** NestJS (backend) + Angular (frontend) | **Team size:** 5 | **Auth:** None (name + channel link only) | **Budget:** 100 working hours total, ~5 hrs/day per person
+**Stack:** NestJS (backend) + Angular (frontend) | **Team size:** 5 (3 backend, 2 frontend) | **Auth:** None for guest (High-priority) features — name + channel link only; a Medium-priority account system (login/register/servers/dashboard) is planned on top of it — see Section 2 | **Budget:** 100 working hours total, ~5 hrs/day per person
+
+> **Note on the account system:** adding real user accounts and persistent multi-server/channel ownership is a genuine architecture change, not just new UI — it touches the "no-auth" security model this whole plan (and `CLAUDE.md`) is built around. Ephemeral link-join channels stay exactly as they are; the Medium-priority tier in Section 2 adds a _second_, parallel path for authenticated users rather than replacing the first. `CLAUDE.md`'s "no authentication system" restriction will need an explicit update before anyone starts that work — flagging this so it doesn't get missed.
 
 ---
 
@@ -19,35 +21,133 @@
 
 ---
 
-## 2. Feature List (grouped by priority)
+## 2. Feature List (grouped by priority, with status/branch/owner)
 
-### Must-have (MVP — required to demo)
+**Owner key** (see Section 5 for full responsibilities — 3 backend, 2 frontend):
+`BE-1` Core Gateway & Channels · `BE-2` Infra & Calls (LiveKit) · `BE-3` Auth & Platform ·
+`FE-1` Chat/Channel/Dashboard UI · `FE-2` Call & Screen Share UI
 
-- Enter name, no auth
-- Create channel → get shareable link/ID
-- Join channel via link
-- Real-time text chat scoped to the channel
-- Typing indicator ("X is typing...")
-- Message timestamps / grouping by sender
-- Show list of members currently in the channel
-- Join/leave notifications ("X joined", "X left")
-- Voice call via LiveKit (audio only — no video), soft cap of 8 participants
-- Screen sharing (via LiveKit track publish)
-- Reconnect handling — provided by the LiveKit client SDK, not hand-rolled
-- Basic UI: channel view, chat panel, member list, call controls (mute, leave call)
-- Persist channels **and full chat history** in Supabase (new members joining a room see prior messages)
+Branch naming: backend branches are `api-<feature>`, frontend branches are `web-<feature>` — per
+feature below, not per person, so two people never fight over one branch name.
 
-### Should-have (do if on pace)
+**Priority levels** (applied consistently — a feature's priority is about urgency, not just
+whether it's a guest feature or an account feature; guest features span all three tiers below):
 
-- Mute/unmute toggle
-- Copy-link button + toast confirmation
-- Basic responsive design
-- Dark mode
+- 🔴 **High** — the guest-facing core (Must-have): create/join a channel by link, chat, typing,
+  presence, voice, screen share, persistence. Build this first, this is the demo.
+- 🟡 **Medium** — guest-facing polish that's not required to demo (Should-have), plus
+  authentication (register/login) and the authenticated dashboard/server experience it unlocks
+  (servers, permanent/expiring channels, invitations, room membership). Still all assigned —
+  Medium doesn't mean unassigned, just "after High."
+- ⚪ **Low** — guest-facing extras explicitly flagged "cut first if hours run short"
+  (Nice-to-have) — still assigned, same as Medium — **plus** settings and account recovery, which
+  **are intentionally unassigned below**: nobody should pick those specific rows up until High and
+  Medium priority work is done, then assign an owner.
 
-### Nice-to-have (cut first if hours run short)
+---
 
-- Channel name collision handling for duplicate display names
-- Emoji reactions
+### 🔴 High priority — Guest features, Must-have (MVP — required to demo)
+
+| Feature                                                               | Layer    | Status                                                                              | Branch                   | Owner       |
+| --------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------- | ------------------------ | ----------- |
+| Enter display name (no auth)                                          | Frontend | ❌ Not implemented                                                                  | `web-name-entry`         | FE-1        |
+| Create channel → shareable link/ID                                    | Backend  | ✅ Implemented                                                                      | `api-create-channel`     | BE-1        |
+|                                                                       | Frontend | ❌ Not implemented                                                                  | `web-create-channel`     | FE-1        |
+| Join channel via link                                                 | Backend  | ✅ Implemented                                                                      | `api-join-channel`       | BE-1        |
+|                                                                       | Frontend | ❌ Not implemented                                                                  | `web-join-channel`       | FE-1        |
+| Real-time text chat scoped to the channel                             | Backend  | ✅ Implemented                                                                      | `api-chat-messages`      | BE-1        |
+|                                                                       | Frontend | ❌ Not implemented                                                                  | `web-chat-ui`            | FE-1        |
+| Typing indicator ("X is typing…")                                     | Backend  | ✅ Implemented                                                                      | `api-typing-indicator`   | BE-1        |
+|                                                                       | Frontend | ❌ Not implemented                                                                  | `web-typing-indicator`   | FE-1        |
+| Message timestamps / grouping by sender                               | Backend  | ✅ Implemented (every message carries a real `createdAt`)                           | `api-message-timestamps` | BE-1        |
+|                                                                       | Frontend | ❌ Not implemented (display/grouping logic)                                         | `web-message-grouping`   | FE-1        |
+| Member list (who's in the channel)                                    | Backend  | ✅ Implemented                                                                      | `api-member-list`        | BE-1        |
+|                                                                       | Frontend | ❌ Not implemented                                                                  | `web-member-list-ui`     | FE-1        |
+| Join/leave notifications ("X joined"/"X left")                        | Backend  | ✅ Implemented                                                                      | `api-presence-events`    | BE-1        |
+|                                                                       | Frontend | ❌ Not implemented (toast UI)                                                       | `web-join-leave-toasts`  | FE-1        |
+| Voice call via LiveKit (audio only, soft cap 8)                       | Backend  | ❌ Not implemented — no call-token endpoint yet, `livekit-server-sdk` not installed | `api-call-token`         | BE-2        |
+|                                                                       | Frontend | ❌ Not implemented                                                                  | `web-call-ui`            | FE-2        |
+| Screen sharing (LiveKit track publish)                                | Frontend | ❌ Not implemented                                                                  | `web-screen-share`       | FE-2        |
+| Reconnect handling (LiveKit client SDK)                               | Frontend | ❌ Not implemented                                                                  | `web-call-reconnect`     | FE-2        |
+| Basic UI shell (channel view, chat panel, member list, call controls) | Frontend | ❌ Not implemented                                                                  | `web-channel-shell-ui`   | FE-1 + FE-2 |
+| Persist channels **and full chat history** in Supabase                | Backend  | ✅ Implemented                                                                      | `api-persistence`        | BE-1        |
+
+---
+
+### 🟡 Medium priority — Guest polish (Should-have)
+
+| Feature                  | Layer    | Status             | Branch                  | Owner       |
+| ------------------------ | -------- | ------------------ | ----------------------- | ----------- |
+| Mute/unmute toggle       | Frontend | ❌ Not implemented | `web-mute-toggle`       | FE-2        |
+| Copy-link button + toast | Frontend | ❌ Not implemented | `web-copy-link`         | FE-1        |
+| Basic responsive design  | Frontend | ❌ Not implemented | `web-responsive-design` | FE-1 + FE-2 |
+| Dark mode                | Frontend | ❌ Not implemented | `web-dark-mode`         | FE-1        |
+
+### 🟡 Medium priority — Authentication & Dashboard/Servers
+
+Adds an _optional_ authenticated path alongside the existing no-auth link-join flow — see the note
+at the top of this document. Every room a server owns (permanent or expiring) still gets the same
+chat + voice + screen-share stack as an ephemeral channel; nothing here replaces that, it's a second
+way to _reach_ a channel (through a server you belong to, instead of a raw link).
+
+| Feature                                                                                         | Layer    | Status                                                                                           | Branch                     | Owner |
+| ----------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------ | -------------------------- | ----- |
+| Register                                                                                        | Backend  | ❌ Not implemented                                                                               | `api-auth-register`        | BE-3  |
+|                                                                                                 | Frontend | ❌ Not implemented                                                                               | `web-auth-register`        | FE-1  |
+| Login                                                                                           | Backend  | ❌ Not implemented                                                                               | `api-auth-login`           | BE-3  |
+|                                                                                                 | Frontend | ❌ Not implemented                                                                               | `web-auth-login`           | FE-1  |
+| Dashboard (authenticated landing page)                                                          | Backend  | ❌ Not implemented                                                                               | `api-dashboard`            | BE-3  |
+|                                                                                                 | Frontend | ❌ Not implemented                                                                               | `web-dashboard`            | FE-1  |
+| Create server                                                                                   | Backend  | ❌ Not implemented                                                                               | `api-create-server`        | BE-3  |
+|                                                                                                 | Frontend | ❌ Not implemented                                                                               | `web-create-server`        | FE-1  |
+| Switch server                                                                                   | Backend  | ❌ Not implemented                                                                               | `api-switch-server`        | BE-3  |
+|                                                                                                 | Frontend | ❌ Not implemented                                                                               | `web-switch-server-ui`     | FE-1  |
+| Create permanent channel (belongs to a server)                                                  | Backend  | ❌ Not implemented                                                                               | `api-permanent-channels`   | BE-1  |
+|                                                                                                 | Frontend | ❌ Not implemented                                                                               | `web-permanent-channel-ui` | FE-1  |
+| Create expiring channel (server-scoped; existing TTL logic already supports this)               | Backend  | ❌ Not implemented                                                                               | `api-expiring-channels`    | BE-1  |
+|                                                                                                 | Frontend | ❌ Not implemented                                                                               | `web-expiring-channel-ui`  | FE-1  |
+| Update channel (rename, etc.)                                                                   | Backend  | ❌ Not implemented                                                                               | `api-update-channel`       | BE-1  |
+|                                                                                                 | Frontend | ❌ Not implemented                                                                               | `web-update-channel-ui`    | FE-1  |
+| Remove channel                                                                                  | Backend  | ⚠️ Partially implemented (`ChannelsRepository.deleteChannel` exists; no REST route calls it yet) | `api-delete-channel`       | BE-1  |
+|                                                                                                 | Frontend | ❌ Not implemented                                                                               | `web-delete-channel-ui`    | FE-1  |
+| Send invitation to a server/room                                                                | Backend  | ❌ Not implemented                                                                               | `api-invitations`          | BE-3  |
+|                                                                                                 | Frontend | ❌ Not implemented                                                                               | `web-invitations-ui`       | FE-1  |
+| Persistent room membership (invited users can see/join a permanent room any time, like Discord) | Backend  | ❌ Not implemented                                                                               | `api-room-membership`      | BE-3  |
+|                                                                                                 | Frontend | ❌ Not implemented                                                                               | `web-room-list-ui`         | FE-1  |
+
+Backend note for whoever picks up this tier: follow the same contract-first process as the MVP
+(Section 8) — add schemas to `packages/shared/src/schemas`, add REST rows to
+`docs/EVENT_CONTRACT.md`, _then_ implement. This will need new Supabase tables (`users`, `servers`,
+`server_members`, `invitations`, plus a nullable `server_id` on `channels`) — schema design isn't
+done yet, that's part of `api-dashboard`/`api-create-server`.
+
+---
+
+### ⚪ Low priority — Guest polish (Nice-to-have, cut first if hours run short)
+
+Still assigned (BE-1/FE-1) — "low priority" here just means "do this last," not "unassigned."
+
+| Feature                         | Layer    | Status             | Branch                        | Owner |
+| ------------------------------- | -------- | ------------------ | ----------------------------- | ----- |
+| Channel name collision handling | Backend  | ❌ Not implemented | `api-name-collision-handling` | BE-1  |
+|                                 | Frontend | ❌ Not implemented | `web-name-collision-ui`       | FE-1  |
+| Emoji reactions                 | Backend  | ❌ Not implemented | `api-emoji-reactions`         | BE-1  |
+|                                 | Frontend | ❌ Not implemented | `web-emoji-reactions`         | FE-1  |
+
+### ⚪ Low priority — Settings & account recovery
+
+**Deliberately unassigned** — unlike the row above, don't put anyone's name on these until High
+and Medium priority work is done — whoever's free first picks these up then.
+
+| Feature                                               | Layer    | Status             | Branch                     | Owner        |
+| ----------------------------------------------------- | -------- | ------------------ | -------------------------- | ------------ |
+| Forgot password                                       | Backend  | ❌ Not implemented | `api-auth-forgot-password` | _Unassigned_ |
+|                                                       | Frontend | ❌ Not implemented | `web-auth-forgot-password` | _Unassigned_ |
+| User profile (view/edit)                              | Backend  | ❌ Not implemented | `api-user-profile`         | _Unassigned_ |
+|                                                       | Frontend | ❌ Not implemented | `web-user-profile`         | _Unassigned_ |
+| Account settings                                      | Backend  | ❌ Not implemented | `api-account-settings`     | _Unassigned_ |
+|                                                       | Frontend | ❌ Not implemented | `web-account-settings`     | _Unassigned_ |
+| Application settings (theme/notification prefs, etc.) | Frontend | ❌ Not implemented | `web-app-settings`         | _Unassigned_ |
 
 ---
 
@@ -89,19 +189,31 @@ Calls (voice + screen share):
 
 ---
 
-## 5. Team Split & Hour Budget (5 people, 100 hours total)
+## 5. Team Split & Hour Budget (5 people: 3 backend, 2 frontend)
 
-| Role                                    | Responsibilities                                                                                                                                | Hours |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| **1. Backend — Core Gateway**           | NestJS Socket.IO gateway: create/join channel, chat + typing events, presence (join/leave), member list, Supabase persistence                   | ~17   |
-| **2. Backend — Infra**                  | LiveKit call-token REST endpoint (`livekit-server-sdk`), LiveKit Cloud project setup, deployment/hosting config                                 | ~11   |
-| **3. Frontend — Chat & Channel UI**     | Landing page (name entry), create/join channel flow, chat UI, typing indicator, message grouping/timestamps, member list, join/leave toasts     | ~19   |
-| **4. Frontend — Call UI**               | LiveKit `Room` integration (connect, publish/subscribe audio), call controls (mute, leave) — reconnect is handled by the SDK, not built by hand | ~15   |
-| **5. Frontend — Screen Share & Polish** | Screen share via LiveKit track publish, responsive/UI polish, dark mode, README + demo prep, integration testing across all features            | ~18   |
+Updated from the original 2-backend/3-frontend split to 3 backend/2 frontend, and scope now
+includes Section 2's Phase 2 (auth/servers/dashboard). That's real new backend surface area with
+one fewer frontend person covering the same MVP UI ground — the **100-hour MVP budget below has
+not been re-estimated for the extra frontend load**; treat it as a placeholder until FE-1/FE-2
+size their own work, and expect Phase 2 (whole extra column, not in this budget) to need its own
+separate hour estimate before anyone commits to a timeline for it.
 
-**Total allocated: ~80 hours.** The remaining **~20 hours are buffer**, reserved for the team's first-time integration of the LiveKit SDK — not pre-committed to more features. If the team is clearly ahead of schedule by Day 3, pull from this buffer for a Nice-to-have (Section 2), not before.
+| Role                                    | Responsibilities                                                                                                                                                                                                                                 | MVP Hours                                                  |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| **BE-1 — Core Gateway & Channels**      | NestJS Socket.IO gateway: create/join channel, chat + typing events, presence, member list, persistence; owns channel CRUD for Phase 2 too (permanent/expiring/update/delete)                                                                    | ~17                                                        |
+| **BE-2 — Infra & Calls**                | LiveKit call-token REST endpoint (`livekit-server-sdk`), LiveKit Cloud project setup, deployment/hosting config                                                                                                                                  | ~11                                                        |
+| **BE-3 — Auth & Platform** _(new role)_ | Phase 2 only: auth (register/login/forgot-password), user profile/account settings, servers, dashboard, invitations, room membership                                                                                                             | Phase 2 — not yet estimated                                |
+| **FE-1 — Chat, Channel & Dashboard UI** | Name entry, create/join flow, chat UI, typing indicator, message grouping/timestamps, member list, join/leave toasts, copy-link, dark mode; Phase 2: auth UI, profile/settings, dashboard, server switch/create, channel management, invitations | ~19 (MVP) + Phase 2                                        |
+| **FE-2 — Call & Screen Share UI**       | LiveKit `Room` integration (connect, publish/subscribe audio), call controls (mute, leave), screen share, reconnect handling — reconnect itself is the SDK's job, not hand-built                                                                 | ~15 + ~18 (absorbed from the old Screen Share/Polish role) |
 
-Person 1 and 2 should sync closely (same NestJS app, different modules). Person 3 and 4 similarly share the channel component shell.
+**MVP total allocated: ~62 hours** across BE-1/BE-2/FE-1/FE-2 as scoped above, **not counting**
+FE-2 absorbing the old "Screen Share & Polish" role's remaining work (responsive design, dark mode
+polish, demo prep) or BE-3's Phase 2 hours — both still need real estimates before the schedule in
+Section 6 (which still describes the _old_ 5-role split) can be trusted as-is. Re-baseline Section 6
+once BE-3 and the FE-1/FE-2 consolidation have hour estimates.
+
+BE-1 and BE-2 should sync closely (same NestJS app, different modules) — BE-3 too, once Phase 2
+starts, since all three land in `apps/api`. FE-1 and FE-2 share the channel component shell.
 
 ---
 
