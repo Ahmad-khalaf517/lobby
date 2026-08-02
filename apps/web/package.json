@@ -15,7 +15,6 @@
   "private": true,
   "packageManager": "pnpm@11.18.0",
   "dependencies": {
-    "@lobby/shared": "workspace:*",
     "@angular/common": "^22.1.0",
     "@angular/compiler": "^22.1.0",
     "@angular/core": "^22.1.0",
@@ -24,9 +23,12 @@
     "@angular/platform-server": "^22.1.0",
     "@angular/router": "^22.1.0",
     "@angular/ssr": "^22.1.0",
+    "@lobby/shared": "workspace:*",
+    "@supabase/supabase-js": "^2.111.0",
     "express": "^5.1.0",
     "rxjs": "~7.8.0",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@angular/build": "^22.1.0",

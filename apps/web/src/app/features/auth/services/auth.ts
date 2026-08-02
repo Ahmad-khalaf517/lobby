@@ -1,0 +1,45 @@
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { inject, Injectable, PLATFORM_ID } from '@angular/core';
+import { SupabaseService } from '../../../core/supabase';
+import { RegisterInput } from '../schemas/register.schema';
+
+type RegisterCredentials = Pick<RegisterInput, 'name' | 'email' | 'password'>;
+
+@Injectable({
+  providedIn: 'root',
+})
+export class AuthService {
+  private readonly supabase = inject(SupabaseService).client;
+  private readonly document = inject(DOCUMENT);
+  private readonly platformId = inject(PLATFORM_ID);
+
+  login(email: string, password: string) {
+    return this.supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+  }
+
+  register({ name, email, password }: RegisterCredentials) {
+    const options = {
+      data: { name },
+      ...(isPlatformBrowser(this.platformId)
+        ? { emailRedirectTo: `${this.document.location.origin}/auth/confirm` }
+        : {}),
+    };
+
+    return this.supabase.auth.signUp({
+      email,
+      password,
+      options,
+    });
+  }
+
+  getSession() {
+    return this.supabase.auth.getSession();
+  }
+
+  logout() {
+    return this.supabase.auth.signOut();
+  }
+}
