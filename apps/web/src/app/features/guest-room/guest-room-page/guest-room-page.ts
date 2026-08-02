@@ -66,6 +66,7 @@ export class GuestRoomPage {
   });
 
   private socket: Socket | null = null;
+  private audioContext: AudioContext | null = null;
 
   constructor() {
     if (!this.channelId) {
@@ -145,6 +146,9 @@ export class GuestRoomPage {
     socket.on(SOCKET_EVENTS.CHAT_MESSAGE, (raw: unknown) => {
       const message = ChatMessageBroadcastSchema.parse(raw);
       this.messages.update((current) => [...current, message]);
+      if (!this.isOwnMessage(message)) {
+        this.playNotificationSound();
+      }
     });
 
     socket.on('exception', (err: { message?: string }) => {
@@ -184,7 +188,62 @@ export class GuestRoomPage {
     return message.authorName === this.displayName();
   }
 
+  /**
+   * A short synthesized chime — no audio asset/dependency needed. A rising
+   * C6-E6-G6 major triad, softened with a lowpass filter and a slow
+   * exponential decay so it lands closer to a gentle "pop" than a harsh
+   * beep. `typeof AudioContext === 'undefined'` guards SSR (no Web Audio
+   * API in Node); the joinChannel flow already involved a user gesture
+   * (typing a name, clicking Join), so the browser's autoplay policy
+   * shouldn't block it.
+   */
+  private playNotificationSound(): void {
+    if (typeof AudioContext === 'undefined') return;
+
+    this.audioContext ??= new AudioContext();
+    if (this.audioContext.state === 'suspended') {
+      void this.audioContext.resume();
+    }
+
+    const ctx = this.audioContext;
+    const now = ctx.currentTime;
+    const notes = [
+      { frequency: 1046.5, start: 0 }, // C6
+      { frequency: 1318.5, start: 0.07 }, // E6
+      { frequency: 1568, start: 0.14 }, // G6
+    ];
+
+    for (const { frequency, start } of notes) {
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      oscillator.type = 'sine';
+      oscillator.frequency.value = frequency;
+      filter.type = 'lowpass';
+      filter.frequency.value = 4000;
+
+      const noteStart = now + start;
+      const attack = 0.015;
+      const decay = 0.35;
+
+      gain.gain.setValueAtTime(0, noteStart);
+      gain.gain.linearRampToValueAtTime(0.18, noteStart + attack);
+      gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + attack + decay);
+
+      oscillator.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      oscillator.start(noteStart);
+      oscillator.stop(noteStart + attack + decay + 0.05);
+    }
+  }
+
   private disconnect(): void {
+    void this.audioContext?.close();
+    this.audioContext = null;
+
     if (!this.socket) return;
 
     if (this.socket.connected) {
