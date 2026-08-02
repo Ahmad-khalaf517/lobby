@@ -25,6 +25,7 @@ import {
   type Channel,
   type Message,
 } from '@lobby/shared';
+import { environment } from '../../../../environments/environment';
 import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
 
 type RoomStatus = 'needs-name' | 'loading' | 'ready' | 'not-found' | 'error';
@@ -100,7 +101,7 @@ export class GuestRoomPage {
     this.displayName.set(name);
     this.status.set('loading');
 
-    this.http.get<unknown>(`/channels/${this.channelId}`).subscribe({
+    this.http.get<unknown>(`${environment.apiUrl}/channels/${this.channelId}`).subscribe({
       next: (response) => {
         this.channel.set(ChannelSchema.parse(response));
         this.loadHistoryAndConnect();
@@ -112,7 +113,7 @@ export class GuestRoomPage {
   }
 
   private loadHistoryAndConnect(): void {
-    this.http.get<unknown>(`/channels/${this.channelId}/messages`).subscribe({
+    this.http.get<unknown>(`${environment.apiUrl}/channels/${this.channelId}/messages`).subscribe({
       next: (response) => {
         this.messages.set(MessageHistorySchema.parse(response).messages);
         this.status.set('ready');
@@ -123,7 +124,9 @@ export class GuestRoomPage {
   }
 
   private connectSocket(): void {
-    const socket = io();
+    // Empty apiUrl (dev) => same-origin, handled by proxy.conf.json.
+    // Absolute apiUrl (production) => connect to that origin directly.
+    const socket = io(environment.apiUrl || undefined);
     this.socket = socket;
 
     socket.on('connect', () => {

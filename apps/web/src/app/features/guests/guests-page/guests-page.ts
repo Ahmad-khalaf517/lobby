@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { type Channel, ChannelListResponseSchema, MAX_NAME_LENGTH } from '@lobby/shared';
+import { environment } from '../../../../environments/environment';
 import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
 
 type LoadStatus = 'loading' | 'loaded' | 'error';
@@ -38,7 +39,7 @@ export class GuestsPage {
 
   protected loadChannels(): void {
     this.status.set('loading');
-    this.http.get<unknown>('/channels').subscribe({
+    this.http.get<unknown>(`${environment.apiUrl}/channels`).subscribe({
       next: (response) => {
         const { channels } = ChannelListResponseSchema.parse(response);
         this.channels.set(channels);
