@@ -16,19 +16,89 @@
       <a href="#faq" class="transition hover:text-white">FAQ</a>
     </nav>
 
-    <div class="flex items-center gap-2">
-      <a
-        routerLink="/login"
-        class="hidden rounded-xl px-4 py-2.5 text-sm font-medium text-[#cbd2dc] transition hover:bg-white/5 hover:text-white sm:inline-flex"
-      >
-        Sign in
-      </a>
-      <a
-        routerLink="/register"
-        class="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(124,92,252,0.24)] transition hover:bg-[#8b6dff] focus:outline-none focus:ring-2 focus:ring-[#b69cff]/70"
-      >
-        Create account
-      </a>
-    </div>
+    @if (user()) {
+      <div class="relative">
+        <button
+          #profileButton
+          type="button"
+          class="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/9 bg-white/3 p-1.5 pr-2.5 text-left transition hover:border-white/16 hover:bg-white/6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b69cff]/70 sm:pr-3"
+          aria-haspopup="true"
+          aria-controls="landing-account-menu"
+          [attr.aria-expanded]="dropdownOpen()"
+          [attr.aria-label]="'Open account menu for ' + displayName()"
+          (click)="toggleDropdown()"
+        >
+          <span
+            class="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/16 text-sm font-semibold text-[#c9bcff]"
+            aria-hidden="true"
+          >
+            {{ avatarInitial() }}
+          </span>
+          <span class="hidden max-w-32 truncate text-sm font-medium text-[#e7eaf0] sm:block">
+            {{ displayName() }}
+          </span>
+          <span
+            class="text-[10px] text-[#7f8998] transition"
+            [class.rotate-180]="dropdownOpen()"
+            aria-hidden="true"
+          >
+            ▾
+          </span>
+        </button>
+
+        @if (dropdownOpen()) {
+          <div
+            id="landing-account-menu"
+            class="absolute top-[calc(100%+0.65rem)] right-0 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-white/10 bg-[#151923] p-2 shadow-[0_22px_60px_rgba(0,0,0,0.45)]"
+            aria-label="Account menu"
+          >
+            <div class="border-b border-white/7 px-3 py-3">
+              <p class="truncate text-sm font-semibold text-white">{{ displayName() }}</p>
+              @if (secondaryLabel(); as email) {
+                <p class="mt-1 truncate text-xs text-app-muted">{{ email }}</p>
+              }
+            </div>
+
+            <a
+              routerLink="/app"
+              class="mt-2 flex min-h-10 items-center rounded-lg px-3 text-sm font-medium text-[#dce1e8] transition hover:bg-white/6 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b69cff]/70"
+              (click)="closeDropdown()"
+            >
+              Open Lobby
+            </a>
+
+            <button
+              type="button"
+              class="flex min-h-10 w-full items-center rounded-lg px-3 text-left text-sm font-medium text-[#f0aaaa] transition hover:bg-destructive/8 hover:text-[#ffc0c0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/45 disabled:cursor-not-allowed disabled:opacity-60"
+              [disabled]="isLoggingOut()"
+              (click)="logout()"
+            >
+              {{ isLoggingOut() ? 'Logging out…' : 'Logout' }}
+            </button>
+
+            @if (logoutError(); as error) {
+              <p class="px-3 pt-2 pb-1 text-xs leading-5 text-[#f2a4a4]" role="alert">
+                {{ error }}
+              </p>
+            }
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="flex items-center gap-1 sm:gap-2">
+        <a
+          routerLink="/login"
+          class="inline-flex min-h-10 items-center rounded-xl px-3 text-sm font-medium text-[#cbd2dc] transition hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b69cff]/70 sm:px-4"
+        >
+          Login
+        </a>
+        <a
+          routerLink="/register"
+          class="inline-flex min-h-10 items-center justify-center rounded-xl bg-primary px-3 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(124,92,252,0.24)] transition hover:bg-[#8b6dff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b69cff]/70 sm:px-4"
+        >
+          Create account
+        </a>
+      </div>
+    }
   </div>
 </header>

@@ -1,5 +1,6 @@
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { inject, Injectable, PLATFORM_ID } from '@angular/core';
+import type { Session } from '@supabase/supabase-js';
 import { SupabaseService } from '../../../core/supabase';
 import { RegisterInput } from '../schemas/register.schema';
 
@@ -37,6 +38,11 @@ export class AuthService {
 
   getSession() {
     return this.supabase.auth.getSession();
+  }
+
+  onAuthStateChange(callback: (session: Session | null) => void) {
+    return this.supabase.auth.onAuthStateChange((_event, session) => callback(session)).data
+      .subscription;
   }
 
   requestPasswordReset(email: string) {

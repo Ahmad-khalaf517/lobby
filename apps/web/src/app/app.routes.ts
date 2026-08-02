@@ -5,6 +5,15 @@ import { authGuard } from './features/auth/guards/auth-guard';
 export const routes: Routes = [
   {
     path: '',
+    pathMatch: 'full',
+    title: 'Lobby',
+    loadComponent: () =>
+      import('./features/landing/landing-page/landing-page').then(
+        (component) => component.LandingPage,
+      ),
+  },
+  {
+    path: '',
     loadComponent: () =>
       import('./features/auth/layouts/auth-layout/auth-layout').then(
         (component) => component.AuthLayout,
@@ -54,15 +63,6 @@ export const routes: Routes = [
           ),
       },
     ],
-  },
-  {
-    path: '',
-    pathMatch: 'full',
-    title: 'Lobby',
-    loadComponent: () =>
-      import('./features/landing/landing-page/landing-page').then(
-        (component) => component.LandingPage,
-      ),
   },
   {
     path: 'guest/:inviteCode',
