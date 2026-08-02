@@ -1,0 +1,354 @@
+<section class="relative overflow-hidden">
+  <!-- Background glow -->
+  <div
+    class="pointer-events-none absolute inset-x-0 top-0 -z-10 mx-auto h-160 max-w-6xl bg-[radial-gradient(circle_at_50%_12%,rgba(124,92,252,0.20),transparent_48%)] sm:h-184"
+    aria-hidden="true"
+  ></div>
+
+  <div
+    class="mx-auto grid max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[1.03fr_.97fr] lg:gap-14 lg:px-8 lg:py-28"
+  >
+    <!-- Hero content -->
+    <div class="mx-auto max-w-2xl text-center lg:mx-0 lg:text-left">
+      <div
+        class="mb-6 inline-flex max-w-full items-center gap-2 rounded-full border border-[#8f74ff]/25 bg-[#171424] px-3.5 py-2 text-xs font-medium text-[#c9bcff]"
+      >
+        <span
+          class="size-1.5 shrink-0 rounded-full bg-[#9d85ff] shadow-[0_0_14px_rgba(157,133,255,.9)]"
+        ></span>
+
+        <span class="truncate"> One place for teams, communities, and guests </span>
+      </div>
+
+      <h1
+        class="text-4xl leading-[1.08] font-semibold tracking-[-0.045em] text-white sm:text-5xl lg:text-6xl"
+      >
+        Conversations feel easier when everyone has a place to belong.
+      </h1>
+
+      <p
+        class="mx-auto mt-6 max-w-xl text-base leading-7 text-[#a0a9b7] sm:text-lg sm:leading-8 lg:mx-0"
+      >
+        Lobby brings organized server channels and effortless guest access into one calm, modern
+        workspace—without forcing every participant to create an account.
+      </p>
+
+      <!-- Actions -->
+      <div
+        class="mt-8 flex flex-col gap-3 sm:mx-auto sm:max-w-md sm:flex-row lg:mx-0 lg:max-w-none"
+      >
+        <a
+          routerLink="/register"
+          class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(124,92,252,0.24)] transition hover:-translate-y-0.5 hover:bg-[#8b6dff] focus:ring-2 focus:ring-[#b69cff]/70 focus:outline-none sm:w-auto"
+        >
+          Start your Lobby
+
+          <svg viewBox="0 0 20 20" class="size-4" fill="none" aria-hidden="true">
+            <path
+              d="m7 4 6 6-6 6"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </a>
+
+        <a
+          href="#guest-access"
+          class="inline-flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] px-5 py-3.5 text-sm font-semibold text-[#e7eaf0] transition hover:border-white/20 hover:bg-white/6 sm:w-auto"
+        >
+          See guest experience
+        </a>
+      </div>
+
+      <!-- Benefits -->
+      <div
+        class="mt-8 flex flex-col items-center gap-3 text-sm text-[#818b9a] sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-6 lg:justify-start"
+      >
+        <span class="inline-flex items-center gap-2">
+          <svg
+            viewBox="0 0 20 20"
+            class="size-4 shrink-0 text-[#8f74ff]"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="m4 10 3.2 3.2L16 4.8"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+
+          No account required for guests
+        </span>
+
+        <span class="inline-flex items-center gap-2">
+          <svg
+            viewBox="0 0 20 20"
+            class="size-4 shrink-0 text-[#8f74ff]"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="m4 10 3.2 3.2L16 4.8"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+
+          Structured channels
+        </span>
+
+        <span class="inline-flex items-center gap-2">
+          <svg
+            viewBox="0 0 20 20"
+            class="size-4 shrink-0 text-[#8f74ff]"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="m4 10 3.2 3.2L16 4.8"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+
+          Real-time communication
+        </span>
+      </div>
+    </div>
+
+    <!-- Workspace preview -->
+    <div class="relative mx-auto w-full min-w-0 max-w-xl">
+      <div
+        class="absolute -inset-3 -z-10 rounded-4xl bg-[radial-gradient(circle_at_center,rgba(124,92,252,.18),transparent_62%)] blur-2xl sm:-inset-8 sm:rounded-[2.5rem]"
+        aria-hidden="true"
+      ></div>
+
+      <div
+        class="overflow-hidden rounded-2xl border border-white/10 bg-[#141821] shadow-[0_25px_70px_rgba(0,0,0,.34)] sm:rounded-[1.75rem] sm:shadow-[0_35px_100px_rgba(0,0,0,.38)]"
+      >
+        <!-- Window bar -->
+        <div class="flex items-center justify-between border-b border-white/7 px-3 py-3 sm:px-4">
+          <div class="flex shrink-0 gap-1.5" aria-hidden="true">
+            <span class="size-2 rounded-full bg-white/12 sm:size-2.5"></span>
+            <span class="size-2 rounded-full bg-white/12 sm:size-2.5"></span>
+            <span class="size-2 rounded-full bg-white/12 sm:size-2.5"></span>
+          </div>
+
+          <span
+            class="truncate px-3 text-[9px] font-medium tracking-[0.12em] text-[#737e8e] uppercase sm:text-[11px] sm:tracking-[0.14em]"
+          >
+            Lobby workspace
+          </span>
+
+          <div class="w-8 shrink-0 sm:w-9"></div>
+        </div>
+
+        <!--
+          Mobile: server rail + active conversation
+          Tablet/Desktop: server rail + channel sidebar + conversation
+        -->
+        <div
+          class="grid min-h-87.5 grid-cols-[52px_minmax(0,1fr)] sm:min-h-97.5 sm:grid-cols-[56px_132px_minmax(0,1fr)] lg:grid-cols-[64px_152px_minmax(0,1fr)]"
+        >
+          <!-- Server rail -->
+          <aside class="border-r border-white/7 bg-[#11141c] p-2 sm:p-3" aria-label="Servers">
+            <div class="grid justify-center gap-2.5 sm:gap-3">
+              <span
+                class="grid size-9 place-items-center rounded-xl bg-primary text-xs font-semibold text-white sm:size-10 sm:text-sm"
+              >
+                L
+              </span>
+
+              <span
+                class="grid size-9 place-items-center rounded-xl border border-white/8 bg-white/[0.035] text-xs text-[#8791a0] sm:size-10 sm:text-sm"
+              >
+                D
+              </span>
+
+              <span
+                class="grid size-9 place-items-center rounded-xl border border-dashed border-white/12 text-sm text-[#737e8e] sm:size-10"
+              >
+                +
+              </span>
+            </div>
+          </aside>
+
+          <!-- Channel sidebar: hidden on mobile -->
+          <aside
+            class="hidden border-r border-white/7 bg-[#171b25] p-3 sm:block lg:p-4"
+            aria-label="Channels"
+          >
+            <div class="mb-4 lg:mb-5">
+              <p
+                class="truncate text-[10px] font-semibold tracking-[0.12em] text-[#737e8e] uppercase lg:text-[11px]"
+              >
+                Lobby Team
+              </p>
+
+              <p class="mt-1 text-[10px] text-[#a0a9b7] lg:text-xs">12 members</p>
+            </div>
+
+            <div class="space-y-1.5 text-[11px] lg:space-y-2 lg:text-xs">
+              <div
+                class="truncate rounded-lg bg-primary/12 px-2.5 py-2 font-medium text-[#d8d0ff] lg:px-3 lg:py-2.5"
+              >
+                # product
+              </div>
+
+              <div class="truncate px-2.5 py-2 text-[#7f8998] lg:px-3"># design</div>
+
+              <div class="truncate px-2.5 py-2 text-[#7f8998] lg:px-3"># launch</div>
+
+              <div class="mt-3 border-t border-white/7 pt-3 lg:mt-4 lg:pt-4">
+                <p
+                  class="mb-2 truncate px-2.5 text-[9px] font-semibold tracking-widest text-[#687282] uppercase lg:px-3 lg:text-[10px]"
+                >
+                  Guest rooms
+                </p>
+
+                <div class="truncate px-2.5 py-2 text-[#a0a9b7] lg:px-3"># client-review</div>
+              </div>
+            </div>
+          </aside>
+
+          <!-- Active conversation -->
+          <section class="flex min-w-0 flex-col bg-[#141821]">
+            <!-- Channel header -->
+            <div
+              class="flex min-h-15 items-center justify-between gap-2 border-b border-white/7 px-3 py-3 sm:px-4 sm:py-3.5"
+            >
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <!-- Mobile channel-menu visual -->
+                  <span
+                    class="grid size-6 shrink-0 place-items-center rounded-md bg-white/4 text-[#8791a0] sm:hidden"
+                    aria-hidden="true"
+                  >
+                    <svg viewBox="0 0 20 20" class="size-3.5" fill="none">
+                      <path
+                        d="M4 6h12M4 10h12M4 14h12"
+                        stroke="currentColor"
+                        stroke-width="1.6"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  </span>
+
+                  <p class="truncate text-xs font-semibold text-white sm:text-sm"># product</p>
+                </div>
+
+                <p class="mt-0.5 hidden truncate text-[10px] text-[#737e8e] min-[420px]:block">
+                  Plan the next release together
+                </p>
+              </div>
+
+              <div class="flex shrink-0 -space-x-2">
+                <span
+                  class="grid size-6 place-items-center rounded-full border-2 border-[#141821] bg-[#283244] text-[8px] text-white sm:size-7 sm:text-[9px]"
+                >
+                  MH
+                </span>
+
+                <span
+                  class="grid size-6 place-items-center rounded-full border-2 border-[#141821] bg-[#3a2f54] text-[8px] text-white sm:size-7 sm:text-[9px]"
+                >
+                  NA
+                </span>
+
+                <span
+                  class="hidden size-7 place-items-center rounded-full border-2 border-[#141821] bg-[#24423a] text-[9px] text-white min-[420px]:grid"
+                >
+                  YI
+                </span>
+              </div>
+            </div>
+
+            <!-- Messages -->
+            <div class="flex-1 space-y-4 p-3 sm:p-4">
+              <div class="flex gap-2.5 sm:gap-3">
+                <span
+                  class="grid size-7 shrink-0 place-items-center rounded-lg bg-[#2a3240] text-[9px] font-semibold text-white sm:size-8 sm:text-[10px]"
+                >
+                  MH
+                </span>
+
+                <div class="min-w-0">
+                  <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <p class="text-[11px] font-semibold text-[#edf0f4] sm:text-xs">Mohammad</p>
+
+                    <span class="text-[8px] text-[#687282] sm:text-[9px]"> 10:24 </span>
+                  </div>
+
+                  <p
+                    class="mt-1 text-[10px] leading-4.5 text-[#929cab] sm:text-[11px] sm:leading-5"
+                  >
+                    The guest review room is ready. I shared the invite with the client.
+                  </p>
+                </div>
+              </div>
+
+              <!-- System message -->
+              <div class="rounded-xl border border-[#8f74ff]/20 bg-primary/8 p-2.5 sm:ml-11 sm:p-3">
+                <div
+                  class="flex items-center gap-2 text-[9px] font-semibold text-[#c9bcff] sm:text-[10px]"
+                >
+                  <span class="size-1.5 shrink-0 rounded-full bg-[#9d85ff]"></span>
+
+                  Guest joined securely
+                </div>
+
+                <p class="mt-1.5 text-[9px] leading-4 text-[#8f98a7] sm:text-[10px]">
+                  Client Preview entered #client-review through a private invite.
+                </p>
+              </div>
+
+              <div class="flex gap-2.5 sm:gap-3">
+                <span
+                  class="grid size-7 shrink-0 place-items-center rounded-lg bg-[#3a2f54] text-[9px] font-semibold text-white sm:size-8 sm:text-[10px]"
+                >
+                  CP
+                </span>
+
+                <div class="min-w-0">
+                  <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    <p class="text-[11px] font-semibold text-[#edf0f4] sm:text-xs">
+                      Client Preview
+                    </p>
+
+                    <span
+                      class="rounded bg-white/6 px-1.5 py-0.5 text-[7px] text-[#a0a9b7] sm:text-[8px]"
+                    >
+                      GUEST
+                    </span>
+                  </div>
+
+                  <p
+                    class="mt-1 text-[10px] leading-4.5 text-[#929cab] sm:text-[11px] sm:leading-5"
+                  >
+                    This is perfect. I can review everything without creating another account.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Composer -->
+            <div
+              class="mx-3 mb-3 rounded-xl border border-white/8 bg-[#1a1f2b] px-3 py-2.5 text-[9px] text-[#687282] sm:mx-4 sm:mb-4 sm:py-3 sm:text-[10px]"
+            >
+              Message #product
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

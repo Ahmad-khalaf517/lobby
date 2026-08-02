@@ -1,0 +1,45 @@
+:host {
+  display: block;
+}
+
+.access-door {
+  animation: access-door-float 5s ease-in-out infinite;
+}
+
+.access-orbit {
+  animation: access-orbit-float 7s ease-in-out infinite;
+}
+
+.access-orbit-delayed {
+  animation: access-orbit-float 8s ease-in-out infinite reverse;
+}
+
+@keyframes access-door-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes access-orbit-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(8px, -10px, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .access-door,
+  .access-orbit,
+  .access-orbit-delayed {
+    animation: none;
+  }
+}

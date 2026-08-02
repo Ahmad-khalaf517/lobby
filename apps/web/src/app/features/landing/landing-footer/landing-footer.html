@@ -1,0 +1,31 @@
+<footer class="border-t border-white/7 bg-[#0d0f15]">
+  <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <div class="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
+      <a routerLink="/" class="inline-flex items-center gap-3" aria-label="Lobby home">
+        <app-logo [size]="28" />
+        <span>
+          <span class="block text-sm font-semibold text-white">Lobby</span>
+          <span class="block text-[10px] text-[#687282]">A place for every conversation</span>
+        </span>
+      </a>
+
+      <nav
+        class="flex flex-wrap gap-x-6 gap-y-3 text-xs text-[#7f8998]"
+        aria-label="Footer navigation"
+      >
+        <a href="#why-lobby" class="transition hover:text-white">Why Lobby</a>
+        <a href="#guest-access" class="transition hover:text-white">Guests</a>
+        <a href="#member-experience" class="transition hover:text-white">Members</a>
+        <a href="#security" class="transition hover:text-white">Security</a>
+        <a href="#faq" class="transition hover:text-white">FAQ</a>
+      </nav>
+    </div>
+
+    <div
+      class="mt-8 flex flex-col gap-2 border-t border-white/7 pt-6 text-[11px] text-[#5f6876] sm:flex-row sm:items-center sm:justify-between"
+    >
+      <p>© {{ currentYear }} Lobby. Built for focused communication.</p>
+      <p>Angular frontend · NestJS backend</p>
+    </div>
+  </div>
+</footer>
