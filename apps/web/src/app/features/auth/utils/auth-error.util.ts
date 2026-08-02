@@ -1,9 +1,12 @@
-export type AuthErrorContext = 'login' | 'register' | 'confirmation';
+export type AuthErrorContext =
+  'login' | 'register' | 'confirmation' | 'password-recovery' | 'password-update';
 
 const fallbackMessages: Record<AuthErrorContext, string> = {
   login: 'We could not sign you in. Please try again.',
   register: 'We could not create your account. Please try again.',
   confirmation: 'We could not confirm your email. The link may be invalid or expired.',
+  'password-recovery': 'We could not send password reset instructions. Please try again.',
+  'password-update': 'We could not update your password. Please try again.',
 };
 
 function readString(error: unknown, key: string): string {
@@ -55,10 +58,18 @@ export function getAuthErrorMessage(error: unknown, context: AuthErrorContext): 
   }
 
   if (/otp_expired|expired/.test(details)) {
+    if (context === 'password-recovery' || context === 'password-update') {
+      return 'This password reset link has expired. Request a new recovery email and try again.';
+    }
+
     return 'This confirmation link has expired. Try signing in or request a new email.';
   }
 
   if (/invalid.*(token|link|code)|bad_code_verifier|otp_disabled/.test(details)) {
+    if (context === 'password-recovery' || context === 'password-update') {
+      return 'This password reset link is invalid. Request a new recovery email and try again.';
+    }
+
     return 'This confirmation link is invalid. Try signing in or request a new email.';
   }
 

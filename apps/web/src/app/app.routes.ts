@@ -29,11 +29,28 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'forgot-password',
+        title: 'Forgot Password | Lobby',
+        canActivate: [guestGuard],
+        loadComponent: () =>
+          import('./features/auth/pages/forgot-password-page/forgot-password-page').then(
+            (component) => component.ForgotPasswordPage,
+          ),
+      },
+      {
         path: 'auth/confirm',
         title: 'Confirm Email | Lobby',
         loadComponent: () =>
           import('./features/auth/pages/confirm-email-page/confirm-email-page').then(
             (component) => component.ConfirmEmailPage,
+          ),
+      },
+      {
+        path: 'auth/reset-password',
+        title: 'Reset Password | Lobby',
+        loadComponent: () =>
+          import('./features/auth/pages/reset-password-page/reset-password-page').then(
+            (component) => component.ResetPasswordPage,
           ),
       },
     ],

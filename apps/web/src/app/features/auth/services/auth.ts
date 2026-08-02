@@ -39,6 +39,20 @@ export class AuthService {
     return this.supabase.auth.getSession();
   }
 
+  requestPasswordReset(email: string) {
+    const redirectTo = isPlatformBrowser(this.platformId)
+      ? `${this.document.location.origin}/auth/reset-password`
+      : undefined;
+
+    return this.supabase.auth.resetPasswordForEmail(email, {
+      ...(redirectTo ? { redirectTo } : {}),
+    });
+  }
+
+  updatePassword(password: string) {
+    return this.supabase.auth.updateUser({ password });
+  }
+
   logout() {
     return this.supabase.auth.signOut();
   }

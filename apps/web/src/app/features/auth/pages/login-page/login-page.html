@@ -43,7 +43,15 @@
   </div>
 
   <div>
-    <label class="auth-label" for="login-password">Password</label>
+    <div class="mb-2 flex items-center justify-between gap-4">
+      <label class="auth-label mb-0" for="login-password">Password</label>
+      <a
+        routerLink="/forgot-password"
+        class="text-xs font-semibold text-[#a89af0] transition hover:text-white focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b69cff]/70"
+      >
+        Forgot password?
+      </a>
+    </div>
     <div class="relative">
       <input
         #passwordInput
