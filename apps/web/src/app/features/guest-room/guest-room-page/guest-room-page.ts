@@ -31,6 +31,15 @@ import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
 
 type RoomStatus = 'needs-name' | 'loading' | 'ready' | 'not-found' | 'error';
 
+type MessageToast = {
+  id: number;
+  name: string;
+  text: string;
+};
+
+const TOAST_LIFETIME_MS = 4500;
+const TOAST_TEXT_PREVIEW_LENGTH = 80;
+
 @Component({
   selector: 'app-guest-room-page',
   imports: [ReactiveFormsModule, RouterLink, LogoComponent],
@@ -72,6 +81,8 @@ export class GuestRoomPage {
     '👍',
     '❤️',
   ];
+  /** At most one entry — a new toast replaces whatever's currently showing rather than stacking. */
+  protected readonly toasts = signal<MessageToast[]>([]);
 
   protected readonly nameControl = new FormControl('', {
     nonNullable: true,
@@ -85,6 +96,8 @@ export class GuestRoomPage {
 
   private socket: Socket | null = null;
   private audioContext: AudioContext | null = null;
+  private nextToastId = 0;
+  private toastTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     if (!this.channelId) {
@@ -166,6 +179,7 @@ export class GuestRoomPage {
       this.messages.update((current) => [...current, message]);
       if (!this.isOwnMessage(message)) {
         this.playNotificationSound();
+        this.showToast(message);
       }
     });
 
@@ -271,16 +285,44 @@ export class GuestRoomPage {
   }
 
   /**
+   * A brief "name: message" banner — useful when a new message lands while
+   * scrolled up in history. Replaces whatever toast is currently showing
+   * (array is only ever 0-1 long) rather than stacking — a new id each time
+   * also gives @for's track a reason to destroy/recreate the element so the
+   * slide-in animation replays instead of silently updating in place.
+   */
+  private showToast(message: Message): void {
+    const id = this.nextToastId++;
+    const text =
+      message.text.length > TOAST_TEXT_PREVIEW_LENGTH
+        ? `${message.text.slice(0, TOAST_TEXT_PREVIEW_LENGTH).trimEnd()}…`
+        : message.text;
+
+    if (this.toastTimeoutId !== null) {
+      clearTimeout(this.toastTimeoutId);
+    }
+
+    this.toasts.set([{ id, name: message.authorName, text }]);
+    this.toastTimeoutId = setTimeout(() => this.dismissToast(id), TOAST_LIFETIME_MS);
+  }
+
+  protected dismissToast(id: number): void {
+    this.toasts.update((current) => current.filter((toast) => toast.id !== id));
+  }
+
+  /**
    * A short synthesized chime — no audio asset/dependency needed. A rising
    * C6-E6-G6 major triad, softened with a lowpass filter and a slow
    * exponential decay so it lands closer to a gentle "pop" than a harsh
    * beep. `typeof AudioContext === 'undefined'` guards SSR (no Web Audio
    * API in Node); the joinChannel flow already involved a user gesture
    * (typing a name, clicking Join), so the browser's autoplay policy
-   * shouldn't block it.
+   * shouldn't block it. Skipped while the page has focus — the toast +
+   * inline message are already enough feedback when you're looking at it;
+   * the sound is for when you're not.
    */
   private playNotificationSound(): void {
-    if (typeof AudioContext === 'undefined') return;
+    if (typeof AudioContext === 'undefined' || document.hasFocus()) return;
 
     this.audioContext ??= new AudioContext();
     if (this.audioContext.state === 'suspended') {

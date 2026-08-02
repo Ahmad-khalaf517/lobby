@@ -98,6 +98,46 @@
 
   @case ('ready') {
     <main class="flex h-screen flex-col bg-app-background text-app-foreground">
+      <!-- New-message toasts -->
+      @if (toasts().length > 0) {
+        <div
+          class="pointer-events-none fixed inset-x-4 top-4 z-50 flex flex-col items-start gap-2 sm:inset-x-auto sm:left-4"
+        >
+          @for (toast of toasts(); track toast.id) {
+            <div
+              class="toast-slide-in pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl border border-white/10 bg-[#141821] p-3.5 shadow-[0_20px_50px_rgba(0,0,0,.4)]"
+            >
+              <span
+                class="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-[10px] font-semibold text-white"
+              >
+                {{ initials(toast.name) }}
+              </span>
+
+              <div class="min-w-0 flex-1">
+                <p class="text-xs font-semibold text-[#edf0f4]">{{ toast.name }}</p>
+                <p class="mt-0.5 truncate text-xs text-[#a0a9b7]">{{ toast.text }}</p>
+              </div>
+
+              <button
+                type="button"
+                (click)="dismissToast(toast.id)"
+                aria-label="Dismiss notification"
+                class="shrink-0 rounded-md p-1 text-[#687282] transition hover:bg-white/6 hover:text-white"
+              >
+                <svg viewBox="0 0 20 20" class="size-3.5" fill="none" aria-hidden="true">
+                  <path
+                    d="m5 5 10 10M15 5 5 15"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </button>
+            </div>
+          }
+        </div>
+      }
+
       <!-- Header -->
       <header
         class="flex shrink-0 items-center justify-between gap-3 border-b border-white/7 bg-[#141821] px-4 py-3 sm:px-6"

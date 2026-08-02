@@ -6,5 +6,5 @@
  */
 export const environment = {
   production: false,
-  apiUrl: 'https://lobby-api-gf44.onrender.com',
+  apiUrl: 'http://localhost:3000',
 };
