@@ -37,8 +37,12 @@ Response (`CreateChannelResponseSchema` = `ChannelSchema`):
 ```
 
 - `id` is an 8-character `nanoid` — this **is** the shareable room code (e.g. the frontend
-  would build a link like `yourapp.com/channel/8OghXWSA`). There is no separate "join code"
-  — knowing the `id` is the entire access-control model for this no-auth app.
+  would build a link like `yourapp.com/channel/8OghXWSA`). There is no separate "join code".
+  Originally, knowing the `id` was the entire access-control model for this no-auth app;
+  **`GET /channels` (below) relaxes that** — any guest can now list and join open channels
+  without a link, to power the browse-and-join page at `apps/web`'s `/guests` route. If that
+  trade-off turns out to be wrong for a given deployment, restrict or remove the endpoint
+  rather than assuming links are still the only way in.
 - `expiresAt` defaults to 24 hours out (`ttlHours = 24` in `createChannel`); `null` means no
   expiry. Nothing currently enforces expiry automatically — see `supabase/schema.sql`'s
   `delete_expired_channels()` function, meant to be run as a scheduled job.

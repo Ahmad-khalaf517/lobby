@@ -10,6 +10,7 @@ Calls (voice + screen share) are **not** part of the Socket.IO contract below �
 
 | Method & Path                   | Request    | Response                             | Schema                                                                          |
 | ------------------------------- | ---------- | ------------------------------------ | ------------------------------------------------------------------------------- |
+| `GET /channels`                 | —          | `{ channels: [...] }`                | `ChannelListResponseSchema`                                                     |
 | `POST /channels`                | `{ name }` | `{ id, name, createdAt, expiresAt }` | `CreateChannelRequestSchema` + controller guard / `CreateChannelResponseSchema` |
 | `GET /channels/:id`             | —          | `{ id, name, createdAt, expiresAt }` | `ChannelSchema`                                                                 |
 | `GET /channels/:id/messages`    | —          | `{ messages: [...] }`                | `MessageHistorySchema`                                                          |

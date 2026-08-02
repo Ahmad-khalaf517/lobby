@@ -10,12 +10,19 @@ export function toChannel(row: ChannelRow): Channel {
   };
 }
 
+export const toChannels = (rows: ChannelRow[]): Channel[] => rows.map(toChannel);
+
+/**
+ * A message's author lives on the joined `channel_members` row, not on the
+ * message itself — see MessageRow in database.types.ts. Guests only (no
+ * authenticated `users` flow exists yet in apps/api), hence guest_name only.
+ */
 export function toMessage(row: MessageRow): Message {
   return {
     id: row.id,
     channelId: row.channel_id,
-    authorName: row.author_name,
-    text: row.text,
+    authorName: row.channel_members?.guest_name ?? 'Unknown',
+    text: row.content,
     createdAt: row.created_at,
   };
 }

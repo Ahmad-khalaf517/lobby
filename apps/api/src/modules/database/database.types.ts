@@ -25,12 +25,38 @@ export type ChannelRow = {
   expires_at: string | null;
 };
 
+/**
+ * A message's author is a `channel_members` row, not a free-text name — see
+ * ChannelMemberRow below. `sender_id` is embedded via a PostgREST resource
+ * embed (`channel_members(guest_name,user_id)`) so the API layer can resolve
+ * a display name without a second round trip; see channels.mappers.ts.
+ */
 export type MessageRow = {
   id: string;
   channel_id: string;
-  author_name: string;
-  text: string;
+  sender_id: string;
+  content: string;
   created_at: string;
+  edited_at: string | null;
+  channel_members: Pick<ChannelMemberRow, 'guest_name' | 'user_id'> | null;
+};
+
+/**
+ * A channel membership — one row per join (guest or authenticated). Rows are
+ * never deleted, only closed via `left_at`, so `messages.sender_id` always
+ * resolves even after someone leaves. `livekit_identity` is required by the
+ * live schema (NOT NULL, no default) — apps/api mints one per join so a
+ * future call-token endpoint has a stable identity to bind to.
+ */
+export type ChannelMemberRow = {
+  id: string;
+  channel_id: string;
+  user_id: string | null;
+  guest_name: string | null;
+  role: string;
+  livekit_identity: string;
+  joined_at: string;
+  left_at: string | null;
 };
 
 /** Insert shapes — columns with database defaults are omitted. */
@@ -42,8 +68,14 @@ export type ChannelInsert = {
 
 export type MessageInsert = {
   channel_id: string;
-  author_name: string;
-  text: string;
+  sender_id: string;
+  content: string;
+};
+
+export type ChannelMemberInsert = {
+  channel_id: string;
+  guest_name: string;
+  livekit_identity: string;
 };
 
 /** Typed Supabase client schema, so `.from('channels')` is type-checked. */
@@ -60,6 +92,12 @@ export type Database = {
         Row: MessageRow;
         Insert: MessageInsert;
         Update: Partial<MessageInsert>;
+        Relationships: [];
+      };
+      channel_members: {
+        Row: ChannelMemberRow;
+        Insert: ChannelMemberInsert;
+        Update: Partial<ChannelMemberInsert> & { left_at?: string | null };
         Relationships: [];
       };
     };

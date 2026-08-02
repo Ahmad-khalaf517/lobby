@@ -1,1 +1,193 @@
-<p>guest-room-page works!</p>
+@switch (status()) {
+  @case ('needs-name') {
+    <main
+      class="relative flex min-h-screen items-center justify-center overflow-hidden bg-app-background px-4 py-12 text-app-foreground"
+    >
+      <div
+        class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(124,92,252,0.16),transparent_38%)]"
+        aria-hidden="true"
+      ></div>
+
+      <div class="relative w-full max-w-sm">
+        <div class="mb-7 flex flex-col items-center gap-4 text-center">
+          <a
+            routerLink="/"
+            class="inline-flex items-center gap-3"
+            aria-label="Return to Lobby home"
+          >
+            <app-logo [size]="28" />
+            <span class="text-lg font-semibold tracking-[-0.02em] text-white">Lobby</span>
+          </a>
+          <div class="space-y-1.5">
+            <h1 class="text-2xl font-semibold tracking-[-0.03em] text-white">One more thing</h1>
+            <p class="text-sm leading-6 text-[#a0a9b7]">What should we call you in this channel?</p>
+          </div>
+        </div>
+
+        <form
+          (submit)="$event.preventDefault(); submitName()"
+          class="rounded-2xl border border-white/10 bg-[#141821] p-5 shadow-[0_25px_70px_rgba(0,0,0,.34)]"
+        >
+          <label for="joinName" class="block text-xs font-medium text-[#737e8e]">
+            Display name
+          </label>
+          <input
+            id="joinName"
+            type="text"
+            [formControl]="nameControl"
+            [maxlength]="maxNameLength"
+            placeholder="e.g. Mohammad"
+            autocomplete="off"
+            class="mt-2 h-11 w-full rounded-xl border border-white/10 bg-[#1a1f2b] px-3.5 text-sm text-app-foreground placeholder:text-[#687282] outline-none focus:border-[#8f74ff]/60 focus:ring-2 focus:ring-[#8f74ff]/20"
+          />
+
+          <button
+            type="submit"
+            class="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-white shadow-[0_16px_38px_rgba(124,92,252,0.24)] transition hover:-translate-y-0.5 hover:bg-[#8b6dff]"
+          >
+            Join channel
+          </button>
+        </form>
+      </div>
+    </main>
+  }
+
+  @case ('loading') {
+    <main
+      class="flex min-h-screen items-center justify-center bg-app-background text-sm text-[#a0a9b7]"
+    >
+      Connecting to channel…
+    </main>
+  }
+
+  @case ('not-found') {
+    <main
+      class="flex min-h-screen flex-col items-center justify-center gap-4 bg-app-background px-4 text-center text-app-foreground"
+    >
+      <p class="text-sm font-semibold tracking-[0.22em] text-[#737e8e] uppercase">Error 404</p>
+      <h1 class="text-2xl font-semibold text-white">This channel doesn't exist or has expired.</h1>
+      <button
+        type="button"
+        (click)="goToGuests()"
+        class="mt-2 inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#8b6dff]"
+      >
+        Browse open channels
+      </button>
+    </main>
+  }
+
+  @case ('error') {
+    <main
+      class="flex min-h-screen flex-col items-center justify-center gap-4 bg-app-background px-4 text-center text-app-foreground"
+    >
+      <p class="text-sm font-semibold tracking-[0.22em] text-destructive uppercase">
+        Connection lost
+      </p>
+      <h1 class="max-w-md text-lg font-medium text-white">
+        {{ errorMessage() || 'Something went wrong reaching this channel.' }}
+      </h1>
+      <button
+        type="button"
+        (click)="goToGuests()"
+        class="mt-2 inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] px-5 py-3 text-sm font-semibold text-[#e7eaf0] transition hover:border-white/20 hover:bg-white/6"
+      >
+        Back to channel list
+      </button>
+    </main>
+  }
+
+  @case ('ready') {
+    <main class="flex h-screen flex-col bg-app-background text-app-foreground">
+      <!-- Header -->
+      <header
+        class="flex shrink-0 items-center justify-between gap-3 border-b border-white/7 bg-[#141821] px-4 py-3 sm:px-6"
+      >
+        <div class="flex min-w-0 items-center gap-3">
+          <a routerLink="/" aria-label="Return to Lobby home">
+            <app-logo [size]="24" />
+          </a>
+          <div class="min-w-0">
+            <p class="truncate text-sm font-semibold text-white">
+              {{ channel()?.name }}
+            </p>
+            <p class="font-mono text-[10px] text-[#687282]">{{ channelId }}</p>
+          </div>
+        </div>
+
+        <div
+          class="flex shrink-0 items-center gap-1.5 rounded-full border border-white/8 bg-white/[0.03] px-2.5 py-1 text-[10px] text-[#a0a9b7]"
+        >
+          <span
+            [class]="'size-1.5 rounded-full ' + (connected() ? 'bg-online' : 'bg-[#687282]')"
+          ></span>
+          {{ connected() ? 'Live' : 'Reconnecting…' }}
+        </div>
+      </header>
+
+      <!-- Messages -->
+      <div class="lobby-scrollbar flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
+        @if (messages().length === 0) {
+          <p class="py-10 text-center text-sm text-[#687282]">
+            No messages yet — say hello to get the conversation started.
+          </p>
+        }
+
+        @for (message of messages(); track message.id) {
+          <div
+            [class]="
+              'flex w-full items-end gap-2.5 ' + (!isOwnMessage(message) ? 'flex-row-reverse' : '')
+            "
+          >
+            <div class="min-w-0 max-w-[75%] sm:max-w-[65%]">
+              <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <p class="text-xs font-semibold text-[#edf0f4]">
+                  {{ isOwnMessage(message) ? '' : message.authorName }}
+                </p>
+              </div>
+              <p
+                [class]="
+                  'mt-1 inline-flex gap-2 items-end rounded-2xl px-3.5 py-2 text-sm leading-5 wrap-break-word ' +
+                  (isOwnMessage(message)
+                    ? 'rounded-tr-sm bg-primary text-white'
+                    : 'rounded-tl-sm bg-[#1f2531] text-[#c4cad4]')
+                "
+              >
+                {{ message.text }}
+                <span
+                  [class]="
+                    'text-[10px] ' + (isOwnMessage(message) ? 'text-white' : 'text-[#687282]')
+                  "
+                  >{{ messageTime(message) }}</span
+                >
+              </p>
+            </div>
+          </div>
+        }
+
+        <div #scrollAnchor></div>
+      </div>
+
+      <!-- Composer -->
+      <form
+        (submit)="$event.preventDefault(); sendMessage()"
+        class="flex shrink-0 items-end gap-2 border-t border-white/7 bg-[#141821] p-3 sm:p-4"
+      >
+        <input
+          type="text"
+          [formControl]="messageControl"
+          [maxlength]="maxMessageLength"
+          [placeholder]="'Message #' + (channel()?.name ?? '')"
+          autocomplete="off"
+          class="h-11 flex-1 rounded-xl border border-white/10 bg-[#1a1f2b] px-3.5 text-sm text-app-foreground placeholder:text-[#687282] outline-none focus:border-[#8f74ff]/60 focus:ring-2 focus:ring-[#8f74ff]/20"
+        />
+        <button
+          type="submit"
+          [disabled]="messageControl.invalid || !connected()"
+          class="flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-white transition hover:bg-[#8b6dff] disabled:pointer-events-none disabled:opacity-40"
+        >
+          Send
+        </button>
+      </form>
+    </main>
+  }
+}

@@ -6,6 +6,10 @@ import { ChannelsRepository } from './channels.repository';
 export class ChannelsService {
   constructor(private readonly channelsRepository: ChannelsRepository) {}
 
+  listChannels(): Promise<Channel[]> {
+    return this.channelsRepository.listChannels();
+  }
+
   createChannel(name: string): Promise<Channel> {
     return this.channelsRepository.createChannel(name);
   }
@@ -18,8 +22,16 @@ export class ChannelsService {
     return this.channelsRepository.getMessages(channelId);
   }
 
-  addMessage(channelId: string, authorName: string, text: string): Promise<Message> {
-    return this.channelsRepository.addMessage(channelId, authorName, text);
+  openChannelMember(channelId: string, guestName: string): Promise<{ id: string }> {
+    return this.channelsRepository.openChannelMember(channelId, guestName);
+  }
+
+  closeChannelMember(memberId: string): Promise<void> {
+    return this.channelsRepository.closeChannelMember(memberId);
+  }
+
+  addMessage(channelId: string, senderId: string, text: string): Promise<Message> {
+    return this.channelsRepository.addMessage(channelId, senderId, text);
   }
 
   deleteChannel(id: string): Promise<void> {

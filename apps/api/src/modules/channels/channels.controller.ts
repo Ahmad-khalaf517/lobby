@@ -6,6 +6,12 @@ import { ChannelsService } from './channels.service';
 export class ChannelsController {
   constructor(private readonly channels: ChannelsService) {}
 
+  @Get()
+  async list() {
+    const channels = await this.channels.listChannels();
+    return { channels };
+  }
+
   @Post()
   create(@Body() body: unknown) {
     const { name } = CreateChannelRequestSchema.parse(body);

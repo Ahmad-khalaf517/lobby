@@ -24,6 +24,12 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'guests',
+    title: 'Join as Guest | Lobby',
+    loadComponent: () =>
+      import('./features/guests/guests-page/guests-page').then((component) => component.GuestsPage),
+  },
+  {
     path: 'guest/:inviteCode',
     title: 'Guest Room | Lobby',
     loadComponent: () =>

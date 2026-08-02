@@ -34,11 +34,17 @@ export class ChannelGateway implements OnGatewayDisconnect {
   private readonly server!: Server;
 
   /**
-   * channelId -> (socketId -> name). Presence/typing is explicitly in-memory
-   * only (not persisted — see docs/PROJECT_PLAN.md risk #5), so this map IS
-   * the entire source of truth for "who is in this channel right now."
+   * channelId -> (socketId -> { name, memberId }). Live presence (who's
+   * connected *right now*) is still in-memory only (see
+   * docs/PROJECT_PLAN.md risk #5) — this map is the source of truth for
+   * that. `memberId` is the persisted `channel_members` row opened on join,
+   * used to attribute chat messages without trusting a free-text name on
+   * every single payload.
    */
-  private readonly channelMembers = new Map<string, Map<string, string>>();
+  private readonly channelMembers = new Map<
+    string,
+    Map<string, { name: string; memberId: string }>
+  >();
 
   /** socketId -> channelId, so disconnect/leave cleanup doesn't scan every channel. */
   private readonly socketChannel = new Map<string, string>();
@@ -71,8 +77,10 @@ export class ChannelGateway implements OnGatewayDisconnect {
     await client.join(channelId);
     this.socketChannel.set(client.id, channelId);
 
-    const members = this.channelMembers.get(channelId) ?? new Map<string, string>();
-    members.set(client.id, name);
+    const { id: memberId } = await this.channels.openChannelMember(channelId, name);
+    const members =
+      this.channelMembers.get(channelId) ?? new Map<string, { name: string; memberId: string }>();
+    members.set(client.id, { name, memberId });
     this.channelMembers.set(channelId, members);
 
     client.to(channelId).emit(SOCKET_EVENTS.USER_JOINED, { name, socketId: client.id });
@@ -82,11 +90,23 @@ export class ChannelGateway implements OnGatewayDisconnect {
   }
 
   @SubscribeMessage(SOCKET_EVENTS.CHAT_MESSAGE)
-  async handleChatMessage(@MessageBody() payload: unknown): Promise<void> {
-    const { channelId, name, text } = ChatMessagePayloadSchema.parse(payload);
+  async handleChatMessage(
+    @MessageBody() payload: unknown,
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    const { channelId, text } = ChatMessagePayloadSchema.parse(payload);
+
+    // Authorship comes from the channel_members row opened at joinChannel,
+    // not the payload's free-text `name` — a socket that hasn't joined this
+    // channel has no member row to attribute the message to.
+    const member = this.channelMembers.get(channelId)?.get(client.id);
+    if (!member) {
+      throw new WsException('Join the channel before sending messages');
+    }
+
     // Insert first, then broadcast the stored row — every client sees the
     // same id/createdAt the database assigned (see chat.schema.ts).
-    const message = await this.channels.addMessage(channelId, name, text);
+    const message = await this.channels.addMessage(channelId, member.memberId, text);
     this.server.to(channelId).emit(SOCKET_EVENTS.CHAT_MESSAGE, message);
   }
 
@@ -117,15 +137,21 @@ export class ChannelGateway implements OnGatewayDisconnect {
 
   private removeFromChannel(client: Socket, channelId: string): void {
     const members = this.channelMembers.get(channelId);
-    const name = members?.get(client.id);
-    if (!members || name === undefined) return;
+    const member = members?.get(client.id);
+    if (!members || member === undefined) return;
 
     members.delete(client.id);
     if (members.size === 0) {
       this.channelMembers.delete(channelId);
     }
 
-    client.to(channelId).emit(SOCKET_EVENTS.USER_LEFT, { name, socketId: client.id });
+    // Rows are never deleted (see ChannelMemberRow) — closing is best-effort
+    // and shouldn't block or fail the socket-level leave/disconnect cleanup.
+    this.channels
+      .closeChannelMember(member.memberId)
+      .catch((err: unknown) => console.error('Failed to close channel_members row', err));
+
+    client.to(channelId).emit(SOCKET_EVENTS.USER_LEFT, { name: member.name, socketId: client.id });
     if (members.size > 0) {
       client.to(channelId).emit(SOCKET_EVENTS.MEMBER_LIST, {
         members: this.toMemberList(members),
@@ -133,7 +159,7 @@ export class ChannelGateway implements OnGatewayDisconnect {
     }
   }
 
-  private toMemberList(members: Map<string, string>): Member[] {
-    return [...members].map(([socketId, memberName]) => ({ socketId, name: memberName }));
+  private toMemberList(members: Map<string, { name: string; memberId: string }>): Member[] {
+    return [...members].map(([socketId, member]) => ({ socketId, name: member.name }));
   }
 }

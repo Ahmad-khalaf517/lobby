@@ -23,6 +23,18 @@ export type CreateChannelRequest = z.infer<typeof CreateChannelRequestSchema>;
 export const CreateChannelResponseSchema = ChannelSchema;
 export type CreateChannelResponse = z.infer<typeof CreateChannelResponseSchema>;
 
+/**
+ * REST: GET /channels — response.
+ * Lists open (non-expired) channels so a guest can browse and pick one
+ * without already having a link. Note: this makes every open channel
+ * discoverable, not just ones a guest was directly linked to — see the
+ * callout in docs/CREATING_A_CHANNEL.md.
+ */
+export const ChannelListResponseSchema = z.object({
+  channels: z.array(ChannelSchema),
+});
+export type ChannelListResponse = z.infer<typeof ChannelListResponseSchema>;
+
 /** Socket: joinChannel — client → server payload */
 export const JoinChannelPayloadSchema = z.object({
   channelId: z.string(),

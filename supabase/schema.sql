@@ -41,19 +41,65 @@ create index if not exists channels_expires_at_idx
 
 
 -- ---------------------------------------------------------------------
+-- channel_members
+--
+-- One row per join (guest or, later, authenticated), never deleted —
+-- see left_at below. Reconstructed here from the live project's actual
+-- PostgREST schema (introspected via its OpenAPI doc), since this table
+-- was applied directly to Supabase without a matching migration ever
+-- landing in this file. If you have the original migration this was
+-- built from, prefer that over this reconstruction and update this
+-- comment.
+-- ---------------------------------------------------------------------
+create table if not exists public.channel_members (
+  id               uuid primary key default gen_random_uuid(),
+  channel_id       text not null references public.channels(id) on delete cascade,
+  -- set for an authenticated member; null for a guest. Exactly one of
+  -- user_id / guest_name is set. No inline FK here — public.users is
+  -- defined later, in the Phase 2 section, which adds the constraint
+  -- once that table exists (see channel_members_user_id_fkey below).
+  user_id          uuid,
+  guest_name       varchar(40),
+  role             varchar(20) not null default 'member',
+  -- required by the live schema even though no call flow reads it yet —
+  -- reserved for the LiveKit call-token endpoint (BE-2) to bind a stable
+  -- participant identity to this membership.
+  livekit_identity varchar(150) not null,
+  joined_at        timestamptz not null default now(),
+  -- null while still connected; set on explicit leave or disconnect.
+  -- Rows are never deleted so past messages keep a resolvable author.
+  left_at          timestamptz
+);
+
+comment on table  public.channel_members            is 'One row per channel join. Never deleted — see left_at. messages.sender_id references this, not a free-text name.';
+comment on column public.channel_members.left_at    is 'Null while connected. Set (not deleted) on leave/disconnect so past messages still resolve an author.';
+comment on column public.channel_members.livekit_identity is 'Reserved for the future LiveKit call-token endpoint; unused by chat itself.';
+
+create index if not exists channel_members_channel_id_idx
+  on public.channel_members (channel_id);
+
+-- A guest rejoining under the same name (refresh, reconnect, or simply two
+-- people picking the same display name) reactivates this row rather than
+-- getting a duplicate — apps/api's openChannelMember does a
+-- look-up-then-write specifically because of this constraint.
+create unique index if not exists unique_channel_guest
+  on public.channel_members (channel_id, lower(guest_name));
+
+
+-- ---------------------------------------------------------------------
 -- messages
 -- ---------------------------------------------------------------------
 create table if not exists public.messages (
   id          uuid primary key default gen_random_uuid(),
   channel_id  text not null references public.channels(id) on delete cascade,
-  -- display name only; there is no users table because there is no auth
-  author_name text not null check (char_length(author_name) between 1 and 40),
-  text        text not null check (char_length(text) between 1 and 2000),
-  created_at  timestamptz not null default now()
+  sender_id   uuid not null references public.channel_members(id),
+  content     text not null check (char_length(content) between 1 and 2000),
+  created_at  timestamptz not null default now(),
+  edited_at   timestamptz
 );
 
-comment on table  public.messages             is 'Chat messages. Deleted automatically when the parent channel is deleted.';
-comment on column public.messages.author_name is 'Display name at send time. Not a foreign key — this app has no user accounts.';
+comment on table  public.messages           is 'Chat messages. Deleted automatically when the parent channel is deleted.';
+comment on column public.messages.sender_id is 'The channel_members row that sent this — join it to resolve a display name (guest_name, or the sender''s user).';
 
 -- The only query the app makes: "messages for this channel, oldest first"
 create index if not exists messages_channel_created_idx
@@ -66,6 +112,7 @@ create index if not exists messages_channel_created_idx
 -- apps/api uses the service_role key and bypasses this entirely.
 -- ---------------------------------------------------------------------
 alter table public.channels enable row level security;
+alter table public.channel_members enable row level security;
 alter table public.messages enable row level security;
 
 
@@ -84,3 +131,107 @@ as $$
   where expires_at is not null
     and expires_at < now();
 $$;
+
+
+-- =====================================================================
+-- PHASE 2 · Authenticated users, servers & server membership
+-- See docs/PROJECT_PLAN.md §2 ("Medium priority — Authentication &
+-- Dashboard/Servers").
+--
+-- Reconstructed from the live project's actual PostgREST schema (see
+-- the channel_members note above) — it does NOT match what an earlier
+-- version of this file guessed before that introspection happened.
+-- Notably simpler than that guess: no email/password columns on users
+-- yet (auth isn't implemented in apps/api at all — see CLAUDE.md's "no
+-- authentication system" restriction, still in effect), and no separate
+-- invitations table — a server has one invite_code directly on it,
+-- the same "the code IS the access control" convention channels.id
+-- already uses. If you have the original migration this was built
+-- from, prefer that over this reconstruction and update this comment.
+-- =====================================================================
+
+
+-- ---------------------------------------------------------------------
+-- users
+-- ---------------------------------------------------------------------
+create table if not exists public.users (
+  id         uuid primary key default gen_random_uuid(),
+  name       varchar(40) not null,
+  created_at timestamptz not null default now()
+);
+
+comment on table public.users is 'Authenticated-path identities (Phase 2). No auth mechanism is wired up in apps/api yet — this table alone does not enable login.';
+
+
+-- ---------------------------------------------------------------------
+-- servers
+-- ---------------------------------------------------------------------
+create table if not exists public.servers (
+  id          uuid primary key default gen_random_uuid(),
+  owner_id    uuid not null references public.users(id) on delete cascade,
+  name        varchar(100) not null,
+  -- the shareable join code, same convention as channels.id: knowing it
+  -- is the access control, no separate invitations table.
+  invite_code varchar(12) not null,
+  created_at  timestamptz not null default now()
+);
+
+comment on table  public.servers             is 'A Discord-style server owned by one authenticated user.';
+comment on column public.servers.invite_code is 'Shareable join code. Redeeming it is an app-level action that inserts a server_members row.';
+
+create index if not exists servers_owner_id_idx
+  on public.servers (owner_id);
+
+create unique index if not exists servers_invite_code_idx
+  on public.servers (invite_code);
+
+
+-- ---------------------------------------------------------------------
+-- server_members — who belongs to a server. Membership is what makes
+-- "persistent room membership" persistent: a member can return to a
+-- server (and whatever it grants access to) any time.
+-- ---------------------------------------------------------------------
+create table if not exists public.server_members (
+  id        uuid primary key default gen_random_uuid(),
+  server_id uuid not null references public.servers(id) on delete cascade,
+  user_id   uuid not null references public.users(id) on delete cascade,
+  role      varchar(20) not null default 'member',
+  joined_at timestamptz not null default now()
+);
+
+comment on table public.server_members is 'Join table: which authenticated users belong to which servers.';
+
+create index if not exists server_members_user_id_idx
+  on public.server_members (user_id);
+
+create unique index if not exists server_members_server_user_idx
+  on public.server_members (server_id, user_id);
+
+
+-- ---------------------------------------------------------------------
+-- Row Level Security — same model as Phase 1: enabled, no public
+-- policies. apps/api (service_role) is the only thing that can read or
+-- write these tables; it is responsible for checking server_members
+-- before returning server data for a given authenticated user.
+-- ---------------------------------------------------------------------
+alter table public.users          enable row level security;
+alter table public.servers        enable row level security;
+alter table public.server_members enable row level security;
+
+-- Deferred from channel_members above: public.users doesn't exist until
+-- this point in the script, so the FK is added here instead of inline.
+-- Postgres has no "add constraint if not exists", so this is guarded
+-- manually to keep the whole file safely re-runnable.
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.table_constraints
+    where table_schema = 'public'
+      and table_name = 'channel_members'
+      and constraint_name = 'channel_members_user_id_fkey'
+  ) then
+    alter table public.channel_members
+      add constraint channel_members_user_id_fkey
+      foreign key (user_id) references public.users(id) on delete set null;
+  end if;
+end $$;
