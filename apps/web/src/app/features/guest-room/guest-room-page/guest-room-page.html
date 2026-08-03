@@ -138,11 +138,25 @@
               'flex w-full items-end gap-2.5 ' + (!isOwnMessage(message) ? 'flex-row-reverse' : '')
             "
           >
+            <div
+              class="grid size-8 shrink-0 place-items-center rounded-full border text-[10px] font-semibold tracking-[0.08em] shadow-[0_10px_28px_rgba(0,0,0,0.22)]"
+              [style.background]="avatarBackground(message.authorName)"
+              [style.borderColor]="avatarBorder(message.authorName)"
+              [style.color]="avatarText(message.authorName)"
+              [style.boxShadow]="'0 10px 28px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.10)'"
+              aria-hidden="true"
+            >
+              {{ initials(message.authorName) }}
+            </div>
+
             <div class="min-w-0 max-w-[75%] sm:max-w-[65%]">
               <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                 <p class="text-xs font-semibold text-[#edf0f4]">
-                  {{ isOwnMessage(message) ? '' : message.authorName }}
+                  {{ message.authorName }}
                 </p>
+                @if (isOwnMessage(message)) {
+                  <span class="text-[10px] font-medium text-[#8f74ff]">You</span>
+                }
               </div>
               <p
                 [class]="
@@ -173,6 +187,7 @@
         class="flex shrink-0 items-end gap-2 border-t border-white/7 bg-[#141821] p-3 sm:p-4"
       >
         <input
+          #composerInput
           type="text"
           [formControl]="messageControl"
           [maxlength]="maxMessageLength"
@@ -180,6 +195,53 @@
           autocomplete="off"
           class="h-11 flex-1 rounded-xl border border-white/10 bg-[#1a1f2b] px-3.5 text-sm text-app-foreground placeholder:text-[#687282] outline-none focus:border-[#8f74ff]/60 focus:ring-2 focus:ring-[#8f74ff]/20"
         />
+
+        <div #emojiPickerHost class="relative">
+          <button
+            type="button"
+            (click)="toggleEmojiPicker()"
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/12 bg-white/[0.045] text-[#c8cfdb] transition hover:border-white/22 hover:bg-white/10 hover:text-white"
+            aria-label="Open emoji picker"
+            [attr.aria-expanded]="emojiPickerOpen()"
+            aria-haspopup="true"
+          >
+            <svg viewBox="0 0 24 24" class="size-5" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
+              <path
+                d="M9.2 10.5a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4ZM14.8 10.5a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4Z"
+                fill="currentColor"
+              />
+              <path
+                d="M8.2 14.2c.9 1.3 2.2 2 3.8 2s2.9-.7 3.8-2"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+
+          @if (emojiPickerOpen()) {
+            <div
+              class="absolute right-0 bottom-[calc(100%+0.6rem)] z-20 w-56 rounded-xl border border-white/12 bg-[#1a1f2b] p-2 shadow-[0_24px_50px_rgba(0,0,0,0.45)]"
+              role="menu"
+              aria-label="Emoji picker"
+            >
+              <div class="grid grid-cols-6 gap-1">
+                @for (emoji of emojis; track emoji) {
+                  <button
+                    type="button"
+                    (click)="selectEmoji(emoji)"
+                    class="flex h-8 w-8 items-center justify-center rounded-lg text-lg transition hover:bg-white/10"
+                    [attr.aria-label]="'Insert emoji ' + emoji"
+                  >
+                    {{ emoji }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
         <button
           type="submit"
           [disabled]="messageControl.invalid || !connected()"

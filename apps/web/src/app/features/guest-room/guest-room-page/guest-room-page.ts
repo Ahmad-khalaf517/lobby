@@ -4,6 +4,7 @@ import {
   Component,
   DestroyRef,
   effect,
+  HostListener,
   inject,
   signal,
   viewChild,
@@ -43,6 +44,8 @@ export class GuestRoomPage {
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly scrollAnchor = viewChild<ElementRef<HTMLDivElement>>('scrollAnchor');
+  private readonly composerInput = viewChild<ElementRef<HTMLInputElement>>('composerInput');
+  private readonly emojiPickerHost = viewChild<ElementRef<HTMLElement>>('emojiPickerHost');
 
   protected readonly channelId = this.route.snapshot.paramMap.get('inviteCode') ?? '';
 
@@ -54,6 +57,21 @@ export class GuestRoomPage {
   protected readonly messages = signal<Message[]>([]);
   protected readonly connected = signal(false);
   protected readonly displayName = signal('');
+  protected readonly emojiPickerOpen = signal(false);
+  protected readonly emojis = [
+    '😀',
+    '😂',
+    '😍',
+    '😎',
+    '🤔',
+    '👏',
+    '🙌',
+    '🔥',
+    '💯',
+    '🎉',
+    '👍',
+    '❤️',
+  ];
 
   protected readonly nameControl = new FormControl('', {
     nonNullable: true,
@@ -167,10 +185,74 @@ export class GuestRoomPage {
 
     this.socket.emit(SOCKET_EVENTS.CHAT_MESSAGE, ChatMessagePayloadSchema.parse(payload));
     this.messageControl.reset('');
+    this.emojiPickerOpen.set(false);
+  }
+
+  protected toggleEmojiPicker(): void {
+    this.emojiPickerOpen.update((open) => !open);
+  }
+
+  protected selectEmoji(emoji: string): void {
+    const input = this.composerInput()?.nativeElement;
+    const current = this.messageControl.value;
+
+    if (!input) {
+      this.messageControl.setValue(`${current}${emoji}`);
+      this.emojiPickerOpen.set(false);
+      return;
+    }
+
+    const start = input.selectionStart ?? current.length;
+    const end = input.selectionEnd ?? current.length;
+    const nextValue = `${current.slice(0, start)}${emoji}${current.slice(end)}`;
+
+    this.messageControl.setValue(nextValue);
+    this.emojiPickerOpen.set(false);
+
+    queueMicrotask(() => {
+      input.focus();
+      const cursor = start + emoji.length;
+      input.setSelectionRange(cursor, cursor);
+    });
+  }
+
+  @HostListener('document:click', ['$event'])
+  protected handleDocumentClick(event: MouseEvent): void {
+    if (!this.emojiPickerOpen()) {
+      return;
+    }
+
+    const target = event.target;
+    const host = this.emojiPickerHost()?.nativeElement;
+    if (target instanceof Node && host && !host.contains(target)) {
+      this.emojiPickerOpen.set(false);
+    }
   }
 
   protected initials(name: string): string {
-    return name.trim().slice(0, 2).toUpperCase();
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+
+    if (parts.length === 0) {
+      return '??';
+    }
+
+    if (parts.length === 1) {
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+
+    return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
+  }
+
+  protected avatarBackground(name: string): string {
+    return `linear-gradient(135deg, ${this.avatarColor(name, 0.34)}, ${this.avatarColor(name, 0.2)})`;
+  }
+
+  protected avatarBorder(name: string): string {
+    return this.avatarColor(name, 0.42);
+  }
+
+  protected avatarText(name: string): string {
+    return this.avatarColor(name, 0.96, 88);
   }
 
   protected messageTime(message: Message): string {
@@ -198,5 +280,17 @@ export class GuestRoomPage {
 
   protected goToGuests(): void {
     void this.router.navigate(['/guests']);
+  }
+
+  private avatarColor(name: string, alpha: number, lightness = 62): string {
+    const normalized = name.trim().toLocaleLowerCase();
+    let hash = 0;
+
+    for (let index = 0; index < normalized.length; index += 1) {
+      hash = normalized.charCodeAt(index) + ((hash << 5) - hash);
+    }
+
+    const hue = Math.abs(hash) % 360;
+    return `hsla(${hue} 72% ${lightness}% / ${alpha})`;
   }
 }
