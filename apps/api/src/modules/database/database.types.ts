@@ -33,6 +33,15 @@ export type MessageRow = {
   created_at: string;
 };
 
+export type UserProfileRow = {
+  user_id: string;
+  display_name: string;
+  bio: string | null;
+  avatar_url: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 /** Insert shapes — columns with database defaults are omitted. */
 export type ChannelInsert = {
   id: string;
@@ -44,6 +53,27 @@ export type MessageInsert = {
   channel_id: string;
   author_name: string;
   text: string;
+};
+
+export type UserProfileInsert = {
+  user_id: string;
+  display_name: string;
+  bio?: string | null;
+  avatar_url?: string | null;
+};
+
+export type AccountSettingsRow = {
+  user_id: string;
+  email_notifications_enabled: boolean;
+  push_notifications_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AccountSettingsInsert = {
+  user_id: string;
+  email_notifications_enabled: boolean;
+  push_notifications_enabled: boolean;
 };
 
 /** Typed Supabase client schema, so `.from('channels')` is type-checked. */
@@ -60,6 +90,18 @@ export type Database = {
         Row: MessageRow;
         Insert: MessageInsert;
         Update: Partial<MessageInsert>;
+        Relationships: [];
+      };
+      user_profiles: {
+        Row: UserProfileRow;
+        Insert: UserProfileInsert;
+        Update: Partial<UserProfileInsert>;
+        Relationships: [];
+      };
+      account_settings: {
+        Row: AccountSettingsRow;
+        Insert: AccountSettingsInsert;
+        Update: Partial<AccountSettingsInsert>;
         Relationships: [];
       };
     };
