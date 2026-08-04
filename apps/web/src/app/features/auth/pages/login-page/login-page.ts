@@ -7,7 +7,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { loginSchema, LoginInput } from '../../schemas/login.schema';
 import { AuthService } from '../../services/auth';
@@ -27,6 +27,7 @@ type LoginField = (typeof loginFields)[number];
 export class LoginPage {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   private readonly emailInput = viewChild.required<ElementRef<HTMLInputElement>>('emailInput');
   private readonly passwordInput =
@@ -81,17 +82,12 @@ export class LoginPage {
     this.isSubmitting.set(true);
 
     try {
-      const { data, error } = await this.auth.login(input.email, input.password);
+      await this.auth.login(input);
 
-      if (error) {
-        throw error;
-      }
-
-      if (!data.session) {
-        throw new Error('Authentication completed without a session.');
-      }
-
-      await this.router.navigateByUrl('/app');
+      const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+      const destination =
+        returnUrl?.startsWith('/') && !returnUrl.startsWith('//') ? returnUrl : '/app';
+      await this.router.navigateByUrl(destination);
     } catch (error: unknown) {
       this.generalError.set(getAuthErrorMessage(error, 'login'));
       queueMicrotask(() => this.errorAlert()?.nativeElement.focus());

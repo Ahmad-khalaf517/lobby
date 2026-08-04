@@ -19,6 +19,17 @@ Calls (voice + screen share) are **not** part of the Socket.IO contract below �
 | `GET /users/:userId/account-settings`   | —                                                           | `{ userId, emailNotificationsEnabled, pushNotificationsEnabled, ... }` | `AccountSettingsSchema`                                                         |
 | `PATCH /users/:userId/account-settings` | `{ emailNotificationsEnabled?, pushNotificationsEnabled? }` | `{ userId, emailNotificationsEnabled, pushNotificationsEnabled, ... }` | `UpdateAccountSettingsRequestSchema` / `UpdateAccountSettingsResponseSchema`    |
 
+| `POST /auth/login` | `{ email, password }` | `{ user, expiresAt }` | `LoginRequestSchema` / `AuthSessionResponseSchema` |
+| `GET /auth/me` | — | `{ user }` | `CurrentUserResponseSchema` |
+| `POST /auth/refresh` | — (HttpOnly refresh cookie) | `{ user, expiresAt }` | `AuthSessionResponseSchema` |
+| `POST /auth/logout` | — (HttpOnly auth cookies) | `{ message }` | `AuthMessageResponseSchema` |
+| `POST /auth/register` | `{ name, email, password, confirmPassword }` | `{ message, user? }` | `RegisterRequestSchema` / `RegistrationResponseSchema` |
+| `POST /auth/confirm-email` | `{ tokenHash, type: 'email' }` | `{ user, expiresAt }` | `ConfirmEmailRequestSchema` / `AuthSessionResponseSchema` |
+| `POST /auth/resend-confirmation` | `{ email }` | `{ message }` | `EmailRequestSchema` / `AuthMessageResponseSchema` |
+| `POST /auth/forgot-password` | `{ email }` | `{ message }` | `EmailRequestSchema` / `AuthMessageResponseSchema` |
+| `POST /auth/verify-recovery` | `{ tokenHash }` | `{ user, expiresAt }` | `VerifyRecoveryRequestSchema` / `AuthSessionResponseSchema` |
+| `POST /auth/reset-password` | `{ password, confirmPassword }` | `{ message }` | `ResetPasswordRequestSchema` / `AuthMessageResponseSchema` |
+
 ## Socket.IO — Client → Server
 
 | Event          | Payload                         | Schema                      |

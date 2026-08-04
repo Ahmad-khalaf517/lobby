@@ -41,9 +41,7 @@ export class SupabaseService implements OnModuleInit {
     return this._adminClient;
   }
 
-  /**
-   * Create a fresh client for each login request.
-   */
+  /** Create a fresh, non-persistent client for one auth operation. */
   createAuthClient(): SupabaseClient<Database> {
     return createClient<Database>(this.supabaseUrl, this.publishableKey, {
       auth: {
@@ -52,12 +50,5 @@ export class SupabaseService implements OnModuleInit {
         detectSessionInUrl: false,
       },
     });
-  }
-
-  /**
-   * Validate an access token received from Angular.
-   */
-  getUser(accessToken: string) {
-    return this._adminClient.auth.getUser(accessToken);
   }
 }

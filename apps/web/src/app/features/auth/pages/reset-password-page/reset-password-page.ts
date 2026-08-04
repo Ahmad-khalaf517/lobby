@@ -1,16 +1,14 @@
-import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import {
   afterNextRender,
   ChangeDetectionStrategy,
   Component,
   ElementRef,
   inject,
-  PLATFORM_ID,
   signal,
   viewChild,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { resetPasswordSchema, ResetPasswordInput } from '../../schemas/reset-password.schema';
 import { AuthService } from '../../services/auth';
@@ -19,14 +17,6 @@ import { mapZodFieldErrors } from '../../utils/zod-form-errors.util';
 
 export type ResetPasswordState =
   'verifying' | 'ready' | 'submitting' | 'success' | 'failure' | 'missing';
-
-interface RecoveryCallbackSnapshot {
-  readonly errorCode: string;
-  readonly errorDescription: string;
-  readonly hasAuthorizationCode: boolean;
-  readonly hasImplicitTokens: boolean;
-  readonly type: string;
-}
 
 const resetPasswordFields = [
   'password',
@@ -42,11 +32,8 @@ type ResetPasswordField = (typeof resetPasswordFields)[number];
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ResetPasswordPage {
-  private readonly document = inject(DOCUMENT);
-  private readonly platformId = inject(PLATFORM_ID);
-  private readonly callbackSnapshot = this.captureCallback();
+  private readonly route = inject(ActivatedRoute);
   private readonly auth = inject(AuthService);
-
   private readonly passwordInput =
     viewChild.required<ElementRef<HTMLInputElement>>('passwordInput');
   private readonly confirmPasswordInput =
@@ -112,14 +99,8 @@ export class ResetPasswordPage {
     this.form.disable({ emitEvent: false });
 
     try {
-      const { error } = await this.auth.updatePassword(input.password);
-
-      if (error) {
-        throw error;
-      }
-
+      await this.auth.resetPassword(input.password, input.confirmPassword);
       this.form.reset({ password: '', confirmPassword: '' });
-      await this.auth.logout();
       this.state.set('success');
     } catch (error: unknown) {
       this.generalError.set(getAuthErrorMessage(error, 'password-update'));
@@ -133,33 +114,26 @@ export class ResetPasswordPage {
   }
 
   private async verifyRecoverySession(): Promise<void> {
-    const callback = this.callbackSnapshot ?? this.captureCallback();
+    const params = this.route.snapshot.queryParamMap;
+    const errorCode = params.get('error_code') ?? params.get('error') ?? '';
+    const errorDescription = params.get('error_description') ?? '';
+    const tokenHash = params.get('token_hash');
+    const type = params.get('type');
 
-    if (!callback) {
-      this.state.set('missing');
-      return;
-    }
-
-    if (callback.errorCode || callback.errorDescription) {
+    if (errorCode || errorDescription) {
       this.failureMessage.set(
-        getAuthErrorMessage(
-          { code: callback.errorCode, message: callback.errorDescription },
-          'password-recovery',
-        ),
+        getAuthErrorMessage({ code: errorCode, message: errorDescription }, 'password-recovery'),
       );
       this.state.set('failure');
       return;
     }
 
-    const hasCallbackInformation =
-      callback.type !== '' || callback.hasImplicitTokens || callback.hasAuthorizationCode;
-
-    if (!hasCallbackInformation) {
+    if (!tokenHash && !type) {
       this.state.set('missing');
       return;
     }
 
-    if (callback.type !== 'recovery' || !callback.hasImplicitTokens) {
+    if (!tokenHash || type !== 'recovery') {
       this.failureMessage.set(
         'This password reset link is invalid or incomplete. Request a new recovery email and try again.',
       );
@@ -168,20 +142,7 @@ export class ResetPasswordPage {
     }
 
     try {
-      const { data, error } = await this.auth.getSession();
-
-      if (error) {
-        throw error;
-      }
-
-      if (!data.session) {
-        this.failureMessage.set(
-          'This password reset link may be invalid or expired. Request a new recovery email and try again.',
-        );
-        this.state.set('failure');
-        return;
-      }
-
+      await this.auth.verifyRecovery(tokenHash);
       this.state.set('ready');
     } catch (error: unknown) {
       this.failureMessage.set(getAuthErrorMessage(error, 'password-recovery'));
@@ -219,23 +180,5 @@ export class ResetPasswordPage {
     } else if (field === 'confirmPassword') {
       this.confirmPasswordInput().nativeElement.focus();
     }
-  }
-
-  private captureCallback(): RecoveryCallbackSnapshot | null {
-    if (!isPlatformBrowser(this.platformId)) {
-      return null;
-    }
-
-    const search = new URLSearchParams(this.document.location.search);
-    const hash = new URLSearchParams(this.document.location.hash.replace(/^#/, ''));
-
-    return {
-      errorCode: search.get('error_code') ?? hash.get('error_code') ?? search.get('error') ?? '',
-      errorDescription:
-        search.get('error_description') ?? hash.get('error_description') ?? hash.get('error') ?? '',
-      hasAuthorizationCode: search.has('code'),
-      hasImplicitTokens: hash.has('access_token') && hash.has('refresh_token'),
-      type: hash.get('type') ?? search.get('type') ?? '',
-    };
   }
 }

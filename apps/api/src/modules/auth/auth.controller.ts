@@ -1,16 +1,30 @@
+import type {
+  AuthMessageResponse,
+  AuthSessionResponse,
+  ConfirmEmailRequest,
+  CurrentUserResponse,
+  EmailRequest,
+  LoginRequest,
+  RegisterRequest,
+  RegistrationResponse,
+  ResetPasswordRequest,
+  VerifyRecoveryRequest,
+} from '@lobby/shared';
+import {
+  ConfirmEmailRequestSchema,
+  EmailRequestSchema,
+  LoginRequestSchema,
+  RegisterRequestSchema,
+  ResetPasswordRequestSchema,
+  VerifyRecoveryRequestSchema,
+} from '@lobby/shared';
 import { Body, Controller, Get, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
-import type { Request, Response, CookieOptions } from 'express';
+import type { Request, Response } from 'express';
 
-import { AuthService } from './auth.service';
 import { ZodValidationPipe } from '../../zod-validation.pipe';
-import { type LoginDto, LoginSchema } from './dto/login.dto/login.dto';
-
-const cookieOptions: CookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
-  path: '/',
-};
+import { clearAuthCookies, readAuthCookies, setAuthCookies } from './auth-cookies';
+import { toAuthUser } from './auth.mapper';
+import { AuthService } from './auth.service';
 
 @Controller('auth')
 export class AuthController {
@@ -18,72 +32,138 @@ export class AuthController {
 
   @Post('login')
   async login(
-    @Body(new ZodValidationPipe(LoginSchema))
-    dto: LoginDto,
+    @Body(new ZodValidationPipe(LoginRequestSchema)) dto: LoginRequest,
     @Res({ passthrough: true }) response: Response,
-  ) {
+  ): Promise<AuthSessionResponse> {
     const result = await this.authService.login(dto);
-
-    response.cookie('access_token', result.session.access_token, {
-      ...cookieOptions,
-      maxAge: result.session.expires_in * 1000,
-    });
-
-    response.cookie('refresh_token', result.session.refresh_token, {
-      ...cookieOptions,
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
+    setAuthCookies(response, result.session);
 
     return {
-      user: result.user,
-      expiresAt: result.session.expires_at,
+      user: toAuthUser(result.user),
+      expiresAt: result.session.expires_at ?? null,
+    };
+  }
+
+  @Post('register')
+  async register(
+    @Body(new ZodValidationPipe(RegisterRequestSchema)) dto: RegisterRequest,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<RegistrationResponse> {
+    const result = await this.authService.register(dto);
+
+    if (result.session) {
+      setAuthCookies(response, result.session);
+    }
+
+    return {
+      message: 'Registration successful. Check your email to confirm your account.',
+      ...(result.session ? { user: toAuthUser(result.user) } : {}),
     };
   }
 
   @Get('me')
-  getCurrentUser(@Req() request: Request) {
-    const accessToken = request.cookies?.access_token as string | undefined;
-
+  async getCurrentUser(@Req() request: Request): Promise<CurrentUserResponse> {
+    const { accessToken } = readAuthCookies(request);
     if (!accessToken) {
       throw new UnauthorizedException('Missing session');
     }
 
-    return this.authService.getCurrentUser(accessToken);
+    const result = await this.authService.getCurrentUser(accessToken);
+    return { user: toAuthUser(result.user) };
   }
 
   @Post('refresh')
-  async refresh(@Req() request: Request, @Res({ passthrough: true }) response: Response) {
-    const refreshToken = request.cookies?.refresh_token as string | undefined;
-
+  async refresh(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<AuthSessionResponse> {
+    const { refreshToken } = readAuthCookies(request);
     if (!refreshToken) {
       throw new UnauthorizedException('Missing refresh token');
     }
 
     const result = await this.authService.refreshSession(refreshToken);
-
-    response.cookie('access_token', result.session.access_token, {
-      ...cookieOptions,
-      maxAge: result.session.expires_in * 1000,
-    });
-
-    response.cookie('refresh_token', result.session.refresh_token, {
-      ...cookieOptions,
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
+    setAuthCookies(response, result.session);
 
     return {
-      user: result.user,
-      expiresAt: result.session.expires_at,
+      user: toAuthUser(result.user),
+      expiresAt: result.session.expires_at ?? null,
     };
   }
 
-  @Post('logout')
-  logout(@Res({ passthrough: true }) response: Response) {
-    response.clearCookie('access_token', cookieOptions);
-    response.clearCookie('refresh_token', cookieOptions);
+  @Post('confirm-email')
+  async confirmEmail(
+    @Body(new ZodValidationPipe(ConfirmEmailRequestSchema)) dto: ConfirmEmailRequest,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<AuthSessionResponse> {
+    const result = await this.authService.confirmEmail(dto);
+    setAuthCookies(response, result.session);
 
     return {
-      message: 'Logged out successfully',
+      user: toAuthUser(result.user),
+      expiresAt: result.session.expires_at ?? null,
     };
+  }
+
+  @Post('resend-confirmation')
+  async resendConfirmation(
+    @Body(new ZodValidationPipe(EmailRequestSchema)) dto: EmailRequest,
+  ): Promise<AuthMessageResponse> {
+    await this.authService.resendConfirmation(dto);
+    return { message: 'If the account can be confirmed, a new email has been sent.' };
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(
+    @Body(new ZodValidationPipe(EmailRequestSchema)) dto: EmailRequest,
+  ): Promise<AuthMessageResponse> {
+    await this.authService.forgotPassword(dto);
+    return { message: 'If an account exists for that email, a reset link has been sent.' };
+  }
+
+  @Post('verify-recovery')
+  async verifyRecovery(
+    @Body(new ZodValidationPipe(VerifyRecoveryRequestSchema)) dto: VerifyRecoveryRequest,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<AuthSessionResponse> {
+    const result = await this.authService.verifyRecovery(dto);
+    setAuthCookies(response, result.session);
+
+    return {
+      user: toAuthUser(result.user),
+      expiresAt: result.session.expires_at ?? null,
+    };
+  }
+
+  @Post('reset-password')
+  async resetPassword(
+    @Body(new ZodValidationPipe(ResetPasswordRequestSchema)) dto: ResetPasswordRequest,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<AuthMessageResponse> {
+    const { accessToken, refreshToken } = readAuthCookies(request);
+    if (!accessToken || !refreshToken) {
+      throw new UnauthorizedException('Missing recovery session');
+    }
+
+    const result = await this.authService.resetPassword(dto, accessToken, refreshToken);
+    setAuthCookies(response, result.session);
+    return { message: 'Password updated successfully.' };
+  }
+
+  @Post('logout')
+  async logout(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<AuthMessageResponse> {
+    const { accessToken, refreshToken } = readAuthCookies(request);
+
+    try {
+      await this.authService.logout(accessToken, refreshToken);
+    } finally {
+      clearAuthCookies(response);
+    }
+
+    return { message: 'Logged out successfully' };
   }
 }

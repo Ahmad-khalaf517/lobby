@@ -74,9 +74,6 @@ importers:
       socket.io:
         specifier: ^4.8.1
         version: 4.8.3
-      zod:
-        specifier: ^4.4.3
-        version: 4.4.3
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3.2.0
@@ -180,9 +177,6 @@ importers:
       '@lobby/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@supabase/supabase-js':
-        specifier: ^2.111.0
-        version: 2.111.0
       express:
         specifier: ^5.1.0
         version: 5.2.1

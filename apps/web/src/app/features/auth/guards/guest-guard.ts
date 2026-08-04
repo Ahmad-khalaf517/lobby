@@ -7,10 +7,9 @@ export const guestGuard: CanActivateFn = async () => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  const { data, error } = await authService.getSession();
+  await authService.initialize();
 
-  // No usable session means the visitor may access login/register.
-  if (error || !data.session) {
+  if (authService.status() === 'unauthenticated') {
     return true;
   }
 

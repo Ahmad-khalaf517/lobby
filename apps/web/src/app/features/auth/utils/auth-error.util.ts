@@ -28,8 +28,14 @@ function readStatus(error: unknown): number | undefined {
 }
 
 export function getAuthErrorMessage(error: unknown, context: AuthErrorContext): string {
-  const message = readString(error, 'message').toLowerCase();
-  const code = readString(error, 'code').toLowerCase();
+  const nestedError =
+    typeof error === 'object' && error !== null ? Reflect.get(error, 'error') : undefined;
+  const message = `${readString(error, 'message')} ${readString(nestedError, 'message')}`
+    .trim()
+    .toLowerCase();
+  const code = `${readString(error, 'code')} ${readString(nestedError, 'code')}`
+    .trim()
+    .toLowerCase();
   const status = readStatus(error);
   const details = `${code} ${message}`;
 
