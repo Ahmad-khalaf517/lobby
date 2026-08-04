@@ -47,6 +47,8 @@ export class AccountSettingsRepository {
       return toAccountSettings(data);
     }
 
+    console.log('ahmad');
+
     const { data, error } = await this.supabase.client
       .from('account_settings')
       .insert(toAccountSettingsInsert(userId, payload))
