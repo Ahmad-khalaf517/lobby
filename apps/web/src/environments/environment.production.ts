@@ -11,4 +11,6 @@ export const environment = {
   production: true,
   // TODO: set this to the deployed apps/api URL (e.g. https://lobby-api.onrender.com)
   apiUrl: 'https://lobby-api-gf44.onrender.com',
+  supabaseUrl: 'https://prqmfzkdnjbqwcyxerpy.supabase.co',
+  supabasePublishableKey: 'sb_publishable_IeQ0PO1RChTD7q_gHbrQCg_or4zOa6w',
 };
