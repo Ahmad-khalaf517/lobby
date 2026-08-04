@@ -1,5 +1,12 @@
 import type { Channel, Message } from '@lobby/shared';
-import type { ChannelRow, MessageRow } from '../database/database.types';
+import type { Database } from '../../database/database.types';
+
+type ChannelRow = Database['public']['Tables']['channels']['Row'];
+type ChannelMemberRow = Database['public']['Tables']['channel_members']['Row'];
+type MessageRow = Database['public']['Tables']['messages']['Row'];
+type MessageWithAuthorRow = MessageRow & {
+  channel_members: Pick<ChannelMemberRow, 'guest_name' | 'user_id'> | null;
+};
 
 export function toChannel(row: ChannelRow): Channel {
   return {
@@ -17,7 +24,7 @@ export const toChannels = (rows: ChannelRow[]): Channel[] => rows.map(toChannel)
  * message itself — see MessageRow in database.types.ts. Guests only (no
  * authenticated `users` flow exists yet in apps/api), hence guest_name only.
  */
-export function toMessage(row: MessageRow): Message {
+export function toMessage(row: MessageWithAuthorRow): Message {
   return {
     id: row.id,
     channelId: row.channel_id,
@@ -27,4 +34,4 @@ export function toMessage(row: MessageRow): Message {
   };
 }
 
-export const toMessages = (rows: MessageRow[]): Message[] => rows.map(toMessage);
+export const toMessages = (rows: MessageWithAuthorRow[]): Message[] => rows.map(toMessage);
