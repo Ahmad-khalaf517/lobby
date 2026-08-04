@@ -10,6 +10,7 @@ type ServerInsert = Database['public']['Tables']['servers']['Insert'];
 type ServerUpdate = Database['public']['Tables']['servers']['Update'];
 type ServerMemberInsert = Database['public']['Tables']['server_members']['Insert'];
 type ChannelInsert = Database['public']['Tables']['channels']['Insert'];
+type UserInsert = Database['public']['Tables']['users']['Insert'];
 
 // Invite codes are separate from server ids: short, unambiguous, shareable.
 const generateInviteCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 8);
@@ -19,6 +20,8 @@ export class ServersRepository {
   constructor(private readonly supabase: SupabaseService) {}
 
   async createServer(ownerId: string, name: string): Promise<Server> {
+    await this.ensureUserExists(ownerId);
+
     const server: ServerInsert = {
       owner_id: ownerId,
       name,
@@ -100,6 +103,8 @@ export class ServersRepository {
   }
 
   async addMember(serverId: string, userId: string, role = 'member'): Promise<ServerMember> {
+    await this.ensureUserExists(userId);
+
     const member: ServerMemberInsert = { server_id: serverId, user_id: userId, role };
     const { data, error } = await this.supabase.client
       .from('server_members')
@@ -170,5 +175,17 @@ export class ServersRepository {
 
     if (error) throw error;
     return toChannel(data);
+  }
+
+  private async ensureUserExists(userId: string): Promise<void> {
+    const userName = `User ${userId.slice(0, 8)}`;
+    const user: UserInsert = {
+      id: userId,
+      name: userName,
+    };
+
+    const { error } = await this.supabase.client.from('users').upsert(user, { onConflict: 'id' });
+
+    if (error) throw error;
   }
 }

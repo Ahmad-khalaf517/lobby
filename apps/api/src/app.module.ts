@@ -3,8 +3,9 @@ import { AppFeaturesModule } from './modules/app/app-features.module';
 import { ChannelsModule } from './modules/channels/channels.module';
 import { GatewayModule } from './modules/gateway/gateway.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { ServersModule } from './modules/servers/server.module';
 
 @Module({
-  imports: [AppFeaturesModule, ChannelsModule, GatewayModule, AuthModule],
+  imports: [AppFeaturesModule, ChannelsModule, GatewayModule, AuthModule, ServersModule],
 })
 export class AppModule {}
