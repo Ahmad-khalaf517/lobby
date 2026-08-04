@@ -7,6 +7,7 @@ export * from './schemas/call.schema.js';
 export * from './schemas/user-profile.schema.js';
 export * from './schemas/account-settings.schema.js';
 export * from './schemas/auth.schema.js';
+export * from './schemas/server.schema.js';
 
 // Constants
 export * from './constants/socket-events.js';
