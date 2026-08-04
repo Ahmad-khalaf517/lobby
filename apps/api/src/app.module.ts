@@ -4,6 +4,7 @@ import { ChannelsModule } from './modules/channels/channels.module';
 import { GatewayModule } from './modules/gateway/gateway.module';
 import { UserProfileModule } from './modules/user-profile/user-profile.module';
 import { AccountSettingsModule } from './modules/account-settings/account-settings.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { AccountSettingsModule } from './modules/account-settings/account-settin
     GatewayModule,
     UserProfileModule,
     AccountSettingsModule,
+    AuthModule,
   ],
 })
 export class AppModule {}

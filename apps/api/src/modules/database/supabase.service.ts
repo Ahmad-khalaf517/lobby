@@ -2,37 +2,62 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 
-/**
- * Wraps a single Supabase client for the whole app.
- *
- * Uses the SERVICE_ROLE key, which bypasses Row Level Security. That is
- * deliberate — this app has no user auth, so there is no authenticated
- * Supabase user to write policies against. Access control is enforced here
- * in NestJS instead ("do you know the channel id?").
- *
- * Consequence: this key must never reach the browser. It lives only in the
- * server environment. If it leaks, anyone can read and delete every room.
- */
 @Injectable()
 export class SupabaseService implements OnModuleInit {
-  private _client!: SupabaseClient<Database>;
+  private _adminClient!: SupabaseClient<Database>;
+
+  private supabaseUrl!: string;
+  private publishableKey!: string;
 
   onModuleInit(): void {
     const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!url || !key) {
-      throw new Error(
-        'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set. Copy .env.example to .env and fill them in.',
-      );
+    const adminKey = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY;
+
+    if (!url || !adminKey || !publishableKey) {
+      throw new Error('SUPABASE_URL, an admin key, and a publishable/anon key must be set.');
     }
 
-    this._client = createClient<Database>(url, key, {
-      auth: { persistSession: false, autoRefreshToken: false },
+    this.supabaseUrl = url;
+    this.publishableKey = publishableKey;
+
+    // Elevated client for trusted database operations.
+    this._adminClient = createClient<Database>(url, adminKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
     });
   }
 
+  /**
+   * Existing repositories can continue using this client.
+   * It bypasses RLS, so NestJS must enforce authorization.
+   */
   get client(): SupabaseClient<Database> {
-    return this._client;
+    return this._adminClient;
+  }
+
+  /**
+   * Create a fresh client for each login request.
+   */
+  createAuthClient(): SupabaseClient<Database> {
+    return createClient<Database>(this.supabaseUrl, this.publishableKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    });
+  }
+
+  /**
+   * Validate an access token received from Angular.
+   */
+  getUser(accessToken: string) {
+    return this._adminClient.auth.getUser(accessToken);
   }
 }
