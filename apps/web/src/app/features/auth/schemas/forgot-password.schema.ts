@@ -1,7 +1,2 @@
-import { z } from 'zod';
-
-import { loginSchema } from './login.schema';
-
-export const forgotPasswordSchema = loginSchema.pick({ email: true });
-
-export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export { EmailRequestSchema as forgotPasswordSchema } from '@lobby/shared';
+export type { EmailRequest as ForgotPasswordInput } from '@lobby/shared';

@@ -140,6 +140,7 @@ export type Database = {
         Row: AccountSettingsRow;
         Insert: AccountSettingsInsert;
         Update: Partial<AccountSettingsInsert>;
+        Relationships: [];
       };
     };
     Views: Record<string, never>;

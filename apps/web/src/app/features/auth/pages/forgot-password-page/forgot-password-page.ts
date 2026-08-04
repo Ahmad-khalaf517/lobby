@@ -72,11 +72,7 @@ export class ForgotPasswordPage {
     this.isSubmitting.set(true);
 
     try {
-      const { error } = await this.auth.requestPasswordReset(input.email);
-
-      if (error) {
-        throw error;
-      }
+      await this.auth.forgotPassword(input.email);
 
       this.form.reset({ email: '' });
       this.requestSent.set(true);

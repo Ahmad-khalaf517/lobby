@@ -97,23 +97,14 @@ export class RegisterPage {
     this.isSubmitting.set(true);
 
     try {
-      const { data, error } = await this.auth.register(input);
+      const result = await this.auth.register(input);
 
-      if (error) {
-        throw error;
-      }
-
-      if (data.session) {
+      if (result.user) {
         await this.router.navigateByUrl('/app');
         return;
       }
 
-      if (data.user) {
-        this.confirmationEmail.set(input.email);
-        return;
-      }
-
-      throw new Error('Registration completed without a user or session.');
+      this.confirmationEmail.set(input.email);
     } catch (error: unknown) {
       this.generalError.set(getAuthErrorMessage(error, 'register'));
       queueMicrotask(() => this.errorAlert()?.nativeElement.focus());

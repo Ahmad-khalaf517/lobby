@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import 'dotenv/config';
 
+import cookieParser from 'cookie-parser';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
@@ -8,9 +9,13 @@ import { AppModule } from './app.module';
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
+  app.use(cookieParser());
+
   const allowedOrigins = (
     process.env.CORS_ORIGINS ??
-    'http://localhost:4200,http://127.0.0.1:4200,http://127.0.0.1:5500,http://localhost:5500'
+    process.env.CORS_ORIGIN ??
+    process.env.WEB_ORIGIN ??
+    'http://localhost:4200'
   )
     .split(',')
     .map((origin) => origin.trim())
@@ -18,6 +23,7 @@ async function bootstrap(): Promise<void> {
 
   app.enableCors({
     origin: allowedOrigins,
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
