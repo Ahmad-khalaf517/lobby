@@ -1,8 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { nanoid } from 'nanoid';
 import type { Channel, Message } from '@lobby/shared';
+import type { Database } from '../../database/database.types';
 import { SupabaseService } from '../database/supabase.service';
 import { toChannel, toChannels, toMessage, toMessages } from './channels.mappers';
+
+type ChannelInsert = Database['public']['Tables']['channels']['Insert'];
+type ChannelMemberInsert = Database['public']['Tables']['channel_members']['Insert'];
+type ChannelMemberUpdate = Database['public']['Tables']['channel_members']['Update'];
+type MessageInsert = Database['public']['Tables']['messages']['Insert'];
 
 @Injectable()
 export class ChannelsRepository {
@@ -22,13 +28,15 @@ export class ChannelsRepository {
   }
 
   async createChannel(name: string, ttlHours = 24): Promise<Channel> {
+    const channel: ChannelInsert = {
+      id: nanoid(8),
+      name,
+      expires_at: new Date(Date.now() + ttlHours * 3_600_000).toISOString(),
+    };
+
     const { data, error } = await this.supabase.client
       .from('channels')
-      .insert({
-        id: nanoid(8),
-        name,
-        expires_at: new Date(Date.now() + ttlHours * 3_600_000).toISOString(),
-      })
+      .insert(channel)
       .select()
       .single();
 
@@ -76,9 +84,14 @@ export class ChannelsRepository {
     if (findError) throw findError;
 
     if (existing) {
+      const memberUpdate: ChannelMemberUpdate = {
+        left_at: null,
+        livekit_identity: nanoid(),
+      };
+
       const { data, error } = await this.supabase.client
         .from('channel_members')
-        .update({ left_at: null, livekit_identity: nanoid() })
+        .update(memberUpdate)
         .eq('id', existing.id)
         .select('id')
         .single();
@@ -87,9 +100,15 @@ export class ChannelsRepository {
       return data;
     }
 
+    const member: ChannelMemberInsert = {
+      channel_id: channelId,
+      guest_name: guestName,
+      livekit_identity: nanoid(),
+    };
+
     const { data, error } = await this.supabase.client
       .from('channel_members')
-      .insert({ channel_id: channelId, guest_name: guestName, livekit_identity: nanoid() })
+      .insert(member)
       .select('id')
       .single();
 
@@ -98,18 +117,28 @@ export class ChannelsRepository {
   }
 
   async closeChannelMember(memberId: string): Promise<void> {
+    const memberUpdate: ChannelMemberUpdate = {
+      left_at: new Date().toISOString(),
+    };
+
     const { error } = await this.supabase.client
       .from('channel_members')
-      .update({ left_at: new Date().toISOString() })
+      .update(memberUpdate)
       .eq('id', memberId);
 
     if (error) throw error;
   }
 
   async addMessage(channelId: string, senderId: string, text: string): Promise<Message> {
+    const message: MessageInsert = {
+      channel_id: channelId,
+      sender_id: senderId,
+      content: text,
+    };
+
     const { data, error } = await this.supabase.client
       .from('messages')
-      .insert({ channel_id: channelId, sender_id: senderId, content: text })
+      .insert(message)
       .select('*, channel_members(guest_name, user_id)')
       .single();
 
