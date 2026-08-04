@@ -107,6 +107,34 @@ create index if not exists messages_channel_created_idx
 
 
 -- ---------------------------------------------------------------------
+-- message_reactions
+--
+-- One reaction per member per message. A member can change their
+-- reaction, which updates the same row instead of inserting duplicates.
+-- ---------------------------------------------------------------------
+create table if not exists public.message_reactions (
+  id                 uuid primary key default gen_random_uuid(),
+  message_id         uuid not null references public.messages(id) on delete cascade,
+  channel_member_id  uuid not null references public.channel_members(id) on delete cascade,
+  emoji              varchar(16) not null check (char_length(emoji) between 1 and 16),
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now()
+);
+
+comment on table public.message_reactions is 'Emoji reactions for chat messages. One row per (message, member).';
+comment on column public.message_reactions.channel_member_id is 'Who reacted, via channel_members.id.';
+
+create unique index if not exists message_reactions_message_member_idx
+  on public.message_reactions (message_id, channel_member_id);
+
+create index if not exists message_reactions_message_id_idx
+  on public.message_reactions (message_id);
+
+create index if not exists message_reactions_channel_member_id_idx
+  on public.message_reactions (channel_member_id);
+
+
+-- ---------------------------------------------------------------------
 -- user_profiles
 -- ---------------------------------------------------------------------
 create table if not exists public.user_profiles (
@@ -134,6 +162,12 @@ $$;
 drop trigger if exists user_profiles_set_updated_at on public.user_profiles;
 create trigger user_profiles_set_updated_at
 before update on public.user_profiles
+for each row
+execute function public.set_updated_at_timestamp();
+
+drop trigger if exists message_reactions_set_updated_at on public.message_reactions;
+create trigger message_reactions_set_updated_at
+before update on public.message_reactions
 for each row
 execute function public.set_updated_at_timestamp();
 
@@ -165,6 +199,7 @@ execute function public.set_updated_at_timestamp();
 alter table public.channels enable row level security;
 alter table public.channel_members enable row level security;
 alter table public.messages enable row level security;
+alter table public.message_reactions enable row level security;
 alter table public.user_profiles enable row level security;
 alter table public.account_settings enable row level security;
 

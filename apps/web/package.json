@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "dev": "ng serve",
+    "start": "node scripts/clear-vite-cache.mjs && ng serve",
+    "dev": "node scripts/clear-vite-cache.mjs && ng serve",
     "build": "ng build",
     "lint": "eslint \"src/**/*.ts\" --fix",
     "watch": "ng build --watch --configuration development",

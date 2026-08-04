@@ -39,6 +39,10 @@ export type MessageRow = {
   created_at: string;
   edited_at: string | null;
   channel_members: Pick<ChannelMemberRow, 'guest_name' | 'user_id'> | null;
+  message_reactions: Array<{
+    emoji: string;
+    channel_members: Pick<ChannelMemberRow, 'guest_name' | 'user_id'> | null;
+  }> | null;
 };
 
 /**
@@ -79,6 +83,21 @@ export type MessageInsert = {
   channel_id: string;
   sender_id: string;
   content: string;
+};
+
+export type MessageReactionRow = {
+  id: string;
+  message_id: string;
+  channel_member_id: string;
+  emoji: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MessageReactionInsert = {
+  message_id: string;
+  channel_member_id: string;
+  emoji: string;
 };
 
 export type ChannelMemberInsert = {
@@ -124,6 +143,12 @@ export type Database = {
         Update: Partial<MessageInsert>;
         Relationships: [];
       };
+      message_reactions: {
+        Row: MessageReactionRow;
+        Insert: MessageReactionInsert;
+        Update: Partial<MessageReactionInsert>;
+        Relationships: [];
+      };
       channel_members: {
         Row: ChannelMemberRow;
         Insert: ChannelMemberInsert;
@@ -140,6 +165,7 @@ export type Database = {
         Row: AccountSettingsRow;
         Insert: AccountSettingsInsert;
         Update: Partial<AccountSettingsInsert>;
+        Relationships: [];
       };
     };
     Views: Record<string, never>;
