@@ -1,20 +1,16 @@
-<section class="relative overflow-hidden">
+<section class="lobby-hero relative overflow-hidden">
   <!-- Background glow -->
-  <div
-    class="pointer-events-none absolute inset-x-0 top-0 -z-10 mx-auto h-160 max-w-6xl bg-[radial-gradient(circle_at_50%_12%,rgba(124,92,252,0.20),transparent_48%)] sm:h-184"
-    aria-hidden="true"
-  ></div>
 
   <div
     class="mx-auto grid max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[1.03fr_.97fr] lg:gap-14 lg:px-8 lg:py-28"
   >
     <!-- Hero content -->
-    <div class="mx-auto max-w-2xl text-center lg:mx-0 lg:text-left">
+    <div class="lobby-hero-copy mx-auto max-w-2xl text-center lg:mx-0 lg:text-left">
       <div
         class="mb-6 inline-flex max-w-full items-center gap-2 rounded-full border border-[#8f74ff]/25 bg-[#171424] px-3.5 py-2 text-xs font-medium text-[#c9bcff]"
       >
         <span
-          class="size-1.5 shrink-0 rounded-full bg-[#9d85ff] shadow-[0_0_14px_rgba(157,133,255,.9)]"
+          class="lobby-live-dot size-1.5 shrink-0 rounded-full bg-[#9d85ff] shadow-[0_0_14px_rgba(157,133,255,.9)]"
         ></span>
 
         <span class="truncate"> One place for teams, communities, and guests </span>
@@ -23,7 +19,8 @@
       <h1
         class="text-4xl leading-[1.08] font-semibold tracking-[-0.045em] text-white sm:text-5xl lg:text-6xl"
       >
-        Conversations feel easier when everyone has a place to belong.
+        Conversations <span class="text-[#8f74ff]">feel</span> easier when everyone has a place to
+        belong.
       </h1>
 
       <p
@@ -39,7 +36,7 @@
       >
         <a
           routerLink="/register"
-          class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(124,92,252,0.24)] transition hover:-translate-y-0.5 hover:bg-[#8b6dff] focus:ring-2 focus:ring-[#b69cff]/70 focus:outline-none sm:w-auto"
+          class="lobby-primary-action inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(124,92,252,0.24)] transition hover:-translate-y-0.5 hover:bg-[#8b6dff] focus:ring-2 focus:ring-[#b69cff]/70 focus:outline-none sm:w-auto"
         >
           Start your Lobby
 
@@ -56,7 +53,7 @@
 
         <a
           href="#guest-access"
-          class="inline-flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] px-5 py-3.5 text-sm font-semibold text-[#e7eaf0] transition hover:border-white/20 hover:bg-white/6 sm:w-auto"
+          class="lobby-secondary-action inline-flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] px-5 py-3.5 text-sm font-semibold text-[#e7eaf0] transition hover:border-white/20 hover:bg-white/6 sm:w-auto"
         >
           See guest experience
         </a>
@@ -126,14 +123,14 @@
     </div>
 
     <!-- Workspace preview -->
-    <div class="relative mx-auto w-full min-w-0 max-w-xl">
+    <div class="lobby-hero-preview relative mx-auto w-full min-w-0 max-w-xl">
       <div
         class="absolute -inset-3 -z-10 rounded-4xl bg-[radial-gradient(circle_at_center,rgba(124,92,252,.18),transparent_62%)] blur-2xl sm:-inset-8 sm:rounded-[2.5rem]"
         aria-hidden="true"
       ></div>
 
       <div
-        class="overflow-hidden rounded-2xl border border-white/10 bg-[#141821] shadow-[0_25px_70px_rgba(0,0,0,.34)] sm:rounded-[1.75rem] sm:shadow-[0_35px_100px_rgba(0,0,0,.38)]"
+        class="lobby-preview-window overflow-hidden rounded-2xl border border-white/10 bg-[#141821] shadow-[0_25px_70px_rgba(0,0,0,.34)] sm:rounded-[1.75rem] sm:shadow-[0_35px_100px_rgba(0,0,0,.38)]"
       >
         <!-- Window bar -->
         <div class="flex items-center justify-between border-b border-white/7 px-3 py-3 sm:px-4">
@@ -253,19 +250,19 @@
 
               <div class="flex shrink-0 -space-x-2">
                 <span
-                  class="grid size-6 place-items-center rounded-full border-2 border-[#141821] bg-[#283244] text-[8px] text-white sm:size-7 sm:text-[9px]"
+                  class="lobby-avatar grid size-6 place-items-center rounded-full border-2 border-[#141821] bg-[#283244] text-[8px] text-white sm:size-7 sm:text-[9px]"
                 >
                   MH
                 </span>
 
                 <span
-                  class="grid size-6 place-items-center rounded-full border-2 border-[#141821] bg-[#3a2f54] text-[8px] text-white sm:size-7 sm:text-[9px]"
+                  class="lobby-avatar grid size-6 place-items-center rounded-full border-2 border-[#141821] bg-[#3a2f54] text-[8px] text-white sm:size-7 sm:text-[9px]"
                 >
                   NA
                 </span>
 
                 <span
-                  class="hidden size-7 place-items-center rounded-full border-2 border-[#141821] bg-[#24423a] text-[9px] text-white min-[420px]:grid"
+                  class="lobby-avatar hidden size-7 place-items-center rounded-full border-2 border-[#141821] bg-[#24423a] text-[9px] text-white min-[420px]:grid"
                 >
                   YI
                 </span>
@@ -297,11 +294,13 @@
               </div>
 
               <!-- System message -->
-              <div class="rounded-xl border border-[#8f74ff]/20 bg-primary/8 p-2.5 sm:ml-11 sm:p-3">
+              <div
+                class="lobby-live-event rounded-xl border border-[#8f74ff]/20 bg-primary/8 p-2.5 sm:ml-11 sm:p-3"
+              >
                 <div
                   class="flex items-center gap-2 text-[9px] font-semibold text-[#c9bcff] sm:text-[10px]"
                 >
-                  <span class="size-1.5 shrink-0 rounded-full bg-[#9d85ff]"></span>
+                  <span class="lobby-live-dot size-1.5 shrink-0 rounded-full bg-[#9d85ff]"></span>
 
                   Guest joined securely
                 </div>
@@ -342,7 +341,7 @@
 
             <!-- Composer -->
             <div
-              class="mx-3 mb-3 rounded-xl border border-white/8 bg-[#1a1f2b] px-3 py-2.5 text-[9px] text-[#687282] sm:mx-4 sm:mb-4 sm:py-3 sm:text-[10px]"
+              class="lobby-composer mx-3 mb-3 rounded-xl border border-white/8 bg-[#1a1f2b] px-3 py-2.5 text-[9px] text-[#687282] sm:mx-4 sm:mb-4 sm:py-3 sm:text-[10px]"
             >
               Message #product
             </div>

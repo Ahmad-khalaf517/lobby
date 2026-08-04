@@ -1,8 +1,12 @@
 <header
-  class="fixed inset-x-0 top-0 z-50 border-b border-white/7 bg-app-background/88 backdrop-blur-xl"
+  class="lobby-navbar fixed inset-x-0 top-0 z-50 border-b border-white/7 bg-app-background/88 backdrop-blur-xl"
 >
   <div class="mx-auto flex h-18 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-    <a routerLink="/" class="group inline-flex items-center gap-3" aria-label="Lobby home">
+    <a
+      routerLink="/"
+      class="lobby-brand group inline-flex items-center gap-3"
+      aria-label="Lobby home"
+    >
       <app-logo [size]="28" />
       <span class="text-lg font-semibold tracking-[-0.02em] text-white">Lobby</span>
     </a>
@@ -102,7 +106,7 @@
         </a>
         <a
           routerLink="/guests"
-          class="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(124,92,252,0.24)] transition hover:bg-[#8b6dff] focus:outline-none focus:ring-2 focus:ring-[#b69cff]/70"
+          class="lobby-primary-action inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(124,92,252,0.24)] transition hover:bg-[#8b6dff] focus:outline-none focus:ring-2 focus:ring-[#b69cff]/70"
         >
           Join a Channel
         </a>
