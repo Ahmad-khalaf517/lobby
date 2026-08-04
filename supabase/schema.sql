@@ -107,6 +107,57 @@ create index if not exists messages_channel_created_idx
 
 
 -- ---------------------------------------------------------------------
+-- user_profiles
+-- ---------------------------------------------------------------------
+create table if not exists public.user_profiles (
+  user_id      text primary key,
+  display_name text not null check (char_length(display_name) between 1 and 40),
+  bio          text check (char_length(bio) <= 280),
+  avatar_url   text,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+
+comment on table public.user_profiles is 'User profile records for authenticated account flows.';
+comment on column public.user_profiles.user_id is 'Stable account identifier used by app-level profile routes.';
+
+create or replace function public.set_updated_at_timestamp()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists user_profiles_set_updated_at on public.user_profiles;
+create trigger user_profiles_set_updated_at
+before update on public.user_profiles
+for each row
+execute function public.set_updated_at_timestamp();
+
+
+-- ---------------------------------------------------------------------
+-- account_settings
+-- ---------------------------------------------------------------------
+create table if not exists public.account_settings (
+  user_id                      text primary key,
+  email_notifications_enabled boolean not null default true,
+  push_notifications_enabled  boolean not null default true,
+  created_at                   timestamptz not null default now(),
+  updated_at                   timestamptz not null default now()
+);
+
+comment on table public.account_settings is 'Account settings persisted for backend account-management flows.';
+
+create trigger account_settings_set_updated_at
+before update on public.account_settings
+for each row
+execute function public.set_updated_at_timestamp();
+
+
+-- ---------------------------------------------------------------------
 -- Row Level Security
 -- Enabled with no policies: anon and authenticated roles can do nothing.
 -- apps/api uses the service_role key and bypasses this entirely.
@@ -114,6 +165,8 @@ create index if not exists messages_channel_created_idx
 alter table public.channels enable row level security;
 alter table public.channel_members enable row level security;
 alter table public.messages enable row level security;
+alter table public.user_profiles enable row level security;
+alter table public.account_settings enable row level security;
 
 
 -- ---------------------------------------------------------------------

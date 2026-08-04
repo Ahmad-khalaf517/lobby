@@ -143,9 +143,9 @@ and Medium priority work is done — whoever's free first picks these up then.
 | ----------------------------------------------------- | -------- | ------------------ | -------------------------- | ------------ |
 | Forgot password                                       | Backend  | ❌ Not implemented | `api-auth-forgot-password` | _Unassigned_ |
 |                                                       | Frontend | ❌ Not implemented | `web-auth-forgot-password` | _Unassigned_ |
-| User profile (view/edit)                              | Backend  | ❌ Not implemented | `api-user-profile`         | _Unassigned_ |
+| User profile (view/edit)                              | Backend  | ✅ implemented     | `api-user-profile`         | _Unassigned_ |
 |                                                       | Frontend | ❌ Not implemented | `web-user-profile`         | _Unassigned_ |
-| Account settings                                      | Backend  | ❌ Not implemented | `api-account-settings`     | _Unassigned_ |
+| Account settings                                      | Backend  | ✅ implemented     | `api-account-settings`     | _Unassigned_ |
 |                                                       | Frontend | ❌ Not implemented | `web-account-settings`     | _Unassigned_ |
 | Application settings (theme/notification prefs, etc.) | Frontend | ❌ Not implemented | `web-app-settings`         | _Unassigned_ |
 

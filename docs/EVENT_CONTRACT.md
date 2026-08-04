@@ -8,13 +8,16 @@ Calls (voice + screen share) are **not** part of the Socket.IO contract below �
 
 ## REST
 
-| Method & Path                   | Request    | Response                             | Schema                                                                          |
-| ------------------------------- | ---------- | ------------------------------------ | ------------------------------------------------------------------------------- |
-| `GET /channels`                 | —          | `{ channels: [...] }`                | `ChannelListResponseSchema`                                                     |
-| `POST /channels`                | `{ name }` | `{ id, name, createdAt, expiresAt }` | `CreateChannelRequestSchema` + controller guard / `CreateChannelResponseSchema` |
-| `GET /channels/:id`             | —          | `{ id, name, createdAt, expiresAt }` | `ChannelSchema`                                                                 |
-| `GET /channels/:id/messages`    | —          | `{ messages: [...] }`                | `MessageHistorySchema`                                                          |
-| `POST /channels/:id/call-token` | `{ name }` | `{ token, livekitUrl, roomName }`    | `CallTokenRequestSchema` / `CallTokenResponseSchema`                            |
+| Method & Path                           | Request                                                     | Response                                                               | Schema                                                                          |
+| --------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `POST /channels`                        | `{ name }`                                                  | `{ id, name, createdAt, expiresAt }`                                   | `CreateChannelRequestSchema` + controller guard / `CreateChannelResponseSchema` |
+| `GET /channels/:id`                     | —                                                           | `{ id, name, createdAt, expiresAt }`                                   | `ChannelSchema`                                                                 |
+| `GET /channels/:id/messages`            | —                                                           | `{ messages: [...] }`                                                  | `MessageHistorySchema`                                                          |
+| `POST /channels/:id/call-token`         | `{ name }`                                                  | `{ token, livekitUrl, roomName }`                                      | `CallTokenRequestSchema` / `CallTokenResponseSchema`                            |
+| `GET /users/:userId/profile`            | —                                                           | `{ userId, displayName, ... }`                                         | `UserProfileSchema`                                                             |
+| `PATCH /users/:userId/profile`          | profile fields to update                                    | `{ userId, displayName, ... }`                                         | `UpdateUserProfileRequestSchema` / `UpdateUserProfileResponseSchema`            |
+| `GET /users/:userId/account-settings`   | —                                                           | `{ userId, emailNotificationsEnabled, pushNotificationsEnabled, ... }` | `AccountSettingsSchema`                                                         |
+| `PATCH /users/:userId/account-settings` | `{ emailNotificationsEnabled?, pushNotificationsEnabled? }` | `{ userId, emailNotificationsEnabled, pushNotificationsEnabled, ... }` | `UpdateAccountSettingsRequestSchema` / `UpdateAccountSettingsResponseSchema`    |
 
 ## Socket.IO — Client → Server
 

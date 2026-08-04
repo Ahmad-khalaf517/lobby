@@ -4,6 +4,8 @@ export * from './schemas/chat.schema.js';
 export * from './schemas/typing.schema.js';
 export * from './schemas/presence.schema.js';
 export * from './schemas/call.schema.js';
+export * from './schemas/user-profile.schema.js';
+export * from './schemas/account-settings.schema.js';
 
 // Constants
 export * from './constants/socket-events.js';
