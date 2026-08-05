@@ -40,10 +40,44 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: '14.15';
   };
+  graphql_public: {
+    Tables: {
+      [_ in never]: never;
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json;
+          operationName?: string;
+          query?: string;
+          variables?: Json;
+        };
+        Returns: Json;
+      };
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
+  };
   public: {
     Tables: {
       channel_members: {
-        Row: ChannelMemberRow;
+        Row: {
+          channel_id: string;
+          guest_name: string | null;
+          id: string;
+          joined_at: string;
+          left_at: string | null;
+          livekit_identity: string;
+          role: string;
+          user_id: string | null;
+        };
         Insert: {
           channel_id: string;
           guest_name?: string | null;
@@ -87,7 +121,7 @@ export type Database = {
           expires_at: string | null;
           id: string;
           name: string;
-          server_id?: string | null;
+          server_id: string | null;
         };
         Insert: {
           created_at?: string;
@@ -113,6 +147,48 @@ export type Database = {
           },
         ];
       };
+      message_reactions: {
+        Row: {
+          channel_member_id: string;
+          created_at: string;
+          emoji: string;
+          id: string;
+          message_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          channel_member_id: string;
+          created_at?: string;
+          emoji: string;
+          id?: string;
+          message_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          channel_member_id?: string;
+          created_at?: string;
+          emoji?: string;
+          id?: string;
+          message_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'message_reactions_channel_member_id_fkey';
+            columns: ['channel_member_id'];
+            isOneToOne: false;
+            referencedRelation: 'channel_members';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'message_reactions_message_id_fkey';
+            columns: ['message_id'];
+            isOneToOne: false;
+            referencedRelation: 'messages';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       messages: {
         Row: {
           channel_id: string;
@@ -120,7 +196,6 @@ export type Database = {
           created_at: string;
           id: string;
           sender_id: string;
-          message_reactions?: MessageReactionRow[];
         };
         Insert: {
           channel_id: string;
@@ -240,12 +315,6 @@ export type Database = {
           id?: string;
           name?: string;
         };
-        Relationships: [];
-      };
-      message_reactions: {
-        Row: MessageReactionRow;
-        Insert: MessageReactionInsert;
-        Update: Partial<MessageReactionInsert>;
         Relationships: [];
       };
     };
@@ -378,6 +447,9 @@ export type CompositeTypes<
     : never;
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       guest_room_end_reason: ['expired', 'closed_by_owner', 'empty', 'moderation'],
