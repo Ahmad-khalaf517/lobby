@@ -35,10 +35,14 @@ import {
   type ChatReaction,
   type ChatUser,
   CallIconComponent,
-  ChatAvatarComponent,
   RoomChatComponent,
   initialsFromName,
 } from '../../../shared/components/room-chat';
+import {
+  CallParticipantsSidebarComponent,
+  CallRoomCodeCardComponent,
+  type CallParticipant,
+} from '../../../shared/components/call-room';
 import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
 
 type RoomStatus = 'needs-name' | 'loading' | 'ready' | 'not-found' | 'error';
@@ -65,7 +69,8 @@ const TOAST_TEXT_PREVIEW_LENGTH = 80;
     LogoComponent,
     RoomChatComponent,
     CallIconComponent,
-    ChatAvatarComponent,
+    CallParticipantsSidebarComponent,
+    CallRoomCodeCardComponent,
   ],
   templateUrl: './guest-room-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -90,7 +95,6 @@ export class GuestRoomPage {
   protected readonly displayName = signal('');
   /** At most one entry — a new toast replaces whatever's currently showing rather than stacking. */
   protected readonly toasts = signal<MessageToast[]>([]);
-  protected readonly inviteCopied = signal(false);
   protected readonly sidebarCollapsed = signal(false);
   protected readonly messageReactions = signal<Record<string, MessageReactionState>>({});
 
@@ -109,6 +113,20 @@ export class GuestRoomPage {
       .filter(Boolean),
   );
 
+  /** Socket presence members mapped onto the shared CallParticipant shape for the participants sidebar. */
+  protected readonly memberParticipants = computed<CallParticipant[]>(() =>
+    this.members().map((member) => ({
+      id: member.socketId,
+      name: member.name,
+      isLocal: member.name === this.displayName(),
+      isSpeaking: false,
+      isMicMuted: false,
+      isCameraOff: true,
+      cameraTrack: null,
+      screenShareTrack: null,
+    })),
+  );
+
   /** Shared initials derivation, exposed for the toast markup. */
   protected readonly initials = initialsFromName;
 
@@ -121,7 +139,6 @@ export class GuestRoomPage {
   private audioContext: AudioContext | null = null;
   private nextToastId = 0;
   private toastTimeoutId: ReturnType<typeof setTimeout> | null = null;
-  private inviteCopiedTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     if (!this.channelId) {
@@ -321,21 +338,9 @@ export class GuestRoomPage {
     return `${baseUrl}/guest/${this.channelId}`;
   }
 
-  protected copyGuestInviteLink(): void {
-    const link = this.guestInviteLink();
-
-    if (typeof navigator === 'undefined' || !navigator.clipboard) {
-      return;
-    }
-
-    void navigator.clipboard.writeText(link).then(() => {
-      this.inviteCopied.set(true);
-
-      if (this.inviteCopiedTimeoutId !== null) {
-        clearTimeout(this.inviteCopiedTimeoutId);
-      }
-
-      this.inviteCopiedTimeoutId = setTimeout(() => this.inviteCopied.set(false), 1500);
+  protected goToCall(): void {
+    void this.router.navigate(['/guest', this.channelId, 'call'], {
+      queryParams: { name: this.displayName() },
     });
   }
 

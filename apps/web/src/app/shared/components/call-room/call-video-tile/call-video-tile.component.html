@@ -1,0 +1,52 @@
+<div
+  class="group relative aspect-video overflow-hidden rounded-2xl border bg-[#0f1117]"
+  [class]="
+    isLocal()
+      ? 'border-[#8f74ff]/60'
+      : participant().isSpeaking
+        ? 'border-[#8f74ff]/50'
+        : 'border-white/10'
+  "
+>
+  @if (cameraVisible()) {
+    <video #videoEl class="h-full w-full object-cover" autoplay playsinline muted></video>
+  } @else {
+    <div
+      class="grid h-full w-full place-items-center"
+      [class]="
+        participant().isSpeaking
+          ? 'bg-[radial-gradient(circle_at_50%_40%,rgba(124,92,252,0.18),transparent_60%)]'
+          : ''
+      "
+    >
+      <app-chat-avatar [name]="participant().name" size="lg" [elevated]="true" />
+    </div>
+  }
+
+  <div class="absolute inset-x-0 bottom-0 flex items-center gap-2 p-2.5">
+    <span
+      class="inline-flex max-w-full items-center gap-2 rounded-lg border border-white/10 bg-[#0b0e14]/85 px-2 py-1 backdrop-blur-sm"
+    >
+      <span
+        [class]="
+          'size-1.5 shrink-0 rounded-full ' +
+          (participant().isSpeaking ? 'bg-online' : 'bg-[#687282]')
+        "
+      ></span>
+      <span class="truncate text-[11px] font-medium text-[#edf0f4]">
+        {{ participant().name }}
+      </span>
+      @if (participant().isLocal) {
+        <span class="text-[9px] font-semibold tracking-[0.1em] text-[#8f74ff] uppercase">You</span>
+      }
+    </span>
+
+    <span class="ml-auto shrink-0">
+      @if (participant().isMicMuted) {
+        <app-call-icon type="mic-off" size="sm" [label]="participant().name + ' is muted'" />
+      } @else {
+        <app-call-icon type="mic" size="sm" [label]="participant().name + ' is unmuted'" />
+      }
+    </span>
+  </div>
+</div>

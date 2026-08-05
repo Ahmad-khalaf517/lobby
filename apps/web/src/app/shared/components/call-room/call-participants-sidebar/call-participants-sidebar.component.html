@@ -1,0 +1,52 @@
+<div class="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#171d2a] p-3">
+  <div class="mb-2 flex items-center justify-between">
+    <p class="text-[11px] font-semibold tracking-[0.08em] text-[#a0a9b7] uppercase">
+      {{ title() }}
+    </p>
+    @if (showCount()) {
+      <span
+        class="rounded-full border border-white/12 bg-white/[0.04] px-2 py-0.5 text-[10px] text-[#c8cfdb]"
+      >
+        {{ participants().length }}
+      </span>
+    }
+  </div>
+
+  <div
+    class="lobby-scrollbar max-h-52 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1 md:max-h-none"
+  >
+    @if (participants().length === 0) {
+      <p class="rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2 text-xs text-[#7e8899]">
+        {{ emptyText() }}
+      </p>
+    }
+
+    @for (participant of participants(); track participant.id) {
+      <div
+        class="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.035] px-2.5 py-2 transition hover:border-white/18 hover:bg-white/[0.06]"
+      >
+        <div
+          class="relative shrink-0"
+          [class]="
+            participant.isSpeaking
+              ? 'rounded-full ring-2 ring-[#8f74ff] ring-offset-2 ring-offset-[#171d2a]'
+              : ''
+          "
+        >
+          <app-chat-avatar [name]="participant.name" size="sm" status="online" />
+        </div>
+
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-xs font-medium text-[#edf0f4]">{{ participant.name }}</p>
+          @if (participant.isLocal) {
+            <p class="text-[10px] text-[#8f74ff]">You</p>
+          }
+        </div>
+
+        @if (participant.isMicMuted) {
+          <app-call-icon type="mic-off" size="sm" [label]="participant.name + ' is muted'" />
+        }
+      </div>
+    }
+  </div>
+</div>

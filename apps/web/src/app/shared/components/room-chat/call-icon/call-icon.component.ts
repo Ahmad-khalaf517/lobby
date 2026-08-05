@@ -1,19 +1,32 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
-export type CallIconType = 'call' | 'video' | 'mic' | 'leave';
+export type CallIconType =
+  | 'call'
+  | 'video'
+  | 'mic'
+  | 'mic-off'
+  | 'camera-off'
+  | 'screen-share'
+  | 'screen-share-off'
+  | 'copy'
+  | 'close'
+  | 'lock'
+  | 'users'
+  | 'reconnecting'
+  | 'leave';
 export type CallIconShape = 'rounded' | 'circle';
 export type CallIconVariant = 'ghost' | 'solid' | 'danger';
 export type CallIconSize = 'sm' | 'md' | 'lg';
 
 /**
- * Reusable call-style icon button (phone / video / mic / leave). Generic
- * enough to be reused OUTSIDE chat too — e.g. in a call control bar, a top
- * bar, or a meet-now button. Wire up clicks from the parent with a plain
- * `(click)` on the host element (the inner button's click bubbles).
+ * Reusable call-style icon button (phone / video / mic / leave / screen-share
+ * / copy / close / lock / users / reconnecting). Renders a real <button> so
+ * keyboard + screen-reader interaction works; the inner button's click bubbles
+ * to the host, so parents can bind a plain `(click)`.
  *
  * @example
  * <app-call-icon type="call" label="Meet now" />
- * <app-call-icon type="video" variant="solid" size="lg" shape="circle" label="Turn camera on" [active]="true" />
+ * <app-call-icon type="mic" variant="solid" size="lg" shape="circle" label="Toggle microphone" [active]="true" />
  * <app-call-icon type="leave" variant="danger" size="lg" shape="circle" label="Leave call" />
  */
 @Component({
@@ -22,10 +35,7 @@ export type CallIconSize = 'sm' | 'md' | 'lg';
   templateUrl: './call-icon.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    '[class]': 'classes()',
-    '[attr.aria-label]': 'label()',
-    '[attr.type]': "'button'",
-    '[attr.aria-pressed]': 'active() ? "true" : null',
+    '[style.display]': "'contents'",
   },
 })
 export class CallIconComponent {
@@ -43,6 +53,9 @@ export class CallIconComponent {
 
   /** Toggle state for mic/video (adds a highlight ring). */
   active = input<boolean>(false);
+
+  /** Disables the button (e.g. while the call isn't connected). */
+  disabled = input<boolean>(false);
 
   /** Accessible name for the button. */
   label = input<string>('');
@@ -75,12 +88,15 @@ export class CallIconComponent {
         : 'ring-2 ring-white/60 ring-offset-2 ring-offset-[#141821]'
       : '';
 
+    const disabledClass = this.disabled() ? 'pointer-events-none opacity-40' : '';
+
     return [
       'grid shrink-0 place-items-center transition',
       shapeClass,
       this.sizeButtonClass[this.size()],
       variantClass,
       activeClass,
+      disabledClass,
     ].join(' ');
   });
 }

@@ -1,0 +1,58 @@
+<div class="shrink-0 border-b border-white/7 px-4 py-3 sm:px-6">
+  <div class="flex items-center justify-between gap-3">
+    <div class="min-w-0">
+      <h2 class="text-sm font-semibold text-white">Live stage</h2>
+      <p class="mt-0.5 text-[11px] font-medium text-[#a0a9b7]">Screen share + participant video</p>
+    </div>
+  </div>
+</div>
+
+<div class="flex min-h-0 flex-1 flex-col items-center justify-center p-4 sm:p-6">
+  @if (isSharingScreen()) {
+    <div class="flex h-full w-full max-w-4xl flex-col">
+      <div class="flex items-center justify-between gap-3 pb-3">
+        <p class="flex items-center gap-2 text-xs font-medium text-[#a0a9b7]">
+          <span class="size-1.5 rounded-full bg-rose-500"></span>
+          {{ sharerName() }} is presenting{{ isLocalSharing() ? ' (you)' : '' }}
+        </p>
+        @if (isLocalSharing()) {
+          <span
+            class="rounded-full border border-[#8f74ff]/45 bg-[#8f74ff]/15 px-2.5 py-1 text-[10px] font-semibold text-[#c9bbff]"
+          >
+            You are sharing
+          </span>
+        }
+      </div>
+
+      <div
+        class="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black"
+      >
+        <video #shareVideo class="h-full w-full object-contain" autoplay playsinline muted></video>
+      </div>
+    </div>
+  } @else {
+    <div
+      class="flex w-full max-w-sm flex-col items-center gap-4 rounded-2xl border border-dashed border-white/12 bg-white/[0.02] px-6 py-10 text-center"
+    >
+      <div
+        class="grid size-14 place-items-center rounded-2xl border border-[#8f74ff]/40 bg-[#8f74ff]/15 text-[#c9bbff]"
+      >
+        <app-call-icon type="screen-share" size="lg" label="Screen share" />
+      </div>
+      <div>
+        <h3 class="text-sm font-semibold text-[#edf0f4]">Share something with the room</h3>
+        <p class="mt-1 text-xs leading-5 text-[#a0a9b7]">
+          Start sharing your screen to present your screen or a window to everyone in the call.
+        </p>
+      </div>
+      <button
+        type="button"
+        (click)="startShare.emit()"
+        class="inline-flex h-10 items-center gap-2 rounded-xl border border-[#8f74ff]/45 bg-[#8f74ff]/20 px-4 text-xs font-semibold text-[#f4f1ff] transition hover:bg-[#8f74ff]/30"
+      >
+        <app-call-icon type="screen-share" size="sm" label="Start screen sharing" />
+        Start screen sharing
+      </button>
+    </div>
+  }
+</div>

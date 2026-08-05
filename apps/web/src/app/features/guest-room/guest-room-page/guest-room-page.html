@@ -150,66 +150,19 @@
               <app-logo [size]="22" />
             </a>
 
-            <div
-              class="rounded-2xl border border-[#7c5cfc]/30 bg-[linear-gradient(180deg,rgba(124,92,252,0.12),rgba(124,92,252,0.03))] p-3.5"
-            >
-              <p class="text-[11px] font-semibold tracking-[0.08em] text-[#c9bbff] uppercase">
-                Guest link
-              </p>
-              <p
-                class="mt-2 truncate rounded-lg border border-white/8 bg-[#101524] px-2.5 py-2 font-mono text-[11px] text-[#dfe4ef]"
-              >
-                {{ guestInviteLink() }}
-              </p>
-              <button
-                type="button"
-                (click)="copyGuestInviteLink()"
-                class="mt-3 inline-flex h-9 w-full items-center justify-center rounded-lg border border-[#8f74ff]/45 bg-[#8f74ff]/20 text-xs font-semibold text-[#f4f1ff] transition hover:bg-[#8f74ff]/30"
-              >
-                {{ inviteCopied() ? 'Copied' : 'Copy link' }}
-              </button>
-            </div>
+            <app-call-room-code-card
+              [label]="'Guest link'"
+              [value]="guestInviteLink()"
+              [copyLabel]="'Copy link'"
+              [copiedLabel]="'Copied'"
+            />
 
-            <div
-              class="mt-4 rounded-2xl border border-white/10 bg-[#171d2a] p-3 md:mt-4 md:flex md:min-h-0 md:flex-1 md:flex-col"
-            >
-              <div class="mb-2 flex items-center justify-between">
-                <p class="text-[11px] font-semibold tracking-[0.08em] text-[#a0a9b7] uppercase">
-                  Members
-                </p>
-                <span
-                  class="rounded-full border border-white/12 bg-white/[0.04] px-2 py-0.5 text-[10px] text-[#c8cfdb]"
-                >
-                  {{ members().length }}
-                </span>
-              </div>
-
-              <div
-                class="lobby-scrollbar max-h-52 space-y-1.5 overflow-y-auto pr-1 md:max-h-none md:min-h-0 md:flex-1"
-              >
-                @if (members().length === 0) {
-                  <p
-                    class="rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2 text-xs text-[#7e8899]"
-                  >
-                    Waiting for members...
-                  </p>
-                }
-
-                @for (member of members(); track member.socketId) {
-                  <div
-                    class="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.035] px-2.5 py-2 transition hover:border-white/18 hover:bg-white/[0.06]"
-                  >
-                    <app-chat-avatar [name]="member.name" size="sm" />
-
-                    <div class="min-w-0">
-                      <p class="truncate text-xs font-medium text-[#edf0f4]">{{ member.name }}</p>
-                      @if (member.name === displayName()) {
-                        <p class="text-[10px] text-[#8f74ff]">You</p>
-                      }
-                    </div>
-                  </div>
-                }
-              </div>
+            <div class="mt-4 flex min-h-0 flex-1 flex-col md:mt-4">
+              <app-call-participants-sidebar
+                [participants]="memberParticipants()"
+                [title]="'Members'"
+                [emptyText]="'Waiting for members...'"
+              />
             </div>
           </aside>
         }
@@ -282,7 +235,7 @@
 
           <ng-container chat-header-extra>
             <div class="group relative flex shrink-0">
-              <app-call-icon type="call" size="sm" label="Meet now" />
+              <app-call-icon type="call" size="sm" label="Meet now" (click)="goToCall()" />
               <span
                 class="pointer-events-none absolute top-[calc(100%+0.5rem)] right-0 z-30 whitespace-nowrap rounded-lg border border-white/10 bg-[#141821] px-2 py-1 text-[10px] font-medium text-[#dfe4ef] shadow-[0_12px_28px_rgba(0,0,0,0.35)] opacity-0 transition group-hover:opacity-100"
               >
