@@ -20,8 +20,14 @@
 }
 
 html,
-body {
+body,
+app-root {
   min-height: 100%;
+  background: var(--color-app-background);
+}
+
+html {
+  color-scheme: dark;
   scroll-behavior: smooth;
 }
 
@@ -29,6 +35,14 @@ body {
   margin: 0;
   background: var(--color-app-background);
   color: var(--color-app-foreground);
+}
+
+app-root {
+  display: block;
+}
+
+body:has(.lobby-navbar) app-route-progress {
+  top: 4.5rem;
 }
 
 @utility lobby-scrollbar {

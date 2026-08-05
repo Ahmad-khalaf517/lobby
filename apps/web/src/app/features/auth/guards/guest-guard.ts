@@ -9,10 +9,7 @@ export const guestGuard: CanActivateFn = async () => {
 
   await authService.initialize();
 
-  if (authService.status() === 'unauthenticated') {
-    return true;
-  }
-
-  // Already authenticated: redirect away from guest-only pages.
-  return router.createUrlTree(['/app']);
+  // When session restoration fails, keep the sign-in experience reachable so
+  // the user can retry instead of being trapped behind a redirect.
+  return authService.status() === 'authenticated' ? router.createUrlTree(['/app']) : true;
 };

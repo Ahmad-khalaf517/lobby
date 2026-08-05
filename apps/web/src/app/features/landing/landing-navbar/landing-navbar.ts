@@ -27,6 +27,7 @@ export class LandingNavbar {
   private readonly profileButton = viewChild<ElementRef<HTMLButtonElement>>('profileButton');
 
   protected readonly user = this.auth.user;
+  protected readonly authStatus = this.auth.status;
   protected readonly dropdownOpen = signal(false);
   protected readonly isLoggingOut = signal(false);
   protected readonly logoutError = signal<string | null>(null);

@@ -25,16 +25,17 @@ import {
 import { environment } from '../../../../environments/environment';
 import { SKIP_AUTH_REFRESH } from '../../../core/auth-http-context';
 
-export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
+export type AuthStatus = 'initializing' | 'authenticated' | 'unauthenticated' | 'error';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly apiUrl = environment.apiUrl.replace(/\/$/, '');
-  private readonly authStatus = signal<AuthStatus>('loading');
+  private readonly authStatus = signal<AuthStatus>('initializing');
   private readonly authenticatedUser = signal<AuthUser | null>(null);
   private initialization: Promise<void> | null = null;
+  private sessionRevision = 0;
 
   readonly status = this.authStatus.asReadonly();
   readonly user = this.authenticatedUser.asReadonly();
@@ -69,7 +70,9 @@ export class AuthService {
   }
 
   async getCurrentUser(): Promise<CurrentUserResponse> {
-    return this.fetchCurrentUser(false);
+    const result = await this.fetchCurrentUser(false);
+    this.setAuthenticated(result.user);
+    return result;
   }
 
   async confirmEmail(tokenHash: string): Promise<AuthSessionResponse> {
@@ -117,10 +120,7 @@ export class AuthService {
   }
 
   async refreshSession(): Promise<AuthSessionResponse> {
-    const response = await firstValueFrom(
-      this.http.post<unknown>(`${this.apiUrl}/auth/refresh`, {}),
-    );
-    const result = AuthSessionResponseSchema.parse(response);
+    const result = await this.fetchRefreshedSession();
     this.setAuthenticated(result.user);
     return result;
   }
@@ -135,6 +135,7 @@ export class AuthService {
   }
 
   markUnauthenticated(): void {
+    this.sessionRevision += 1;
     this.authenticatedUser.set(null);
     this.authStatus.set('unauthenticated');
   }
@@ -145,19 +146,41 @@ export class AuthService {
       return;
     }
 
+    const initialRevision = this.sessionRevision;
+
     try {
-      await this.fetchCurrentUser(true);
+      const result = await this.fetchCurrentUser(true);
+      if (initialRevision === this.sessionRevision) {
+        this.setAuthenticated(result.user);
+      }
     } catch (error: unknown) {
+      if (initialRevision !== this.sessionRevision) {
+        return;
+      }
+
       if (error instanceof HttpErrorResponse && error.status === 401) {
         try {
-          await this.refreshSession();
+          const result = await this.fetchRefreshedSession();
+          if (initialRevision === this.sessionRevision) {
+            this.setAuthenticated(result.user);
+          }
           return;
-        } catch {
-          // A missing or expired refresh cookie is the normal signed-out state.
+        } catch (refreshError: unknown) {
+          if (initialRevision !== this.sessionRevision) {
+            return;
+          }
+
+          if (this.isSignedOutResponse(refreshError)) {
+            this.markUnauthenticated();
+            return;
+          }
+
+          this.markInitializationFailed(refreshError);
+          return;
         }
       }
 
-      this.markUnauthenticated();
+      this.markInitializationFailed(error);
     }
   }
 
@@ -166,13 +189,33 @@ export class AuthService {
     const response = await firstValueFrom(
       this.http.get<unknown>(`${this.apiUrl}/auth/me`, { context }),
     );
-    const result = CurrentUserResponseSchema.parse(response);
-    this.setAuthenticated(result.user);
-    return result;
+    return CurrentUserResponseSchema.parse(response);
+  }
+
+  private async fetchRefreshedSession(): Promise<AuthSessionResponse> {
+    const response = await firstValueFrom(
+      this.http.post<unknown>(`${this.apiUrl}/auth/refresh`, {}),
+    );
+    return AuthSessionResponseSchema.parse(response);
   }
 
   private setAuthenticated(user: AuthUser): void {
+    this.sessionRevision += 1;
     this.authenticatedUser.set(user);
     this.authStatus.set('authenticated');
+  }
+
+  private isSignedOutResponse(error: unknown): boolean {
+    return (
+      error instanceof HttpErrorResponse &&
+      (error.status === 400 || error.status === 401 || error.status === 403)
+    );
+  }
+
+  private markInitializationFailed(error: unknown): void {
+    console.error('Lobby could not restore the current session.', error);
+    this.sessionRevision += 1;
+    this.authenticatedUser.set(null);
+    this.authStatus.set('error');
   }
 }

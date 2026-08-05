@@ -22,7 +22,7 @@
       <a href="#faq" class="transition hover:text-white">FAQ</a>
     </nav>
 
-    @if (user()) {
+    @if (authStatus() === 'authenticated' && user()) {
       <div class="relative">
         <button
           #profileButton
@@ -89,6 +89,16 @@
             }
           </div>
         }
+      </div>
+    } @else if (authStatus() === 'initializing') {
+      <div class="flex min-w-33 items-center justify-end gap-2" aria-label="Checking your session">
+        <span class="size-1.5 animate-pulse rounded-full bg-[#9d85ff]"></span>
+        <span
+          class="size-1.5 animate-pulse rounded-full bg-[#9d85ff] [animation-delay:120ms]"
+        ></span>
+        <span
+          class="size-1.5 animate-pulse rounded-full bg-[#9d85ff] [animation-delay:240ms]"
+        ></span>
       </div>
     } @else {
       <div class="flex items-center gap-2">
