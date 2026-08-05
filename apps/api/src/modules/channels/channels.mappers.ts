@@ -6,6 +6,10 @@ type ChannelMemberRow = Database['public']['Tables']['channel_members']['Row'];
 type MessageRow = Database['public']['Tables']['messages']['Row'];
 type MessageWithAuthorRow = MessageRow & {
   channel_members: Pick<ChannelMemberRow, 'guest_name' | 'user_id'> | null;
+  message_reactions?: Array<{
+    emoji: string;
+    channel_members: Pick<ChannelMemberRow, 'guest_name' | 'user_id'> | null;
+  }> | null;
 };
 
 export function toChannel(row: ChannelRow): Channel {

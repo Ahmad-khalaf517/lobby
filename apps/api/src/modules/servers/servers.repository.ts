@@ -182,6 +182,7 @@ export class ServersRepository {
     const user: UserInsert = {
       id: userId,
       name: userName,
+      user_name: userName.toLowerCase().replace(/\s+/g, '_'),
     };
 
     const { error } = await this.supabase.client.from('users').upsert(user, { onConflict: 'id' });
