@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ChannelSchema } from '../../dist/schemas/channel.schema.js';
+import { ChannelSchema } from './channel.schema';
 
 export const MAX_SERVER_NAME_LENGTH = 100;
 
