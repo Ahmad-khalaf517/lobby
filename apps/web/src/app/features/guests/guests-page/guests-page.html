@@ -1,154 +1,111 @@
 <main
   class="relative flex min-h-screen items-center justify-center overflow-hidden bg-app-background px-4 py-12 text-app-foreground sm:px-6"
 >
-  <!-- Background atmosphere -->
   <div
     class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(124,92,252,0.16),transparent_38%)]"
     aria-hidden="true"
   ></div>
-
-  <div
-    class="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-[#8f74ff]/40 to-transparent"
-    aria-hidden="true"
-  ></div>
-
   <div class="relative w-full max-w-md">
-    <!-- Header -->
     <div class="mb-7 flex flex-col items-center gap-4 text-center">
       <a
         routerLink="/"
-        class="inline-flex items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b69cff]/70"
+        class="inline-flex items-center gap-3 rounded-xl"
         aria-label="Return to Lobby home"
       >
         <app-logo [size]="28" />
-        <span class="text-lg font-semibold tracking-[-0.02em] text-white">Lobby</span>
+        <span class="text-lg font-semibold text-white">Lobby</span>
       </a>
-
-      <div class="space-y-1.5">
-        <h1 class="text-2xl font-semibold tracking-[-0.03em] text-white sm:text-[26px]">
-          Join a channel
-        </h1>
-        <p class="text-sm leading-6 text-[#a0a9b7]">
-          Pick an open room, tell us what to call you, and you're in.
+      <div>
+        <h1 class="text-2xl font-semibold text-white">Guest channels</h1>
+        <p class="mt-1.5 text-sm leading-6 text-[#a0a9b7]">
+          Join with an invite code or create a temporary room.
         </p>
       </div>
     </div>
 
-    <!-- Card -->
-    <form
-      [formGroup]="form"
-      (ngSubmit)="onSubmit()"
-      class="rounded-2xl border border-white/10 bg-[#141821] p-5 shadow-[0_25px_70px_rgba(0,0,0,.34)] sm:p-6"
+    <div
+      class="space-y-4 rounded-2xl border border-white/10 bg-[#141821] p-5 shadow-[0_25px_70px_rgba(0,0,0,.34)] sm:p-6"
     >
-      <!-- Channel list -->
-      <div class="space-y-2">
-        <p class="text-xs font-medium tracking-[0.08em] text-[#737e8e] uppercase">Open channels</p>
-
-        @switch (status()) {
-          @case ('loading') {
-            <p
-              class="rounded-xl border border-white/7 bg-white/2.5 px-3.5 py-4 text-sm text-[#a0a9b7]"
-            >
-              Loading open channels…
-            </p>
-          }
-          @case ('error') {
-            <div
-              class="flex items-center justify-between gap-3 rounded-xl border border-destructive/25 bg-destructive/8 px-3.5 py-3.5 text-sm text-[#f4b8b8]"
-            >
-              <span>Couldn't load channels.</span>
-              <button
-                type="button"
-                (click)="loadChannels()"
-                class="shrink-0 rounded-lg border border-white/15 px-2.5 py-1.5 text-xs font-medium text-[#e7eaf0] transition hover:border-white/25 hover:bg-white/6"
-              >
-                Retry
-              </button>
-            </div>
-          }
-          @case ('loaded') {
-            @if (channels().length === 0) {
-              <p
-                class="rounded-xl border border-white/7 bg-white/2.5 px-3.5 py-4 text-sm text-[#a0a9b7]"
-              >
-                No open channels right now.
-                <a routerLink="/" class="font-medium text-[#c9bcff] hover:text-white">
-                  Create one instead
-                </a>
-              </p>
-            } @else {
-              <div class="lobby-scrollbar max-h-56 space-y-1.5 overflow-y-auto pr-1">
-                @for (channel of channels(); track channel.id) {
-                  <label
-                    class="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/8 bg-white/[0.025] px-3.5 py-2.5 transition has-checked:border-primary/60 has-checked:bg-primary/10"
-                  >
-                    <span class="flex min-w-0 items-center gap-2.5">
-                      <input
-                        type="radio"
-                        name="channelId"
-                        formControlName="channelId"
-                        [value]="channel.id"
-                        class="size-3.5 shrink-0 accent-primary"
-                      />
-                      <span class="min-w-0">
-                        <span class="block truncate text-sm font-medium text-[#edf0f4]">
-                          {{ channel.name }}
-                        </span>
-                        <span class="block font-mono text-[10px] text-[#687282]">
-                          {{ channel.id }}
-                        </span>
-                      </span>
-                    </span>
-
-                    <span class="shrink-0 text-[10px] whitespace-nowrap text-[#7f8998]">
-                      {{ expiryLabel(channel) }}
-                    </span>
-                  </label>
-                }
-              </div>
-            }
-          }
-        }
-      </div>
-
-      <!-- Display name -->
-      <div class="mt-5 space-y-2">
-        <label for="displayName" class="block text-xs font-medium text-[#737e8e]">
-          Display name
-        </label>
-        <input
-          id="displayName"
-          type="text"
-          formControlName="displayName"
-          [maxlength]="maxNameLength"
-          placeholder="e.g. Mohammad"
-          autocomplete="off"
-          class="h-11 w-full rounded-xl border border-white/10 bg-[#1a1f2b] px-3.5 text-sm text-app-foreground placeholder:text-[#687282] outline-none focus:border-[#8f74ff]/60 focus:ring-2 focus:ring-[#8f74ff]/20"
-        />
-      </div>
-
-      <!-- Submit -->
-      <button
-        type="submit"
-        [disabled]="status() !== 'loaded' || channels().length === 0"
-        class="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-white shadow-[0_16px_38px_rgba(124,92,252,0.24)] transition hover:-translate-y-0.5 hover:bg-[#8b6dff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b69cff]/70 disabled:pointer-events-none disabled:opacity-40 disabled:hover:translate-y-0"
-      >
-        Join channel
-
-        <svg viewBox="0 0 20 20" class="size-4" fill="none" aria-hidden="true">
-          <path
-            d="m7 4 6 6-6 6"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+      @if (requiresDisplayName()) {
+        <form [formGroup]="identityForm" class="space-y-2">
+          <label for="displayName" class="block text-xs font-medium text-[#737e8e]"
+            >Display name</label
+          >
+          <input
+            id="displayName"
+            formControlName="displayName"
+            [maxlength]="maxNameLength"
+            autocomplete="off"
+            placeholder="e.g. Mohammad"
+            class="h-11 w-full rounded-xl border border-white/10 bg-[#1a1f2b] px-3.5 text-sm outline-none focus:border-[#8f74ff]/60"
           />
-        </svg>
-      </button>
-    </form>
+        </form>
+      } @else {
+        <p class="rounded-xl border border-white/7 bg-white/2.5 px-3.5 py-3 text-xs text-[#a0a9b7]">
+          Your registered profile name will be used.
+        </p>
+      }
 
-    <p class="mt-6 text-center text-xs leading-5 text-[#687282]">
-      Have a direct invite link instead? Just open it — you won't need this page.
-    </p>
+      @if (errorMessage(); as error) {
+        <p
+          class="rounded-xl border border-destructive/25 bg-destructive/8 px-3.5 py-3 text-sm text-[#f4b8b8]"
+        >
+          {{ error }}
+        </p>
+      }
+
+      <form
+        [formGroup]="joinForm"
+        (ngSubmit)="joinChannel()"
+        class="space-y-3 border-t border-white/8 pt-4"
+      >
+        <label
+          for="inviteCode"
+          class="block text-xs font-medium tracking-[0.08em] text-[#737e8e] uppercase"
+          >Invite code</label
+        >
+        <input
+          id="inviteCode"
+          formControlName="inviteCode"
+          autocomplete="off"
+          placeholder="ABC12345"
+          class="h-11 w-full rounded-xl border border-white/10 bg-[#1a1f2b] px-3.5 font-mono text-sm uppercase outline-none focus:border-[#8f74ff]/60"
+        />
+        <button
+          type="submit"
+          [disabled]="submitting()"
+          class="flex h-11 w-full items-center justify-center rounded-xl bg-primary text-sm font-semibold text-white disabled:opacity-40"
+        >
+          Join channel
+        </button>
+      </form>
+
+      <form
+        [formGroup]="createForm"
+        (ngSubmit)="createChannel()"
+        class="space-y-3 border-t border-white/8 pt-4"
+      >
+        <label
+          for="channelName"
+          class="block text-xs font-medium tracking-[0.08em] text-[#737e8e] uppercase"
+          >New channel name</label
+        >
+        <input
+          id="channelName"
+          formControlName="channelName"
+          [maxlength]="maxChannelNameLength"
+          autocomplete="off"
+          placeholder="Project review"
+          class="h-11 w-full rounded-xl border border-white/10 bg-[#1a1f2b] px-3.5 text-sm outline-none focus:border-[#8f74ff]/60"
+        />
+        <button
+          type="submit"
+          [disabled]="submitting()"
+          class="flex h-11 w-full items-center justify-center rounded-xl border border-primary/50 text-sm font-semibold text-[#d9d0ff] disabled:opacity-40"
+        >
+          Create temporary channel
+        </button>
+      </form>
+    </div>
   </div>
 </main>

@@ -4,16 +4,16 @@ This file tells any AI coding assistant (Claude, Copilot, etc.) working in this 
 
 ## What this project is
 
-A no-auth, link-to-join chat app with voice calls (via LiveKit) and screen sharing. NestJS backend, Angular frontend, pnpm workspace monorepo, built by a 5-person team on a 100-hour budget. See the root `README.md` for structure and `docs/ARCHITECTURE.md` for the full data flow.
+A link-to-join chat app with registered and Supabase Anonymous Auth sessions, LiveKit voice calls, and screen sharing. NestJS handles auth and privileged operations; Angular uses the user-scoped Supabase SDK for the guest schema. See `docs/ARCHITECTURE.md` for the current data flow.
 
 ## Golden rule: shared contracts are not yours to improvise
 
-`packages/shared` (Zod schemas + inferred types + socket event constants) is the single source of truth for every payload that crosses the frontend/backend boundary.
+`packages/shared` (Zod schemas + inferred types) is the single source of truth for every payload that crosses the frontend/backend boundary.
 
 - **Never** define a duplicate type or interface in `apps/api` or `apps/web` for something that already has a schema in `packages/shared`. Import it instead.
-- **Never** invent a new socket event name inline (`socket.emit('someNewEvent', ...)`). All event names live in `packages/shared/src/constants/socket-events.ts`. If a needed event doesn't exist yet, add it there first, update `docs/EVENT_CONTRACT.md` in the same change, and only then use it in `apps/api`/`apps/web`.
+- **Guest chat has no Socket.IO transport.** Do not add a guest socket event or gateway without an explicit architecture change and a matching update to `docs/EVENT_CONTRACT.md`.
 - If a change to `packages/shared` would alter an existing schema's shape (not just add a new one), flag it clearly in your response before making it — it affects both apps and possibly a teammate's in-progress work.
-- When you don't have a real backend/frontend counterpart to test against yet, use `packages/shared/src/mocks/fixtures.ts` rather than inventing throwaway sample data — keeps everyone's test data consistent with the real schemas.
+- Keep test fixtures beside their owning feature and validate cross-boundary samples with the applicable shared schema.
 
 ## Scope discipline
 
@@ -27,12 +27,12 @@ A no-auth, link-to-join chat app with voice calls (via LiveKit) and screen shari
 - **Calls go through LiveKit, not raw WebRTC.** Don't hand-roll `RTCPeerConnection` signaling logic in `apps/api` or `apps/web` — that was the old approach and has been intentionally replaced. Use the LiveKit client SDK (`livekit-client`) on the frontend and `livekit-server-sdk` for token minting on the backend.
 - **`apps/api` never touches call media**, only issues short-lived LiveKit access tokens via REST. There is no socket event for joining a call — don't add one.
 - **Use LiveKit Cloud's free "Build" tier**, not self-hosted — this project intentionally avoids operating its own media server. Don't add coturn, mediasoup, or a self-hosted LiveKit deployment unless explicitly asked.
-- **No authentication system** — display name + channel link only. Don't add login/JWT-for-users/session auth unless explicitly asked to change this. (The LiveKit access token is a call-specific credential, not a user auth system — don't conflate the two.)
+- **Supabase Auth is the identity system.** Registered and anonymous sessions are restored through NestJS cookies; Angular holds only the returned short-lived access token in memory.
 - **Persistence is Supabase (Postgres) via `@supabase/supabase-js`, not SQLite/TypeORM/Prisma.** Both channels and messages are persisted. Don't introduce an ORM on top of the Supabase client.
-- **`apps/web` NEVER talks to Supabase directly.** All database access goes through `apps/api`. Don't add `@supabase/supabase-js` to the Angular app or reference Supabase env vars in frontend code.
+- **Guest data is user-scoped in Angular.** `apps/web` may use the public Supabase URL/key and current user's JWT for `guest` RLS reads, RPC mutations, and Realtime. Other privileged/database operations remain server-side.
 - **The service-role key bypasses Row Level Security and is server-side only.** Never put it in `apps/web`, an artifact, a committed `.env`, or any client-visible config. If asked to "just use Supabase from the frontend to save time", say no and explain why.
-- **Supabase rows are snake_case; the shared contract is camelCase.** Never return a raw row from a service — map it through `apps/api/src/modules/channels/channels.mappers.ts` (or the feature-local mapper for the module you're working in).
-- The soft cap on call participants (`MAX_CALL_PARTICIPANTS` in `packages/shared`) is a product decision enforced in the token-minting endpoint, not a technical WebRTC limitation — don't remove the enforcement without being asked, and don't confuse it with a hard SDK limit when explaining it.
+- **Supabase rows are snake_case; API contracts are camelCase.** Never return a raw row from a NestJS service; use the owning feature's mapper. Angular guest data intentionally uses generated database row types.
+- The call participant cap (`MAX_CALL_PARTICIPANTS` in `packages/shared`) is enforced in the token-minting endpoint and is not a technical WebRTC limitation.
 
 ## Code quality — non-negotiable, not a suggestion
 
@@ -53,4 +53,4 @@ These areas are called out in the project plan as the most likely to eat unplann
 
 - The LiveKit token-minting endpoint (room name conventions, token expiry, permissions granted)
 - First-time integration of the LiveKit client SDK into the Angular Call UI (this is new to the team — don't assume familiarity)
-- The `typing` event's debounce/timeout behavior (avoid spamming the socket on every keystroke)
+- Supabase Realtime subscription cleanup, authorization filters, and optimistic reconciliation

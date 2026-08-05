@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, GoneException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AccessToken, RoomServiceClient, TrackSource } from 'livekit-server-sdk';
 import {
@@ -7,66 +7,58 @@ import {
   type CallTokenRequest,
   type CallTokenResponse,
 } from '@lobby/shared';
-import { ChannelsService } from '../channels/channels.service.js';
+
+import type { Database } from '../../database/guest-database.types';
+import { SupabaseService } from '../database/supabase.service';
+
+type GuestMember = Database['guest']['Tables']['channel_members']['Row'];
+type GuestChannel = Database['guest']['Tables']['channels']['Row'];
 
 @Injectable()
 export class CallsService {
-  private readonly logger = new Logger(CallsService.name);
   private readonly apiKey: string;
   private readonly apiSecret: string;
-  private readonly livekitUrl: string; // wss:// URL the browser connects to
+  private readonly livekitUrl: string;
   private readonly roomService: RoomServiceClient;
 
   constructor(
     private readonly config: ConfigService,
-    private readonly channelsService: ChannelsService,
+    private readonly supabase: SupabaseService,
   ) {
     this.apiKey = this.config.getOrThrow<string>('LIVEKIT_API_KEY');
     this.apiSecret = this.config.getOrThrow<string>('LIVEKIT_API_SECRET');
     this.livekitUrl = this.config.getOrThrow<string>('LIVEKIT_URL');
 
-    // RoomServiceClient talks to LiveKit's HTTP API (needs https://, not wss://)
     const httpUrl = this.livekitUrl.replace(/^wss:/, 'https:').replace(/^ws:/, 'http:');
     this.roomService = new RoomServiceClient(httpUrl, this.apiKey, this.apiSecret);
   }
 
-  async createCallToken(channelId: string, { name }: CallTokenRequest): Promise<CallTokenResponse> {
-    // Channel ID *is* the access control model for this no-auth app (per
-    // PROJECT_PLAN.md §7 risk #7) — a call token must not be mintable for a
-    // channel that doesn't exist or has expired. Reuses the same 404 behavior
-    // channels.controller.ts already has for this exact check; throws
-    // NotFoundException, which Nest turns into a 404 automatically.
-    await this.channelsService.findChannel(channelId);
+  async createCallToken(
+    userId: string,
+    { channelId }: CallTokenRequest,
+  ): Promise<CallTokenResponse> {
+    const { member, channel } = await this.authorizeMembership(userId, channelId);
+    const participants = await this.listParticipants(channel.livekit_room_name);
 
-    const roomName = this.roomNameForChannel(channelId);
-
-    // Soft cap — DELIBERATELY advisory, not a hard reject. Decision pending
-    // confirmation; if product wants a hard cap instead, replace this log
-    // with throwing e.g. new ForbiddenException(...) before minting. Until
-    // that's decided, don't "fix" this into a reject without checking first —
-    // it's an intentional placeholder, not an oversight.
-    const participantCount = await this.getParticipantCount(roomName);
-    if (participantCount >= MAX_CALL_PARTICIPANTS) {
-      this.logger.warn(
-        `Room ${roomName} at/over soft cap (${participantCount}/${MAX_CALL_PARTICIPANTS}) — issuing token anyway`,
-      );
+    if (
+      participants.length >= Math.min(channel.max_members, MAX_CALL_PARTICIPANTS) &&
+      !participants.some((participant) => participant.identity === member.livekit_identity)
+    ) {
+      throw new ForbiddenException('The call has reached its participant limit');
     }
 
     const token = new AccessToken(this.apiKey, this.apiSecret, {
-      identity: this.makeIdentity(name),
-      name,
-      ttl: '10m', // short-lived: just long enough for the client to connect
+      identity: member.livekit_identity,
+      name: member.display_name,
+      ttl: '10m',
     });
 
     token.addGrant({
-      room: roomName,
+      room: channel.livekit_room_name,
       roomJoin: true,
       canPublish: true,
       canSubscribe: true,
-      // Mic + screen-share only — camera video stays banned per CLAUDE.md.
-      // Screen-share *availability* is granted to everyone here; the "only
-      // one sharer at a time" rule is enforced at the app layer by the
-      // gateway (screen-share request/ack/broadcast), not by this grant.
+      canPublishData: false,
       canPublishSources: [
         TrackSource.MICROPHONE,
         TrackSource.SCREEN_SHARE,
@@ -77,36 +69,57 @@ export class CallsService {
     return {
       token: await token.toJwt(),
       livekitUrl: this.livekitUrl,
-      roomName,
+      roomName: channel.livekit_room_name,
     };
   }
 
-  /** Whether a LiveKit call is currently live for this channel (1+ participant). */
-  async getCallStatus(channelId: string): Promise<CallStatusResponse> {
-    const participantCount = await this.getParticipantCount(this.roomNameForChannel(channelId));
-    return {
-      active: participantCount > 0,
-      participants: participantCount,
-    };
+  async getCallStatus(userId: string, channelId: string): Promise<CallStatusResponse> {
+    const { channel } = await this.authorizeMembership(userId, channelId);
+    const participantCount = (await this.listParticipants(channel.livekit_room_name)).length;
+    return { active: participantCount > 0, participants: participantCount };
   }
 
-  private roomNameForChannel(channelId: string): string {
-    return `channel-${channelId}`;
+  private async authorizeMembership(
+    userId: string,
+    channelId: string,
+  ): Promise<{ member: GuestMember; channel: GuestChannel }> {
+    const guest = this.supabase.client.schema('guest');
+    const [memberResult, channelResult] = await Promise.all([
+      guest
+        .from('channel_members')
+        .select()
+        .eq('channel_id', channelId)
+        .eq('user_id', userId)
+        .is('left_at', null)
+        .is('removed_at', null)
+        .maybeSingle(),
+      guest.from('channels').select().eq('id', channelId).maybeSingle(),
+    ]);
+
+    if (memberResult.error || channelResult.error) {
+      throw memberResult.error ?? channelResult.error;
+    }
+    if (!channelResult.data) {
+      throw new NotFoundException('Guest channel was not found');
+    }
+    if (!memberResult.data) {
+      throw new ForbiddenException('Active guest channel membership required');
+    }
+    if (
+      channelResult.data.status !== 'active' ||
+      new Date(channelResult.data.expires_at).getTime() <= Date.now()
+    ) {
+      throw new GoneException('Guest channel is no longer active');
+    }
+
+    return { member: memberResult.data, channel: channelResult.data };
   }
 
-  private makeIdentity(name: string): string {
-    // LiveKit identities must be unique per-connection; suffix avoids collisions
-    // when the same display name joins from two tabs/devices.
-    return `${name}-${Math.random().toString(36).slice(2, 8)}`;
-  }
-
-  private async getParticipantCount(roomName: string): Promise<number> {
+  private async listParticipants(roomName: string) {
     try {
-      const participants = await this.roomService.listParticipants(roomName);
-      return participants.length;
+      return await this.roomService.listParticipants(roomName);
     } catch {
-      // Room doesn't exist yet (nobody has joined) — treat as 0, not an error.
-      return 0;
+      return [];
     }
   }
 }

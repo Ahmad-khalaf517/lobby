@@ -48,12 +48,16 @@ export class ChatMessageComponent {
 
   /** Emitted with the message id when deletion is confirmed / triggered. */
   readonly delete = output<string>();
+  readonly edit = output<ChatMessage>();
 
   protected readonly isOwn = computed(() => this.message().author.id === this.currentUserId());
 
-  protected readonly parsedReply = computed<ParsedReply | null>(() =>
-    parseReplyMessage(this.message().text),
-  );
+  protected readonly parsedReply = computed<ParsedReply | null>(() => {
+    const reply = this.message().reply;
+    return reply
+      ? { authorName: reply.authorName, previewText: reply.text, bodyText: this.message().text }
+      : parseReplyMessage(this.message().text);
+  });
 
   protected onReply(): void {
     this.reply.emit(this.message());
@@ -69,6 +73,10 @@ export class ChatMessageComponent {
 
   protected onDelete(messageId: string): void {
     this.delete.emit(messageId);
+  }
+
+  protected onEdit(): void {
+    this.edit.emit(this.message());
   }
 
   protected chipClass(isAll: boolean): string {

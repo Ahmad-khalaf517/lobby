@@ -13,6 +13,7 @@ import {
   DEFAULT_CHAT_EMOJIS,
   type ChatMessage,
   type ChatReplyPreview,
+  type SendChatMessage,
 } from './models/chat-message.model';
 
 /**
@@ -105,7 +106,7 @@ export class RoomChatComponent {
   emojis = input<string[]>(DEFAULT_CHAT_EMOJIS);
 
   /** Emitted with the final message text (reply prefix already applied) on Send. */
-  readonly sendMessage = output<string>();
+  readonly sendMessage = output<SendChatMessage>();
 
   /** Emitted when the user starts replying to a message. */
   readonly replyToMessage = output<ChatMessage>();
@@ -115,6 +116,7 @@ export class RoomChatComponent {
 
   /** Emitted with the message id on delete. */
   readonly deleteMessage = output<string>();
+  readonly editMessage = output<ChatMessage>();
 
   /** Emitted when the header close button is clicked. */
   readonly close = output<void>();
@@ -145,11 +147,8 @@ export class RoomChatComponent {
 
   protected onSend(text: string): void {
     const reply = this.pendingReply();
-    const replySnippet = reply?.text.replace(/\s+/g, ' ').trim().slice(0, 80);
-    const finalText = reply ? `↪ Reply to ${reply.authorName}: ${replySnippet}\n${text}` : text;
-
     this.pendingReply.set(null);
-    this.sendMessage.emit(finalText);
+    this.sendMessage.emit({ text, replyTo: reply?.messageId ?? null });
   }
 
   protected onReply(message: ChatMessage): void {
@@ -179,6 +178,11 @@ export class RoomChatComponent {
       this.pendingReply.set(null);
     }
     this.deleteMessage.emit(messageId);
+  }
+
+  protected onEdit(message: ChatMessage): void {
+    this.openReactionMenuId.set(null);
+    this.editMessage.emit(message);
   }
 
   protected onCancelReply(): void {

@@ -53,6 +53,7 @@ export class ChatSidebarComponent {
   readonly toggleReactionMenu = output<string>();
   readonly react = output<{ messageId: string; emoji: string }>();
   readonly delete = output<string>();
+  readonly edit = output<ChatMessage>();
   readonly cancelReply = output<void>();
 
   private readonly messagesContainer = viewChild<ElementRef<HTMLDivElement>>('messagesContainer');

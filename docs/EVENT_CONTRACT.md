@@ -1,92 +1,44 @@
 # Event & Endpoint Contract
 
-This is the contract between `apps/api` and `apps/web`. Every event/endpoint here has a matching Zod schema in `packages/shared/src/schemas`. Runtime guards may be stricter than schema minimums for product behavior. **Don't add or change an event/endpoint here without updating the corresponding schema in the same change, and vice versa.**
+This is the active contract between `apps/api` and `apps/web`. Cross-boundary payloads are defined by Zod schemas in `packages/shared`.
 
-Lock this before parallel work starts (Day 1 morning) — see the project plan.
+## Authentication REST endpoints
 
-Calls (voice + screen share) are **not** part of the Socket.IO contract below — see the "Calls" section at the bottom.
+| Method and path                  | Request                                      | Response                           | Shared schema                                               |
+| -------------------------------- | -------------------------------------------- | ---------------------------------- | ----------------------------------------------------------- |
+| `POST /auth/login`               | `{ email, password }`                        | `{ user, accessToken, expiresAt }` | `LoginRequestSchema` / `AuthSessionResponseSchema`          |
+| `POST /auth/anonymous`           | `{ captchaToken? }`                          | `{ user, accessToken, expiresAt }` | `AnonymousAuthRequestSchema` / `AuthSessionResponseSchema`  |
+| `GET /auth/me`                   | HttpOnly auth cookies                        | `{ user, accessToken, expiresAt }` | `CurrentUserResponseSchema`                                 |
+| `POST /auth/refresh`             | HttpOnly refresh cookie                      | `{ user, accessToken, expiresAt }` | `AuthSessionResponseSchema`                                 |
+| `POST /auth/logout`              | HttpOnly auth cookies                        | `{ message }`                      | `AuthMessageResponseSchema`                                 |
+| `POST /auth/register`            | `{ name, email, password, confirmPassword }` | `{ message, user? }`               | `RegisterRequestSchema` / `RegistrationResponseSchema`      |
+| `POST /auth/confirm-email`       | `{ tokenHash, type: 'email' }`               | `{ user, accessToken, expiresAt }` | `ConfirmEmailRequestSchema` / `AuthSessionResponseSchema`   |
+| `POST /auth/resend-confirmation` | `{ email }`                                  | `{ message }`                      | `EmailRequestSchema` / `AuthMessageResponseSchema`          |
+| `POST /auth/forgot-password`     | `{ email }`                                  | `{ message }`                      | `EmailRequestSchema` / `AuthMessageResponseSchema`          |
+| `POST /auth/verify-recovery`     | `{ tokenHash }`                              | `{ user, accessToken, expiresAt }` | `VerifyRecoveryRequestSchema` / `AuthSessionResponseSchema` |
+| `POST /auth/reset-password`      | `{ password, confirmPassword }`              | `{ message }`                      | `ResetPasswordRequestSchema` / `AuthMessageResponseSchema`  |
 
-## REST
+`accessToken` is held only in Angular memory. The refresh token is never returned to JavaScript and remains in an HttpOnly cookie. `user.isAnonymous` distinguishes anonymous and registered sessions.
 
-| Method & Path                           | Request                                                     | Response                                                               | Schema                                                                          |
-| --------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `POST /channels`                        | `{ name }`                                                  | `{ id, name, createdAt, expiresAt }`                                   | `CreateChannelRequestSchema` + controller guard / `CreateChannelResponseSchema` |
-| `GET /channels/:id`                     | —                                                           | `{ id, name, createdAt, expiresAt }`                                   | `ChannelSchema`                                                                 |
-| `GET /channels/:id/messages`            | —                                                           | `{ messages: [{ ..., reactions: [...] }] }`                            | `MessageHistorySchema`                                                          |
-| `POST /channels/:id/call-token`         | `{ name }`                                                  | `{ token, livekitUrl, roomName }`                                      | `CallTokenRequestSchema` / `CallTokenResponseSchema`                            |
-| `GET /users/:userId/profile`            | —                                                           | `{ userId, displayName, ... }`                                         | `UserProfileSchema`                                                             |
-| `PATCH /users/:userId/profile`          | profile fields to update                                    | `{ userId, displayName, ... }`                                         | `UpdateUserProfileRequestSchema` / `UpdateUserProfileResponseSchema`            |
-| `GET /users/:userId/account-settings`   | —                                                           | `{ userId, emailNotificationsEnabled, pushNotificationsEnabled, ... }` | `AccountSettingsSchema`                                                         |
-| `PATCH /users/:userId/account-settings` | `{ emailNotificationsEnabled?, pushNotificationsEnabled? }` | `{ userId, emailNotificationsEnabled, pushNotificationsEnabled, ... }` | `UpdateAccountSettingsRequestSchema` / `UpdateAccountSettingsResponseSchema`    |
+## LiveKit REST endpoints
 
-| `POST /auth/login` | `{ email, password }` | `{ user, expiresAt }` | `LoginRequestSchema` / `AuthSessionResponseSchema` |
-| `GET /auth/me` | — | `{ user }` | `CurrentUserResponseSchema` |
-| `POST /auth/refresh` | — (HttpOnly refresh cookie) | `{ user, expiresAt }` | `AuthSessionResponseSchema` |
-| `POST /auth/logout` | — (HttpOnly auth cookies) | `{ message }` | `AuthMessageResponseSchema` |
-| `POST /auth/register` | `{ name, email, password, confirmPassword }` | `{ message, user? }` | `RegisterRequestSchema` / `RegistrationResponseSchema` |
-| `POST /auth/confirm-email` | `{ tokenHash, type: 'email' }` | `{ user, expiresAt }` | `ConfirmEmailRequestSchema` / `AuthSessionResponseSchema` |
-| `POST /auth/resend-confirmation` | `{ email }` | `{ message }` | `EmailRequestSchema` / `AuthMessageResponseSchema` |
-| `POST /auth/forgot-password` | `{ email }` | `{ message }` | `EmailRequestSchema` / `AuthMessageResponseSchema` |
-| `POST /auth/verify-recovery` | `{ tokenHash }` | `{ user, expiresAt }` | `VerifyRecoveryRequestSchema` / `AuthSessionResponseSchema` |
-| `POST /auth/reset-password` | `{ password, confirmPassword }` | `{ message }` | `ResetPasswordRequestSchema` / `AuthMessageResponseSchema` |
+| Method and path                        | Request                     | Response                          | Shared schema                                        |
+| -------------------------------------- | --------------------------- | --------------------------------- | ---------------------------------------------------- |
+| `POST /livekit/token`                  | `{ channelId }`             | `{ token, livekitUrl, roomName }` | `CallTokenRequestSchema` / `CallTokenResponseSchema` |
+| `GET /channels/:channelId/call-status` | authenticated member cookie | `{ active, participants }`        | `CallStatusResponseSchema`                           |
 
-## Socket.IO — Client → Server
+NestJS resolves the member display name, LiveKit identity, room name, and membership authority from the `guest` schema. The browser must not submit those values.
 
-| Event             | Payload                           | Schema                         |
-| ----------------- | --------------------------------- | ------------------------------ |
-| `joinChannel`     | `{ channelId, name }`             | `JoinChannelPayloadSchema`     |
-| `chatMessage`     | `{ channelId, name, text }`       | `ChatMessagePayloadSchema`     |
-| `messageReaction` | `{ channelId, messageId, emoji }` | `MessageReactionPayloadSchema` |
-| `deleteMessage`   | `{ channelId, messageId }`        | `DeleteMessagePayloadSchema`   |
-| `typing`          | `{ channelId, name, isTyping }`   | `TypingPayloadSchema`          |
-| `leaveChannel`    | `{ channelId }`                   | `LeaveChannelPayloadSchema`    |
+## Guest database contract
 
-## Socket.IO — Server → Client
+Guest reads and mutations do not cross the NestJS REST or Socket.IO boundary. Angular uses its user-scoped Supabase JWT with:
 
-| Event             | Payload                                                     | Schema                           |
-| ----------------- | ----------------------------------------------------------- | -------------------------------- |
-| `userJoined`      | `{ name, socketId }`                                        | `UserPresenceSchema`             |
-| `userLeft`        | `{ name, socketId }`                                        | `UserPresenceSchema`             |
-| `chatMessage`     | `{ id, channelId, authorName, text, reactions, createdAt }` | `ChatMessageBroadcastSchema`     |
-| `messageReaction` | `{ messageId, emoji, reactedBy, removed }`                  | `MessageReactionBroadcastSchema` |
-| `messageDeleted`  | `{ messageId }`                                             | `MessageDeletedBroadcastSchema`  |
-| `typing`          | `{ name, isTyping }`                                        | `TypingBroadcastSchema`          |
-| `memberList`      | `{ members: [...] }`                                        | `MemberListSchema`               |
+- RLS-protected reads from `guest.channels`, `guest.channel_members`, `guest.messages`, and `guest.message_reactions`.
+- RPC mutations: `guest.create_channel`, `guest.join_channel`, `guest.create_message`, `guest.edit_message`, `guest.delete_message`, `guest.toggle_message_reaction`, `guest.leave_channel`, and `guest.close_channel`.
+- One filtered Supabase Realtime subscription per active guest channel.
 
-Import event names from `SOCKET_EVENTS` (`packages/shared/src/constants/socket-events.ts`) — never hardcode the string literal.
+The old public-channel REST controllers and `ChannelGateway` have been removed. There is no Socket.IO guest chat contract.
 
-## Calls (voice + screen share) — not a socket event
+## Calls
 
-There is intentionally **no** `joinCall`/`webrtcSignal`/etc. socket event. The flow is:
-
-1. Frontend calls `POST /channels/:id/call-token` (above) to get a LiveKit token.
-2. Frontend connects directly to LiveKit Cloud with that token, using `livekit-client`.
-
-Socket.IO and `apps/api`'s gateway are not involved in the call path at all past minting the token. See `docs/ARCHITECTURE.md` for the full flow diagram and reasoning.
-
-## Validation on both ends
-
-```typescript
-// apps/api — inside the gateway handler
-@SubscribeMessage(SOCKET_EVENTS.CHAT_MESSAGE)
-handleChatMessage(@MessageBody() payload: unknown) {
-  const data = ChatMessagePayloadSchema.parse(payload); // throws on invalid shape
-  // ...
-}
-```
-
-```typescript
-// apps/web — inside the chat service, before emitting
-sendMessage(payload: ChatMessagePayload) {
-  ChatMessagePayloadSchema.parse(payload); // fail fast on the client too
-  this.socket.emit(SOCKET_EVENTS.CHAT_MESSAGE, payload);
-}
-```
-
-## Adding a new event or endpoint
-
-1. Add the Zod schema to `packages/shared/src/schemas`.
-2. Export it from `packages/shared/src/index.ts`.
-3. If it's a socket event, add the name to `packages/shared/src/constants/socket-events.ts`.
-4. Add a row to the appropriate table above.
-5. Only then wire it up in `apps/api` and `apps/web`.
+Voice and screen sharing are not application events. Angular requests a restricted token from NestJS and connects directly to LiveKit. NestJS never handles media.

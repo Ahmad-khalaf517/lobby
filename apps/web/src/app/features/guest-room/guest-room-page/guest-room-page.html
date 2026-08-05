@@ -229,6 +229,7 @@
           (sendMessage)="onSendMessage($event)"
           (reactToMessage)="onReact($event)"
           (deleteMessage)="onDelete($event)"
+          (editMessage)="onEdit($event)"
           (close)="onCloseChat()"
         >
           <button
@@ -283,6 +284,13 @@
           </button>
 
           <ng-container chat-header-extra>
+            <button
+              type="button"
+              (click)="isOwner() ? closeChannel() : leaveChannel()"
+              class="h-8 rounded-lg border border-white/10 px-2.5 text-[10px] font-medium text-[#c8cfdb] transition hover:border-destructive/40 hover:text-white"
+            >
+              {{ isOwner() ? 'Close room' : 'Leave' }}
+            </button>
             <div class="group relative flex shrink-0">
               <app-call-icon type="call" size="sm" label="Meet now" (click)="goToCall()" />
               <span

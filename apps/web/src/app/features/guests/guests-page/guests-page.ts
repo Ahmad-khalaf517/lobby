@@ -1,12 +1,11 @@
-import { HttpClient } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { type Channel, ChannelListResponseSchema, MAX_NAME_LENGTH } from '@lobby/shared';
-import { environment } from '../../../../environments/environment';
-import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
+import { MAX_CHANNEL_NAME_LENGTH, MAX_NAME_LENGTH } from '@lobby/shared';
 
-type LoadStatus = 'loading' | 'loaded' | 'error';
+import { AuthService } from '../../auth/services/auth';
+import { GuestChannelStore } from '../../guest-room/services/guest-channel.store';
+import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
 
 @Component({
   selector: 'app-guests-page',
@@ -15,62 +14,98 @@ type LoadStatus = 'loading' | 'loaded' | 'error';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GuestsPage {
-  private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
+  private readonly guest = inject(GuestChannelStore);
 
   protected readonly maxNameLength = MAX_NAME_LENGTH;
-  protected readonly status = signal<LoadStatus>('loading');
-  protected readonly channels = signal<Channel[]>([]);
+  protected readonly maxChannelNameLength = MAX_CHANNEL_NAME_LENGTH;
+  protected readonly submitting = signal(false);
+  protected readonly errorMessage = signal<string | null>(null);
+  protected readonly requiresDisplayName = computed(() => this.auth.status() !== 'authenticated');
 
-  protected readonly form = new FormGroup({
+  protected readonly identityForm = new FormGroup({
     displayName: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(MAX_NAME_LENGTH)],
+      validators: [Validators.maxLength(MAX_NAME_LENGTH)],
     }),
-    channelId: new FormControl('', {
+  });
+
+  protected readonly joinForm = new FormGroup({
+    inviteCode: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+  });
+
+  protected readonly createForm = new FormGroup({
+    channelName: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required],
+      validators: [Validators.required, Validators.maxLength(MAX_CHANNEL_NAME_LENGTH)],
     }),
   });
 
   constructor() {
-    this.loadChannels();
+    void this.auth.initialize();
   }
 
-  protected loadChannels(): void {
-    this.status.set('loading');
-    this.http.get<unknown>(`${environment.apiUrl}/channels`).subscribe({
-      next: (response) => {
-        const { channels } = ChannelListResponseSchema.parse(response);
-        this.channels.set(channels);
-        this.status.set('loaded');
-      },
-      error: () => this.status.set('error'),
-    });
-  }
-
-  protected onSubmit(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
+  protected async joinChannel(): Promise<void> {
+    if (!this.identityValid() || this.joinForm.invalid) {
+      this.identityForm.markAllAsTouched();
+      this.joinForm.markAllAsTouched();
       return;
     }
 
-    const { displayName, channelId } = this.form.getRawValue();
-    void this.router.navigate(['/guest', channelId], { queryParams: { name: displayName } });
+    await this.run(async () => {
+      const code = this.joinForm.controls.inviteCode.value.trim().toUpperCase();
+      await this.guest.join(code, this.displayName());
+      await this.router.navigate(['/guest', code]);
+    });
   }
 
-  protected expiryLabel(channel: Channel): string {
-    if (!channel.expiresAt) return 'No expiry';
+  protected async createChannel(): Promise<void> {
+    if (!this.identityValid() || this.createForm.invalid) {
+      this.identityForm.markAllAsTouched();
+      this.createForm.markAllAsTouched();
+      return;
+    }
 
-    const msLeft = new Date(channel.expiresAt).getTime() - Date.now();
-    if (msLeft <= 0) return 'Expired';
-
-    const hoursLeft = Math.round(msLeft / 3_600_000);
-    if (hoursLeft < 1) return 'Expires soon';
-    if (hoursLeft === 1) return '1 hour left';
-    if (hoursLeft < 24) return `${hoursLeft} hours left`;
-
-    const daysLeft = Math.round(hoursLeft / 24);
-    return daysLeft === 1 ? '1 day left' : `${daysLeft} days left`;
+    await this.run(async () => {
+      const result = await this.guest.create(
+        this.createForm.controls.channelName.value,
+        this.displayName(),
+      );
+      await this.router.navigate(['/guest', result.code]);
+    });
   }
+
+  private identityValid(): boolean {
+    return !this.requiresDisplayName() || Boolean(this.displayName());
+  }
+
+  private displayName(): string | undefined {
+    const value = this.identityForm.controls.displayName.value.trim();
+    return value || undefined;
+  }
+
+  private async run(operation: () => Promise<void>): Promise<void> {
+    this.submitting.set(true);
+    this.errorMessage.set(null);
+    try {
+      await operation();
+    } catch (error: unknown) {
+      this.errorMessage.set(describeError(error));
+    } finally {
+      this.submitting.set(false);
+    }
+  }
+}
+
+function describeError(error: unknown): string {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof error.message === 'string'
+  ) {
+    return error.message;
+  }
+  return 'The guest channel request failed. Please try again.';
 }

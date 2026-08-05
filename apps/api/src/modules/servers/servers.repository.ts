@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { customAlphabet, nanoid } from 'nanoid';
 import type { Channel, Server, ServerMember } from '@lobby/shared';
 import type { Database } from '../../database/database.types';
-import { toChannel, toChannels } from '../channels/channels.mappers';
+import { toChannel, toChannels } from './channel.mappers';
 import { SupabaseService } from '../database/supabase.service';
 import { toServer, toServerMembers, toServers } from './servers.mappers';
 

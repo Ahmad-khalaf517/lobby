@@ -68,9 +68,9 @@ To recreate the dependency layers from scratch, run `docker compose build --no-c
 | Service                    | Host URL                | Container address |
 | -------------------------- | ----------------------- | ----------------- |
 | Angular development server | `http://localhost:4200` | `http://web:4200` |
-| NestJS API and Socket.IO   | `http://localhost:3000` | `http://api:3000` |
+| NestJS API                 | `http://localhost:3000` | `http://api:3000` |
 
-The browser is outside Docker, so direct browser-to-API requests use `http://localhost:3000`. Docker also starts Angular with `proxy.docker.json`: relative requests to `/channels` and `/socket.io` are forwarded inside the Compose network to `http://api:3000`. This gives future frontend code a same-origin option without embedding the Docker service name in browser code. The current scaffolded Angular application does not make backend requests yet.
+The browser is outside Docker, so Angular uses `http://localhost:3000` for NestJS auth and LiveKit-token requests. Guest channel data and Realtime traffic go directly from the browser to the configured public Supabase URL. Docker service names such as `api` resolve only inside the Compose network.
 
 The API has an HTTP health check against `/`. The frontend does not wait for it because the Angular dev server can start safely while the API is initializing; requests made before the API is ready simply fail and can be retried.
 

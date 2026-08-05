@@ -6,6 +6,10 @@
     "composite": true,
     "types": ["node"]
   },
-  "include": ["src/**/*.ts"],
+  "include": [
+    "src/**/*.ts",
+    "../api/src/database/database.types.ts",
+    "../api/src/database/guest-database.types.ts"
+  ],
   "exclude": ["src/**/*.spec.ts"]
 }

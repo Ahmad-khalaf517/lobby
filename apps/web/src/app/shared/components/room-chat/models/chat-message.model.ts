@@ -22,6 +22,11 @@ export interface ChatMessage {
   reactions: ChatReaction[];
   /** Emoji the current user reacted with on this message, or null. */
   ownReaction: string | null;
+  reply: ChatReplyPreview | null;
+  edited: boolean;
+  deleted: boolean;
+  pending: boolean;
+  failed: boolean;
 }
 
 /** The "Replying to …" banner shown above the composer. */
@@ -29,6 +34,11 @@ export interface ChatReplyPreview {
   messageId: string;
   authorName: string;
   text: string;
+}
+
+export interface SendChatMessage {
+  text: string;
+  replyTo: string | null;
 }
 
 /** Default emoji set shared by the composer picker and the message reaction menu. */

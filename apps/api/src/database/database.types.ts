@@ -4,7 +4,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
  * never deleted, only closed via `left_at`, so `messages.sender_id` always
  * resolves even after someone leaves. `livekit_identity` is required by the
  * live schema (NOT NULL, no default) — apps/api mints one per join so a
- * future call-token endpoint has a stable identity to bind to.
+ * LiveKit token endpoint has a stable identity to bind to.
  */
 export type ChannelMemberRow = {
   id: string;

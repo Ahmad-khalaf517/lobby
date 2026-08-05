@@ -5,6 +5,7 @@ import {
   Component,
   computed,
   DestroyRef,
+  effect,
   inject,
   PLATFORM_ID,
   signal,
@@ -34,8 +35,8 @@ import {
   type CallParticipant,
 } from '../../../shared/components/call-room';
 import { CallIconComponent, RoomChatComponent } from '../../../shared/components/room-chat';
-import { ChannelChatService } from '../../../shared/services/channel-chat.service';
 import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
+import { GuestChannelStore } from '../../guest-room/services/guest-channel.store';
 
 type CallPageStatus = 'needs-name' | 'loading' | 'ready' | 'error';
 
@@ -69,11 +70,11 @@ export class CallRoomPage {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly platformId = inject(PLATFORM_ID);
-  protected readonly chat = inject(ChannelChatService);
+  protected readonly chat = inject(GuestChannelStore);
 
   private readonly roomChat = viewChild(RoomChatComponent);
 
-  protected readonly channelId = this.route.snapshot.paramMap.get('inviteCode') ?? '';
+  protected readonly inviteCode = this.route.snapshot.paramMap.get('inviteCode') ?? '';
   protected readonly maxNameLength = MAX_NAME_LENGTH;
   protected readonly status = signal<CallPageStatus>('needs-name');
   protected readonly errorMessage = signal('');
@@ -112,11 +113,11 @@ export class CallRoomPage {
 
   private room: Room | null = null;
 
-  /** Audio elements created for remote participants, keyed by participant identity. */
+  /** Audio elements created for remote tracks, keyed by participant + publication. */
   private readonly audioElements = new Map<string, HTMLAudioElement>();
 
   constructor() {
-    if (!this.channelId) {
+    if (!this.inviteCode) {
       this.status.set('error');
       this.errorMessage.set('Missing channel id in the call link.');
       return;
@@ -124,8 +125,17 @@ export class CallRoomPage {
 
     const nameFromLink = this.route.snapshot.queryParamMap.get('name')?.trim();
     if (nameFromLink) {
-      this.start(nameFromLink);
+      void this.start(nameFromLink);
+    } else {
+      void this.restore();
     }
+
+    effect(() => {
+      if (this.chat.ended()) {
+        this.disconnectLiveKit();
+        this.actionError.set('This guest channel has ended or expired.');
+      }
+    });
 
     this.destroyRef.onDestroy(() => this.cleanup());
   }
@@ -135,7 +145,7 @@ export class CallRoomPage {
       this.nameControl.markAsTouched();
       return;
     }
-    this.start(this.nameControl.value.trim());
+    void this.start(this.nameControl.value.trim());
   }
 
   protected async toggleMic(): Promise<void> {
@@ -183,18 +193,20 @@ export class CallRoomPage {
 
   protected guestInviteLink(): string {
     if (typeof window === 'undefined') {
-      return `/guest/${this.channelId}`;
+      return `/guest/${this.inviteCode}`;
     }
-    return `${window.location.origin}/guest/${this.channelId}`;
+    return `${window.location.origin}/guest/${this.inviteCode}`;
   }
 
   protected leaveCall(): void {
     this.cleanup();
-    void this.router.navigate(['/guest', this.channelId]);
+    void this.router.navigate(['/guest', this.inviteCode]);
   }
 
   protected onReact({ messageId, emoji }: { messageId: string; emoji: string }): void {
-    this.chat.react(messageId, emoji);
+    void this.chat.toggleReaction(messageId, emoji).catch((error: unknown) => {
+      this.actionError.set(this.describeError(error));
+    });
   }
 
   protected async start(name: string): Promise<void> {
@@ -207,7 +219,9 @@ export class CallRoomPage {
     this.actionError.set(null);
 
     try {
-      await Promise.all([this.chat.join(this.channelId, name), this.connectLiveKit(name)]);
+      await this.chat.join(this.inviteCode, name);
+      this.displayName.set(this.chat.displayName());
+      await this.connectLiveKit();
       this.status.set('ready');
       queueMicrotask(() => this.roomChat()?.scrollToNewest(false));
     } catch (error: unknown) {
@@ -217,10 +231,10 @@ export class CallRoomPage {
     }
   }
 
-  private async connectLiveKit(name: string): Promise<void> {
+  private async connectLiveKit(): Promise<void> {
     this.connectionState.set('connecting');
 
-    const response = await this.fetchCallToken(name);
+    const response = await this.fetchCallToken();
     this.roomName.set(response.roomName);
 
     const room = new Room({ adaptiveStream: true, dynacast: true, disconnectOnPageLeave: false });
@@ -242,10 +256,12 @@ export class CallRoomPage {
     }
   }
 
-  private async fetchCallToken(name: string) {
-    const body = CallTokenRequestSchema.parse({ name });
+  private async fetchCallToken() {
+    const channelId = this.chat.channel()?.id;
+    if (!channelId) throw new Error('Active channel membership is required.');
+    const body = CallTokenRequestSchema.parse({ channelId });
     const raw = await firstValueFrom(
-      this.http.post<unknown>(`${this.apiUrl()}/channels/${this.channelId}/call-token`, body),
+      this.http.post<unknown>(`${this.apiUrl()}/livekit/token`, body),
     );
     return CallTokenResponseSchema.parse(raw);
   }
@@ -266,10 +282,11 @@ export class CallRoomPage {
 
   private readonly onTrackSubscribed = (
     track: Track,
-    _publication: TrackPublication,
+    publication: TrackPublication,
     participant: RemoteParticipant,
   ): void => {
-    if (track.kind !== Track.Kind.Audio || this.audioElements.has(participant.identity)) {
+    const audioKey = `${participant.identity}:${publication.trackSid}`;
+    if (track.kind !== Track.Kind.Audio || this.audioElements.has(audioKey)) {
       return;
     }
 
@@ -277,23 +294,30 @@ export class CallRoomPage {
     // element. attach() creates a hidden <audio> element with autoplay enabled,
     // so every remote voice reaches the speakers as soon as it is subscribed
     // (i.e. the moment a participant unmutes their microphone).
-    const element = track.attach() as HTMLAudioElement;
+    const element = track.attach();
+    if (!(element instanceof HTMLAudioElement)) return;
     element.setAttribute('aria-hidden', 'true');
-    this.audioElements.set(participant.identity, element);
+    this.audioElements.set(audioKey, element);
+    void element.play().catch(() => {
+      this.actionError.set(
+        'Your browser blocked remote audio. Interact with the page, then retry.',
+      );
+    });
     this.refreshParticipants();
   };
 
   private readonly onTrackUnsubscribed = (
     track: Track,
-    _publication: TrackPublication,
+    publication: TrackPublication,
     participant: RemoteParticipant,
   ): void => {
-    const element = this.audioElements.get(participant.identity);
+    const audioKey = `${participant.identity}:${publication.trackSid}`;
+    const element = this.audioElements.get(audioKey);
     if (element) {
       element.pause();
       element.srcObject = null;
       element.remove();
-      this.audioElements.delete(participant.identity);
+      this.audioElements.delete(audioKey);
     }
     track.detach();
     this.refreshParticipants();
@@ -360,6 +384,11 @@ export class CallRoomPage {
   };
 
   private cleanup(): void {
+    this.disconnectLiveKit();
+    void this.chat.cleanup();
+  }
+
+  private disconnectLiveKit(): void {
     const room = this.room;
     this.room = null;
 
@@ -383,7 +412,6 @@ export class CallRoomPage {
     }
     this.audioElements.clear();
 
-    this.chat.leave();
     this.participants.set([]);
     this.connectionState.set('idle');
     this.micEnabled.set(false);
@@ -391,6 +419,24 @@ export class CallRoomPage {
     this.screenShareActive.set(false);
     this.micPending.set(false);
     this.screenSharePending.set(false);
+  }
+
+  private async restore(): Promise<void> {
+    try {
+      const result = await this.chat.restore(this.inviteCode);
+      if (result === 'needs-name') {
+        this.status.set('needs-name');
+        return;
+      }
+      this.displayName.set(this.chat.displayName());
+      this.status.set('loading');
+      await this.connectLiveKit();
+      this.status.set('ready');
+    } catch (error: unknown) {
+      this.cleanup();
+      this.errorMessage.set(this.describeError(error));
+      this.status.set('error');
+    }
   }
 
   private describeError(error: unknown): string {
