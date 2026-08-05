@@ -1,0 +1,10 @@
+<app-chat-avatar
+  [name]="person().name"
+  [size]="size()"
+  [shape]="shape()"
+  [status]="status() ?? person().status ?? null"
+  [initialsOverride]="person().initials ?? null"
+  [backgroundOverride]="person().color ?? null"
+  [borderColorOverride]="person().color ?? null"
+  [textColorOverride]="person().textColor ?? null"
+/>

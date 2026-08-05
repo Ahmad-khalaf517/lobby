@@ -22,6 +22,14 @@ export interface ChatMessage {
   reactions: ChatReaction[];
   /** Emoji the current user reacted with on this message, or null. */
   ownReaction: string | null;
+  /** True when the message was edited after being sent (renders "(edited)"). */
+  edited?: boolean;
+  /** When set, the message is a reply quoting another message. */
+  replyTo?: {
+    messageId: string;
+    authorName: string;
+    text: string;
+  };
 }
 
 /** The "Replying to …" banner shown above the composer. */
