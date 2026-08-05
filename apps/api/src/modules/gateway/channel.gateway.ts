@@ -11,8 +11,10 @@ import {
 import { Server, Socket } from 'socket.io';
 import {
   ChatMessagePayloadSchema,
+  DeleteMessagePayloadSchema,
   JoinChannelPayloadSchema,
   LeaveChannelPayloadSchema,
+  MessageReactionPayloadSchema,
   SOCKET_EVENTS,
   TypingPayloadSchema,
   type Member,
@@ -110,6 +112,61 @@ export class ChannelGateway implements OnGatewayDisconnect {
     this.server.to(channelId).emit(SOCKET_EVENTS.CHAT_MESSAGE, message);
   }
 
+  @SubscribeMessage(SOCKET_EVENTS.MESSAGE_REACTION)
+  async handleMessageReaction(
+    @MessageBody() payload: unknown,
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    const { channelId, messageId, emoji } = MessageReactionPayloadSchema.parse(payload);
+
+    const member = this.channelMembers.get(channelId)?.get(client.id);
+    if (!member) {
+      throw new WsException('Join the channel before reacting to messages');
+    }
+
+    let removed = false;
+    try {
+      const result = await this.channels.upsertMessageReaction(
+        channelId,
+        messageId,
+        member.memberId,
+        emoji,
+      );
+      removed = result.removed;
+    } catch (error: unknown) {
+      if (!this.isReactionPersistenceUnavailable(error)) {
+        throw error;
+      }
+
+      console.warn(
+        'message_reactions persistence unavailable; broadcasting reaction without storage',
+      );
+    }
+
+    this.server.to(channelId).emit(SOCKET_EVENTS.MESSAGE_REACTION, {
+      messageId,
+      emoji,
+      reactedBy: member.name,
+      removed,
+    });
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.DELETE_MESSAGE)
+  async handleDeleteMessage(
+    @MessageBody() payload: unknown,
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    const { channelId, messageId } = DeleteMessagePayloadSchema.parse(payload);
+
+    const member = this.channelMembers.get(channelId)?.get(client.id);
+    if (!member) {
+      throw new WsException('Join the channel before deleting messages');
+    }
+
+    await this.channels.deleteMessage(channelId, messageId);
+    this.server.to(channelId).emit(SOCKET_EVENTS.MESSAGE_DELETED, { messageId });
+  }
+
   @SubscribeMessage(SOCKET_EVENTS.TYPING)
   handleTyping(@MessageBody() payload: unknown, @ConnectedSocket() client: Socket): void {
     const { channelId, name, isTyping } = TypingPayloadSchema.parse(payload);
@@ -161,5 +218,24 @@ export class ChannelGateway implements OnGatewayDisconnect {
 
   private toMemberList(members: Map<string, { name: string; memberId: string }>): Member[] {
     return [...members].map(([socketId, member]) => ({ socketId, name: member.name }));
+  }
+
+  private isReactionPersistenceUnavailable(error: unknown): boolean {
+    if (!error || typeof error !== 'object') {
+      return false;
+    }
+
+    const candidate = error as { code?: unknown; message?: unknown; details?: unknown };
+    const code = typeof candidate.code === 'string' ? candidate.code : '';
+    const message = typeof candidate.message === 'string' ? candidate.message : '';
+    const details = typeof candidate.details === 'string' ? candidate.details : '';
+    const text = `${message} ${details}`.toLowerCase();
+
+    const relationMissingByCode = code === '42P01' || code === 'PGRST200' || code === 'PGRST204';
+    const relationMissingByText =
+      text.includes('message_reactions') &&
+      (text.includes('does not exist') || text.includes('could not find a relationship'));
+
+    return relationMissingByCode || relationMissingByText;
   }
 }

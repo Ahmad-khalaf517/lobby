@@ -9,6 +9,13 @@ export const ChatMessagePayloadSchema = z.object({
 });
 export type ChatMessagePayload = z.infer<typeof ChatMessagePayloadSchema>;
 
+/** A single user's persisted reaction on a message. */
+export const MessageReactionSchema = z.object({
+  emoji: z.string().min(1).max(16),
+  reactedBy: z.string().min(1).max(MAX_NAME_LENGTH),
+});
+export type MessageReaction = z.infer<typeof MessageReactionSchema>;
+
 /**
  * A persisted message, as stored in Supabase and returned to clients.
  * Note `id` and `createdAt` are assigned by the database, so this shape
@@ -19,6 +26,7 @@ export const MessageSchema = z.object({
   channelId: z.string(),
   authorName: z.string(),
   text: z.string(),
+  reactions: z.array(MessageReactionSchema).catch([]),
   // { offset: true } — Supabase/PostgREST serializes timestamptz as
   // "...+00:00", not the "Z" suffix z.string().datetime() requires by default.
   createdAt: z.string().datetime({ offset: true }),
@@ -33,6 +41,37 @@ export type Message = z.infer<typeof MessageSchema>;
  */
 export const ChatMessageBroadcastSchema = MessageSchema;
 export type ChatMessageBroadcast = z.infer<typeof ChatMessageBroadcastSchema>;
+
+/** Socket: messageReaction — client → server payload */
+export const MessageReactionPayloadSchema = z.object({
+  channelId: z.string(),
+  messageId: z.string().uuid(),
+  emoji: z.string().min(1).max(8),
+});
+export type MessageReactionPayload = z.infer<typeof MessageReactionPayloadSchema>;
+
+/** Socket: messageReaction — server → client broadcast */
+export const MessageReactionBroadcastSchema = z.object({
+  messageId: z.string().uuid(),
+  emoji: z.string().min(1).max(8),
+  reactedBy: z.string().min(1).max(MAX_NAME_LENGTH),
+  /** True when this broadcast removes `reactedBy`'s reaction; false when adding/changing it. */
+  removed: z.boolean(),
+});
+export type MessageReactionBroadcast = z.infer<typeof MessageReactionBroadcastSchema>;
+
+/** Socket: deleteMessage — client → server payload */
+export const DeleteMessagePayloadSchema = z.object({
+  channelId: z.string(),
+  messageId: z.string().uuid(),
+});
+export type DeleteMessagePayload = z.infer<typeof DeleteMessagePayloadSchema>;
+
+/** Socket: messageDeleted — server → client broadcast */
+export const MessageDeletedBroadcastSchema = z.object({
+  messageId: z.string().uuid(),
+});
+export type MessageDeletedBroadcast = z.infer<typeof MessageDeletedBroadcastSchema>;
 
 /**
  * REST: GET /channels/:id/messages — response.

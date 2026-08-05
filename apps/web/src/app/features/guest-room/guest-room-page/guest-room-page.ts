@@ -2,13 +2,11 @@ import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   DestroyRef,
-  effect,
-  HostListener,
   inject,
   signal,
   viewChild,
-  type ElementRef,
 } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -17,16 +15,30 @@ import {
   ChannelSchema,
   ChatMessageBroadcastSchema,
   ChatMessagePayloadSchema,
+  DeleteMessagePayloadSchema,
   JoinChannelPayloadSchema,
   LeaveChannelPayloadSchema,
-  MAX_MESSAGE_LENGTH,
+  MemberListSchema,
   MAX_NAME_LENGTH,
+  MessageDeletedBroadcastSchema,
+  MessageReactionBroadcastSchema,
+  MessageReactionPayloadSchema,
   MessageHistorySchema,
   SOCKET_EVENTS,
   type Channel,
+  type Member,
   type Message,
 } from '@lobby/shared';
 import { environment } from '../../../../environments/environment';
+import {
+  type ChatMessage,
+  type ChatReaction,
+  type ChatUser,
+  CallIconComponent,
+  ChatAvatarComponent,
+  RoomChatComponent,
+  initialsFromName,
+} from '../../../shared/components/room-chat';
 import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
 
 type RoomStatus = 'needs-name' | 'loading' | 'ready' | 'not-found' | 'error';
@@ -37,12 +49,24 @@ type MessageToast = {
   text: string;
 };
 
+type MessageReactionState = {
+  counts: Record<string, number>;
+  byUser: Record<string, string>;
+};
+
 const TOAST_LIFETIME_MS = 4500;
 const TOAST_TEXT_PREVIEW_LENGTH = 80;
 
 @Component({
   selector: 'app-guest-room-page',
-  imports: [ReactiveFormsModule, RouterLink, LogoComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    LogoComponent,
+    RoomChatComponent,
+    CallIconComponent,
+    ChatAvatarComponent,
+  ],
   templateUrl: './guest-room-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -52,52 +76,52 @@ export class GuestRoomPage {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
-  private readonly scrollAnchor = viewChild<ElementRef<HTMLDivElement>>('scrollAnchor');
-  private readonly composerInput = viewChild<ElementRef<HTMLInputElement>>('composerInput');
-  private readonly emojiPickerHost = viewChild<ElementRef<HTMLElement>>('emojiPickerHost');
+  private readonly roomChat = viewChild(RoomChatComponent);
 
   protected readonly channelId = this.route.snapshot.paramMap.get('inviteCode') ?? '';
 
   protected readonly maxNameLength = MAX_NAME_LENGTH;
-  protected readonly maxMessageLength = MAX_MESSAGE_LENGTH;
   protected readonly status = signal<RoomStatus>('needs-name');
   protected readonly errorMessage = signal('');
   protected readonly channel = signal<Channel | null>(null);
   protected readonly messages = signal<Message[]>([]);
+  protected readonly members = signal<Member[]>([]);
   protected readonly connected = signal(false);
   protected readonly displayName = signal('');
-  protected readonly emojiPickerOpen = signal(false);
-  protected readonly emojis = [
-    '😀',
-    '😂',
-    '😍',
-    '😎',
-    '🤔',
-    '👏',
-    '🙌',
-    '🔥',
-    '💯',
-    '🎉',
-    '👍',
-    '❤️',
-  ];
   /** At most one entry — a new toast replaces whatever's currently showing rather than stacking. */
   protected readonly toasts = signal<MessageToast[]>([]);
+  protected readonly inviteCopied = signal(false);
+  protected readonly sidebarCollapsed = signal(false);
+  protected readonly messageReactions = signal<Record<string, MessageReactionState>>({});
+
+  protected readonly chatMessages = computed<ChatMessage[]>(() =>
+    this.messages().map((message) => this.toChatMessage(message)),
+  );
+
+  protected readonly currentUser = computed<ChatUser>(() => ({
+    id: this.displayName(),
+    name: this.displayName(),
+  }));
+
+  protected readonly memberNames = computed<string[]>(() =>
+    this.members()
+      .map((member) => member.name.trim())
+      .filter(Boolean),
+  );
+
+  /** Shared initials derivation, exposed for the toast markup. */
+  protected readonly initials = initialsFromName;
 
   protected readonly nameControl = new FormControl('', {
     nonNullable: true,
     validators: [Validators.required, Validators.maxLength(MAX_NAME_LENGTH)],
   });
 
-  protected readonly messageControl = new FormControl('', {
-    nonNullable: true,
-    validators: [Validators.required, Validators.maxLength(MAX_MESSAGE_LENGTH)],
-  });
-
   private socket: Socket | null = null;
   private audioContext: AudioContext | null = null;
   private nextToastId = 0;
   private toastTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private inviteCopiedTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     if (!this.channelId) {
@@ -108,15 +132,6 @@ export class GuestRoomPage {
         this.enterRoom(nameFromLink);
       }
     }
-
-    // Keep the message list pinned to the latest entry as new ones arrive.
-    effect(() => {
-      this.messages();
-      queueMicrotask(() => {
-        const el = this.scrollAnchor()?.nativeElement;
-        el?.scrollIntoView({ block: 'end' });
-      });
-    });
 
     this.destroyRef.onDestroy(() => this.disconnect());
   }
@@ -135,8 +150,13 @@ export class GuestRoomPage {
 
     this.http.get<unknown>(`${environment.apiUrl}/channels/${this.channelId}`).subscribe({
       next: (response) => {
-        this.channel.set(ChannelSchema.parse(response));
-        this.loadHistoryAndConnect();
+        try {
+          this.channel.set(ChannelSchema.parse(response));
+          this.loadHistoryAndConnect();
+        } catch {
+          this.errorMessage.set('The channel payload is invalid. Please refresh and try again.');
+          this.status.set('error');
+        }
       },
       error: (err: { status?: number }) => {
         this.status.set(err.status === 404 ? 'not-found' : 'error');
@@ -147,9 +167,17 @@ export class GuestRoomPage {
   private loadHistoryAndConnect(): void {
     this.http.get<unknown>(`${environment.apiUrl}/channels/${this.channelId}/messages`).subscribe({
       next: (response) => {
-        this.messages.set(MessageHistorySchema.parse(response).messages);
-        this.status.set('ready');
-        this.connectSocket();
+        try {
+          const history = MessageHistorySchema.parse(response);
+          this.messages.set(history.messages);
+          this.messageReactions.set(this.hydrateReactionState(history.messages));
+          this.status.set('ready');
+          queueMicrotask(() => this.roomChat()?.scrollToNewest(false));
+          this.connectSocket();
+        } catch {
+          this.errorMessage.set('Unable to parse channel history. Please refresh and try again.');
+          this.status.set('error');
+        }
       },
       error: () => this.status.set('error'),
     });
@@ -170,17 +198,45 @@ export class GuestRoomPage {
       socket.emit(SOCKET_EVENTS.JOIN_CHANNEL, JoinChannelPayloadSchema.parse(payload));
     });
 
-    socket.on('disconnect', () => this.connected.set(false));
+    socket.on('disconnect', () => {
+      this.connected.set(false);
+      this.members.set([]);
+    });
 
-    socket.on(SOCKET_EVENTS.MEMBER_LIST, () => this.connected.set(true));
+    socket.on(SOCKET_EVENTS.MEMBER_LIST, (raw: unknown) => {
+      const payload = MemberListSchema.parse(raw);
+      this.members.set(payload.members);
+      this.connected.set(true);
+    });
 
     socket.on(SOCKET_EVENTS.CHAT_MESSAGE, (raw: unknown) => {
+      const shouldStickToBottom = this.roomChat()?.isNearBottom() ?? true;
       const message = ChatMessageBroadcastSchema.parse(raw);
       this.messages.update((current) => [...current, message]);
-      if (!this.isOwnMessage(message)) {
+
+      if (shouldStickToBottom || message.authorName === this.displayName()) {
+        queueMicrotask(() => this.roomChat()?.scrollToNewest(false));
+      }
+
+      if (message.authorName !== this.displayName()) {
         this.playNotificationSound();
         this.showToast(message);
       }
+    });
+
+    socket.on(SOCKET_EVENTS.MESSAGE_REACTION, (raw: unknown) => {
+      const reaction = MessageReactionBroadcastSchema.parse(raw);
+      this.applyReactionUpdate(
+        reaction.messageId,
+        reaction.reactedBy,
+        reaction.emoji,
+        reaction.removed,
+      );
+    });
+
+    socket.on(SOCKET_EVENTS.MESSAGE_DELETED, (raw: unknown) => {
+      const { messageId } = MessageDeletedBroadcastSchema.parse(raw);
+      this.removeMessageLocally(messageId);
     });
 
     socket.on('exception', (err: { message?: string }) => {
@@ -189,99 +245,122 @@ export class GuestRoomPage {
     });
   }
 
-  protected sendMessage(): void {
-    if (this.messageControl.invalid || !this.socket?.connected) {
-      this.messageControl.markAsTouched();
+  /** room-chat emits the final text (reply prefix already applied); send it over the socket. */
+  protected onSendMessage(text: string): void {
+    if (!this.socket?.connected) {
       return;
     }
 
-    const payload = {
+    const payload = ChatMessagePayloadSchema.parse({
       channelId: this.channelId,
       name: this.displayName(),
-      text: this.messageControl.value.trim(),
+      text,
+    });
+
+    this.socket.emit(SOCKET_EVENTS.CHAT_MESSAGE, payload);
+    queueMicrotask(() => this.roomChat()?.scrollToNewest(false));
+  }
+
+  /** room-chat already shows the reply preview + focuses the composer — nothing more needed for guests. */
+  protected onReact({ messageId, emoji }: { messageId: string; emoji: string }): void {
+    if (!this.socket?.connected) {
+      return;
+    }
+
+    const reactedBy = this.displayName();
+    const userKey = reactedBy.trim().toLocaleLowerCase();
+    const currentEmoji = this.messageReactions()[messageId]?.byUser[userKey];
+    const removing = currentEmoji === emoji;
+
+    this.applyReactionUpdate(messageId, reactedBy, emoji, removing);
+
+    const payload = MessageReactionPayloadSchema.parse({
+      channelId: this.channelId,
+      messageId,
+      emoji,
+    });
+    this.socket.emit(SOCKET_EVENTS.MESSAGE_REACTION, payload);
+  }
+
+  protected onDelete(messageId: string): void {
+    this.removeMessageLocally(messageId);
+
+    if (this.socket?.connected) {
+      const payload = DeleteMessagePayloadSchema.parse({
+        channelId: this.channelId,
+        messageId,
+      });
+      this.socket.emit(SOCKET_EVENTS.DELETE_MESSAGE, payload);
+    }
+  }
+
+  protected onCloseChat(): void {
+    this.goToGuests();
+  }
+
+  private removeMessageLocally(messageId: string): void {
+    this.messages.update((current) => current.filter((message) => message.id !== messageId));
+    this.messageReactions.update((current) => {
+      const next = { ...current };
+      delete next[messageId];
+      return next;
+    });
+  }
+
+  protected toggleSidebar(): void {
+    this.playClickSound();
+    this.sidebarCollapsed.update((collapsed) => !collapsed);
+  }
+
+  protected guestInviteLink(): string {
+    if (typeof window === 'undefined') {
+      return `/guest/${this.channelId}`;
+    }
+
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/guest/${this.channelId}`;
+  }
+
+  protected copyGuestInviteLink(): void {
+    const link = this.guestInviteLink();
+
+    if (typeof navigator === 'undefined' || !navigator.clipboard) {
+      return;
+    }
+
+    void navigator.clipboard.writeText(link).then(() => {
+      this.inviteCopied.set(true);
+
+      if (this.inviteCopiedTimeoutId !== null) {
+        clearTimeout(this.inviteCopiedTimeoutId);
+      }
+
+      this.inviteCopiedTimeoutId = setTimeout(() => this.inviteCopied.set(false), 1500);
+    });
+  }
+
+  protected goToGuests(): void {
+    void this.router.navigate(['/guests']);
+  }
+
+  private toChatMessage(message: Message): ChatMessage {
+    const state = this.messageReactions()[message.id];
+    const ownReaction = state?.byUser[this.currentReactionUserKey()] ?? null;
+
+    const reactions: ChatReaction[] = state
+      ? Object.entries(state.counts)
+          .map(([emoji, count]) => ({ emoji, count, reactedByMe: ownReaction === emoji }))
+          .sort((a, b) => b.count - a.count)
+      : [];
+
+    return {
+      id: message.id,
+      author: { id: message.authorName, name: message.authorName },
+      text: message.text,
+      createdAt: message.createdAt,
+      reactions,
+      ownReaction,
     };
-
-    this.socket.emit(SOCKET_EVENTS.CHAT_MESSAGE, ChatMessagePayloadSchema.parse(payload));
-    this.messageControl.reset('');
-    this.emojiPickerOpen.set(false);
-  }
-
-  protected toggleEmojiPicker(): void {
-    this.emojiPickerOpen.update((open) => !open);
-  }
-
-  protected selectEmoji(emoji: string): void {
-    const input = this.composerInput()?.nativeElement;
-    const current = this.messageControl.value;
-
-    if (!input) {
-      this.messageControl.setValue(`${current}${emoji}`);
-      this.emojiPickerOpen.set(false);
-      return;
-    }
-
-    const start = input.selectionStart ?? current.length;
-    const end = input.selectionEnd ?? current.length;
-    const nextValue = `${current.slice(0, start)}${emoji}${current.slice(end)}`;
-
-    this.messageControl.setValue(nextValue);
-    this.emojiPickerOpen.set(false);
-
-    queueMicrotask(() => {
-      input.focus();
-      const cursor = start + emoji.length;
-      input.setSelectionRange(cursor, cursor);
-    });
-  }
-
-  @HostListener('document:click', ['$event'])
-  protected handleDocumentClick(event: MouseEvent): void {
-    if (!this.emojiPickerOpen()) {
-      return;
-    }
-
-    const target = event.target;
-    const host = this.emojiPickerHost()?.nativeElement;
-    if (target instanceof Node && host && !host.contains(target)) {
-      this.emojiPickerOpen.set(false);
-    }
-  }
-
-  protected initials(name: string): string {
-    const parts = name.trim().split(/\s+/).filter(Boolean);
-
-    if (parts.length === 0) {
-      return '??';
-    }
-
-    if (parts.length === 1) {
-      return parts[0].slice(0, 2).toUpperCase();
-    }
-
-    return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
-  }
-
-  protected avatarBackground(name: string): string {
-    return `linear-gradient(135deg, ${this.avatarColor(name, 0.34)}, ${this.avatarColor(name, 0.2)})`;
-  }
-
-  protected avatarBorder(name: string): string {
-    return this.avatarColor(name, 0.42);
-  }
-
-  protected avatarText(name: string): string {
-    return this.avatarColor(name, 0.96, 88);
-  }
-
-  protected messageTime(message: Message): string {
-    return new Date(message.createdAt).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
-
-  protected isOwnMessage(message: Message): boolean {
-    return message.authorName === this.displayName();
   }
 
   /**
@@ -308,6 +387,125 @@ export class GuestRoomPage {
 
   protected dismissToast(id: number): void {
     this.toasts.update((current) => current.filter((toast) => toast.id !== id));
+  }
+
+  private applyReactionUpdate(
+    messageId: string,
+    reactedBy: string,
+    emoji: string,
+    removed = false,
+  ): void {
+    const userKey = reactedBy.trim().toLocaleLowerCase();
+
+    this.messageReactions.update((current) => {
+      const existing = current[messageId] ?? { counts: {}, byUser: {} };
+      const currentEmoji = existing.byUser[userKey];
+      const nextCounts = { ...existing.counts };
+
+      if (removed) {
+        if (currentEmoji) {
+          const decremented = (nextCounts[currentEmoji] ?? 1) - 1;
+          if (decremented <= 0) {
+            delete nextCounts[currentEmoji];
+          } else {
+            nextCounts[currentEmoji] = decremented;
+          }
+        }
+
+        const nextByUser = { ...existing.byUser };
+        delete nextByUser[userKey];
+
+        return {
+          ...current,
+          [messageId]: { counts: nextCounts, byUser: nextByUser },
+        };
+      }
+
+      if (currentEmoji === emoji) {
+        return current;
+      }
+
+      if (currentEmoji) {
+        const decremented = (nextCounts[currentEmoji] ?? 1) - 1;
+        if (decremented <= 0) {
+          delete nextCounts[currentEmoji];
+        } else {
+          nextCounts[currentEmoji] = decremented;
+        }
+      }
+
+      nextCounts[emoji] = (nextCounts[emoji] ?? 0) + 1;
+
+      return {
+        ...current,
+        [messageId]: {
+          counts: nextCounts,
+          byUser: {
+            ...existing.byUser,
+            [userKey]: emoji,
+          },
+        },
+      };
+    });
+  }
+
+  private hydrateReactionState(messages: Message[]): Record<string, MessageReactionState> {
+    const nextState: Record<string, MessageReactionState> = {};
+
+    for (const message of messages) {
+      const reactions = Array.isArray(message.reactions) ? message.reactions : [];
+
+      for (const reaction of reactions) {
+        const messageState =
+          nextState[message.id] ??
+          ({
+            counts: {},
+            byUser: {},
+          } satisfies MessageReactionState);
+
+        const userKey = reaction.reactedBy.trim().toLocaleLowerCase();
+        messageState.byUser[userKey] = reaction.emoji;
+        messageState.counts[reaction.emoji] = (messageState.counts[reaction.emoji] ?? 0) + 1;
+        nextState[message.id] = messageState;
+      }
+    }
+
+    return nextState;
+  }
+
+  /**
+   * A short synthesized "tick" used for UI clicks (e.g. the sidebar toggle).
+   * A 1.5kHz square-wave burst through a highpass filter gives a sharp,
+   * physical click feel. `typeof AudioContext === 'undefined'` guards SSR.
+   */
+  private playClickSound(): void {
+    if (typeof AudioContext === 'undefined') return;
+
+    this.audioContext ??= new AudioContext();
+    if (this.audioContext.state === 'suspended') {
+      void this.audioContext.resume();
+    }
+
+    const ctx = this.audioContext;
+    const now = ctx.currentTime;
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+
+    oscillator.type = 'square';
+    oscillator.frequency.setValueAtTime(1500, now);
+    filter.type = 'highpass';
+    filter.frequency.value = 900;
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.09, now + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+
+    oscillator.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.06);
   }
 
   /**
@@ -367,6 +565,7 @@ export class GuestRoomPage {
   private disconnect(): void {
     void this.audioContext?.close();
     this.audioContext = null;
+    this.members.set([]);
 
     if (!this.socket) return;
 
@@ -379,19 +578,7 @@ export class GuestRoomPage {
     this.socket = null;
   }
 
-  protected goToGuests(): void {
-    void this.router.navigate(['/guests']);
-  }
-
-  private avatarColor(name: string, alpha: number, lightness = 62): string {
-    const normalized = name.trim().toLocaleLowerCase();
-    let hash = 0;
-
-    for (let index = 0; index < normalized.length; index += 1) {
-      hash = normalized.charCodeAt(index) + ((hash << 5) - hash);
-    }
-
-    const hue = Math.abs(hash) % 360;
-    return `hsla(${hue} 72% ${lightness}% / ${alpha})`;
+  private currentReactionUserKey(): string {
+    return this.displayName().trim().toLocaleLowerCase() || 'guest';
   }
 }

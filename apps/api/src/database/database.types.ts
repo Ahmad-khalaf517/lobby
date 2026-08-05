@@ -1,5 +1,39 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
+/**
+ * A channel membership — one row per join (guest or authenticated). Rows are
+ * never deleted, only closed via `left_at`, so `messages.sender_id` always
+ * resolves even after someone leaves. `livekit_identity` is required by the
+ * live schema (NOT NULL, no default) — apps/api mints one per join so a
+ * future call-token endpoint has a stable identity to bind to.
+ */
+export type ChannelMemberRow = {
+  id: string;
+  channel_id: string;
+  user_id: string | null;
+  guest_name: string | null;
+  role: string;
+  livekit_identity: string;
+  joined_at: string;
+  left_at: string | null;
+};
+
+export type MessageReactionRow = {
+  id: string;
+  message_id: string;
+  channel_member_id: string;
+  emoji: string;
+  created_at: string;
+  updated_at: string;
+  channel_members: ChannelMemberRow;
+};
+
+export type MessageReactionInsert = {
+  message_id: string;
+  channel_member_id: string;
+  emoji: string;
+};
+
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -9,16 +43,7 @@ export type Database = {
   public: {
     Tables: {
       channel_members: {
-        Row: {
-          channel_id: string;
-          guest_name: string | null;
-          id: string;
-          joined_at: string;
-          left_at: string | null;
-          livekit_identity: string;
-          role: string;
-          user_id: string | null;
-        };
+        Row: ChannelMemberRow;
         Insert: {
           channel_id: string;
           guest_name?: string | null;
@@ -95,6 +120,7 @@ export type Database = {
           created_at: string;
           id: string;
           sender_id: string;
+          message_reactions?: MessageReactionRow[];
         };
         Insert: {
           channel_id: string;
@@ -214,6 +240,12 @@ export type Database = {
           id?: string;
           name?: string;
         };
+        Relationships: [];
+      };
+      message_reactions: {
+        Row: MessageReactionRow;
+        Insert: MessageReactionInsert;
+        Update: Partial<MessageReactionInsert>;
         Relationships: [];
       };
     };

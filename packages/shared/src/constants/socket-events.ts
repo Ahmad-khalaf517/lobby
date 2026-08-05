@@ -9,12 +9,15 @@ export const SOCKET_EVENTS = {
   JOIN_CHANNEL: 'joinChannel',
   LEAVE_CHANNEL: 'leaveChannel',
   CHAT_MESSAGE: 'chatMessage',
+  MESSAGE_REACTION: 'messageReaction',
+  DELETE_MESSAGE: 'deleteMessage',
   TYPING: 'typing',
 
   // server → client
   USER_JOINED: 'userJoined',
   USER_LEFT: 'userLeft',
   MEMBER_LIST: 'memberList',
+  MESSAGE_DELETED: 'messageDeleted',
 } as const;
 
 export type SocketEvent = (typeof SOCKET_EVENTS)[keyof typeof SOCKET_EVENTS];

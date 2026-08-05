@@ -1,0 +1,48 @@
+<div class="relative flex">
+  <button
+    type="button"
+    (click)="onTrashClick()"
+    aria-label="Delete message"
+    class="grid size-7 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-[#f3a9b4] transition hover:border-rose-400/40 hover:bg-rose-400/12 hover:text-rose-200"
+  >
+    <svg viewBox="0 0 24 24" class="size-3.5" fill="none" aria-hidden="true">
+      <path d="M3 6h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+      <path
+        d="m8 6 .8-2.4A2 2 0 0 1 10.7 2h2.6a2 2 0 0 1 1.9 1.6L16 6"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+      />
+      <path
+        d="m8.5 9 .5 9m6.5-9-.5 9M6.5 6l.5 13a2 2 0 0 0 2 1.9h5a2 2 0 0 0 2-1.9l.5-13"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+      />
+    </svg>
+  </button>
+
+  @if (confirmOpen) {
+    <div
+      class="absolute right-0 top-9 z-30 w-44 rounded-2xl border border-white/10 bg-[#141821] p-2 shadow-[0_18px_40px_rgba(0,0,0,0.35)]"
+    >
+      <p class="px-1 pb-2 pt-0.5 text-xs text-[#c8cfdb]">Delete this message?</p>
+      <div class="flex gap-1.5">
+        <button
+          type="button"
+          (click)="dismiss()"
+          class="flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1.5 text-xs font-medium text-[#c8cfdb] transition hover:bg-white/10"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          (click)="confirmDelete()"
+          class="flex-1 rounded-lg bg-rose-500/90 px-2 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-500"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  }
+</div>

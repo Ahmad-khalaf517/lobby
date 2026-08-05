@@ -12,7 +12,7 @@ Calls (voice + screen share) are **not** part of the Socket.IO contract below �
 | --------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `POST /channels`                        | `{ name }`                                                  | `{ id, name, createdAt, expiresAt }`                                   | `CreateChannelRequestSchema` + controller guard / `CreateChannelResponseSchema` |
 | `GET /channels/:id`                     | —                                                           | `{ id, name, createdAt, expiresAt }`                                   | `ChannelSchema`                                                                 |
-| `GET /channels/:id/messages`            | —                                                           | `{ messages: [...] }`                                                  | `MessageHistorySchema`                                                          |
+| `GET /channels/:id/messages`            | —                                                           | `{ messages: [{ ..., reactions: [...] }] }`                            | `MessageHistorySchema`                                                          |
 | `POST /channels/:id/call-token`         | `{ name }`                                                  | `{ token, livekitUrl, roomName }`                                      | `CallTokenRequestSchema` / `CallTokenResponseSchema`                            |
 | `GET /users/:userId/profile`            | —                                                           | `{ userId, displayName, ... }`                                         | `UserProfileSchema`                                                             |
 | `PATCH /users/:userId/profile`          | profile fields to update                                    | `{ userId, displayName, ... }`                                         | `UpdateUserProfileRequestSchema` / `UpdateUserProfileResponseSchema`            |
@@ -32,22 +32,26 @@ Calls (voice + screen share) are **not** part of the Socket.IO contract below �
 
 ## Socket.IO — Client → Server
 
-| Event          | Payload                         | Schema                      |
-| -------------- | ------------------------------- | --------------------------- |
-| `joinChannel`  | `{ channelId, name }`           | `JoinChannelPayloadSchema`  |
-| `chatMessage`  | `{ channelId, name, text }`     | `ChatMessagePayloadSchema`  |
-| `typing`       | `{ channelId, name, isTyping }` | `TypingPayloadSchema`       |
-| `leaveChannel` | `{ channelId }`                 | `LeaveChannelPayloadSchema` |
+| Event             | Payload                           | Schema                         |
+| ----------------- | --------------------------------- | ------------------------------ |
+| `joinChannel`     | `{ channelId, name }`             | `JoinChannelPayloadSchema`     |
+| `chatMessage`     | `{ channelId, name, text }`       | `ChatMessagePayloadSchema`     |
+| `messageReaction` | `{ channelId, messageId, emoji }` | `MessageReactionPayloadSchema` |
+| `deleteMessage`   | `{ channelId, messageId }`        | `DeleteMessagePayloadSchema`   |
+| `typing`          | `{ channelId, name, isTyping }`   | `TypingPayloadSchema`          |
+| `leaveChannel`    | `{ channelId }`                   | `LeaveChannelPayloadSchema`    |
 
 ## Socket.IO — Server → Client
 
-| Event         | Payload                                          | Schema                       |
-| ------------- | ------------------------------------------------ | ---------------------------- |
-| `userJoined`  | `{ name, socketId }`                             | `UserPresenceSchema`         |
-| `userLeft`    | `{ name, socketId }`                             | `UserPresenceSchema`         |
-| `chatMessage` | `{ id, channelId, authorName, text, createdAt }` | `ChatMessageBroadcastSchema` |
-| `typing`      | `{ name, isTyping }`                             | `TypingBroadcastSchema`      |
-| `memberList`  | `{ members: [...] }`                             | `MemberListSchema`           |
+| Event             | Payload                                                     | Schema                           |
+| ----------------- | ----------------------------------------------------------- | -------------------------------- |
+| `userJoined`      | `{ name, socketId }`                                        | `UserPresenceSchema`             |
+| `userLeft`        | `{ name, socketId }`                                        | `UserPresenceSchema`             |
+| `chatMessage`     | `{ id, channelId, authorName, text, reactions, createdAt }` | `ChatMessageBroadcastSchema`     |
+| `messageReaction` | `{ messageId, emoji, reactedBy, removed }`                  | `MessageReactionBroadcastSchema` |
+| `messageDeleted`  | `{ messageId }`                                             | `MessageDeletedBroadcastSchema`  |
+| `typing`          | `{ name, isTyping }`                                        | `TypingBroadcastSchema`          |
+| `memberList`      | `{ members: [...] }`                                        | `MemberListSchema`               |
 
 Import event names from `SOCKET_EVENTS` (`packages/shared/src/constants/socket-events.ts`) — never hardcode the string literal.
 
