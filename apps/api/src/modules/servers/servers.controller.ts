@@ -1,12 +1,8 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { CreateServerRequestSchema, UpdateServerRequestSchema } from '@lobby/shared';
 import { ZodValidationPipe } from '../../zod-validation.pipe';
 import { ServersService } from './servers.service';
 
-/**
- * userId is taken from a query param for now (`?userId=`), same pattern as
- * channels.controller.ts — no auth guard yet in this app.
- */
 @Controller('servers')
 export class ServersController {
   constructor(private readonly servers: ServersService) {}
@@ -37,5 +33,24 @@ export class ServersController {
     @Query('userId') userId: string,
   ) {
     return this.servers.updateServer(id, userId, body.name);
+  }
+
+  @Post(':id/members/:memberUserId')
+  addMember(
+    @Param('id') id: string,
+    @Param('memberUserId') memberUserId: string,
+    @Query('userId') userId: string,
+  ) {
+    return this.servers.addMember(id, userId, memberUserId);
+  }
+
+  @Delete(':id/members/:memberUserId')
+  async removeMember(
+    @Param('id') id: string,
+    @Param('memberUserId') memberUserId: string,
+    @Query('userId') userId: string,
+  ) {
+    await this.servers.removeMember(id, userId, memberUserId);
+    return { success: true };
   }
 }
