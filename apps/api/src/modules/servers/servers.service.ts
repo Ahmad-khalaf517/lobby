@@ -42,6 +42,25 @@ export class ServersService {
     return this.serversRepository.listMembers(serverId);
   }
 
+  /** Only the owner can add a member directly. */
+  async addMember(
+    serverId: string,
+    requesterId: string,
+    targetUserId: string,
+  ): Promise<ServerMember> {
+    await this.assertOwner(serverId, requesterId);
+    return this.serversRepository.addMember(serverId, targetUserId, 'member');
+  }
+
+  /** Only the owner can remove members; the owner can't remove themself this way. */
+  async removeMember(serverId: string, requesterId: string, targetUserId: string): Promise<void> {
+    await this.assertOwner(serverId, requesterId);
+    if (targetUserId === requesterId) {
+      throw new ForbiddenException('Owner cannot remove themself; delete the server instead.');
+    }
+    await this.serversRepository.removeMember(serverId, targetUserId);
+  }
+
   async leaveServer(serverId: string, userId: string): Promise<void> {
     const server = await this.serversRepository.findServer(serverId);
     if (server.ownerId === userId) {
