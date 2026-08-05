@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { CreateServerRequestSchema, UpdateServerRequestSchema } from '@lobby/shared';
 import type { User } from '@supabase/supabase-js';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -46,30 +46,32 @@ export class ServersController {
     return this.servers.updateServer(id, user.id, body.name);
   }
 
-  @Post(':id/members/:memberUserId')
-  addMember(
-    @Param('id') id: string,
-    @Param('memberUserId') memberUserId: string,
-    @CurrentUser() user: User,
-  ) {
-    return this.servers.addMember(id, user.id, memberUserId);
-  }
-
-  @Delete(':id/members/:memberUserId')
-  async removeMember(
-    @Param('id') id: string,
-    @Param('memberUserId') memberUserId: string,
-    @CurrentUser() user: User,
-  ) {
-    await this.servers.removeMember(id, user.id, memberUserId);
-    return { success: true };
-  }
+  
 
   // :userId here must be the caller's own id — SameUserGuard enforces that.
   @UseGuards(SameUserGuard)
   @Post(':id/leave/:userId')
   async leave(@Param('id') id: string, @Param('userId') userId: string) {
     await this.servers.leaveServer(id, userId);
+    return { success: true };
+  }
+
+  @Post(':id/members/:memberUserId')
+  addMember(
+    @Param('id') id: string,
+    @Param('memberUserId') memberUserId: string,
+    @Query('userId') userId: string,
+  ) {
+    return this.servers.addMember(id, userId, memberUserId);
+  }
+
+  @Delete(':id/members/:memberUserId')
+  async removeMember(
+    @Param('id') id: string,
+    @Param('memberUserId') memberUserId: string,
+    @Query('userId') userId: string,
+  ) {
+    await this.servers.removeMember(id, userId, memberUserId);
     return { success: true };
   }
 }
