@@ -14,7 +14,14 @@ import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { CallTokenRequestSchema, CallTokenResponseSchema, MAX_NAME_LENGTH } from '@lobby/shared';
-import { ConnectionState, Room, RoomEvent, Track, type TrackPublication } from 'livekit-client';
+import {
+  ConnectionState,
+  RemoteParticipant,
+  Room,
+  RoomEvent,
+  Track,
+  type TrackPublication,
+} from 'livekit-client';
 import { environment } from '../../../../environments/environment';
 import {
   CallControlBarComponent,
@@ -104,6 +111,9 @@ export class CallRoomPage {
   });
 
   private room: Room | null = null;
+
+  /** Audio elements created for remote participants, keyed by participant identity. */
+  private readonly audioElements = new Map<string, HTMLAudioElement>();
 
   constructor() {
     if (!this.channelId) {
@@ -245,14 +255,49 @@ export class CallRoomPage {
       .on(RoomEvent.ConnectionStateChanged, this.onConnectionStateChanged)
       .on(RoomEvent.ParticipantConnected, this.refreshParticipants)
       .on(RoomEvent.ParticipantDisconnected, this.refreshParticipants)
-      .on(RoomEvent.TrackSubscribed, this.refreshParticipants)
-      .on(RoomEvent.TrackUnsubscribed, this.refreshParticipants)
+      .on(RoomEvent.TrackSubscribed, this.onTrackSubscribed)
+      .on(RoomEvent.TrackUnsubscribed, this.onTrackUnsubscribed)
       .on(RoomEvent.TrackMuted, this.refreshParticipants)
       .on(RoomEvent.TrackUnmuted, this.refreshParticipants)
       .on(RoomEvent.LocalTrackPublished, this.refreshParticipants)
       .on(RoomEvent.LocalTrackUnpublished, this.refreshParticipants)
       .on(RoomEvent.ActiveSpeakersChanged, this.refreshParticipants);
   }
+
+  private readonly onTrackSubscribed = (
+    track: Track,
+    _publication: TrackPublication,
+    participant: RemoteParticipant,
+  ): void => {
+    if (track.kind !== Track.Kind.Audio || this.audioElements.has(participant.identity)) {
+      return;
+    }
+
+    // LiveKit does not play remote audio until the track is attached to a media
+    // element. attach() creates a hidden <audio> element with autoplay enabled,
+    // so every remote voice reaches the speakers as soon as it is subscribed
+    // (i.e. the moment a participant unmutes their microphone).
+    const element = track.attach() as HTMLAudioElement;
+    element.setAttribute('aria-hidden', 'true');
+    this.audioElements.set(participant.identity, element);
+    this.refreshParticipants();
+  };
+
+  private readonly onTrackUnsubscribed = (
+    track: Track,
+    _publication: TrackPublication,
+    participant: RemoteParticipant,
+  ): void => {
+    const element = this.audioElements.get(participant.identity);
+    if (element) {
+      element.pause();
+      element.srcObject = null;
+      element.remove();
+      this.audioElements.delete(participant.identity);
+    }
+    track.detach();
+    this.refreshParticipants();
+  };
 
   private readonly onConnectionStateChanged = (state: ConnectionState): void => {
     switch (state) {
@@ -330,6 +375,13 @@ export class CallRoomPage {
       }
       room.disconnect();
     }
+
+    for (const element of this.audioElements.values()) {
+      element.pause();
+      element.srcObject = null;
+      element.remove();
+    }
+    this.audioElements.clear();
 
     this.chat.leave();
     this.participants.set([]);
