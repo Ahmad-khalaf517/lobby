@@ -1,6 +1,6 @@
 <div class="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#171d2a] p-3">
   <div class="mb-2 flex items-center justify-between">
-    <p class="text-[11px] font-semibold tracking-[0.08em] text-[#a0a9b7] uppercase">
+    <p class="text-[11px] font-semibold tracking-[0.08em] text-[#8b95a6] uppercase">
       {{ title() }}
     </p>
     @if (showCount()) {
@@ -29,7 +29,7 @@
           class="relative shrink-0"
           [class]="
             participant.isSpeaking
-              ? 'rounded-full ring-2 ring-[#8f74ff] ring-offset-2 ring-offset-[#171d2a]'
+              ? 'rounded-full ring-2 ring-[#7c5cfc] ring-offset-2 ring-offset-[#171d2a]'
               : ''
           "
         >
@@ -39,7 +39,7 @@
         <div class="min-w-0 flex-1">
           <p class="truncate text-xs font-medium text-[#edf0f4]">{{ participant.name }}</p>
           @if (participant.isLocal) {
-            <p class="text-[10px] text-[#8f74ff]">You</p>
+            <p class="text-[10px] text-[#a78bfa]">You</p>
           }
         </div>
 

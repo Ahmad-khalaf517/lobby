@@ -5,7 +5,6 @@ import {
   effect,
   inject,
   input,
-  output,
   signal,
 } from '@angular/core';
 import { ChatAvatarComponent } from '../../room-chat/chat-avatar/chat-avatar.component';
@@ -33,12 +32,6 @@ export class CallTopBarComponent {
   connectionState = input<CallConnectionState>('connecting');
   participantCount = input(0);
   currentUserName = input('');
-
-  /** Emitted when "Invite friends" is clicked. */
-  readonly invite = output<void>();
-
-  /** Emitted when the leave/back action is clicked. */
-  readonly leave = output<void>();
 
   protected readonly elapsedSeconds = signal(0);
 

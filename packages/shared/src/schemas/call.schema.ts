@@ -24,3 +24,14 @@ export const CallTokenResponseSchema = z.object({
   roomName: z.string(),
 });
 export type CallTokenResponse = z.infer<typeof CallTokenResponseSchema>;
+
+/**
+ * REST: GET /channels/:channelId/call-status — response.
+ * Lets the web app tell whether a LiveKit call is actually live in a channel
+ * (the API is the only party with LiveKit credentials).
+ */
+export const CallStatusResponseSchema = z.object({
+  active: z.boolean(),
+  participants: z.number().int().nonnegative(),
+});
+export type CallStatusResponse = z.infer<typeof CallStatusResponseSchema>;

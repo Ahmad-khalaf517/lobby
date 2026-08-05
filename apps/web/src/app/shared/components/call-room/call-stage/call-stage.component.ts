@@ -3,36 +3,38 @@ import {
   Component,
   effect,
   input,
-  output,
   viewChild,
   type ElementRef,
 } from '@angular/core';
 import type { TrackPublication } from 'livekit-client';
-import { CallIconComponent } from '../../room-chat/call-icon/call-icon.component';
 
 /**
- * Center of the call: a header, then either the active shared-screen view
- * (real LiveKit screen-share track attached to a <video>) or the "share
- * something with the room" empty state with a "Start screen sharing" button.
+ * Screen-share spotlight: the large centered view of whatever the active
+ * sharer is presenting (real LiveKit screen-share track attached to a
+ * <video>). Only rendered by the parent while someone is actually sharing —
+ * the rest of the time the participant grid fills the stage, so there is no
+ * dead "empty share" card in the middle of the call.
  *
- * Presentational — the parent passes the track + share state and decides what
- * `(startShare)` means.
+ * Presentational — the parent passes the track + share state.
  */
 @Component({
   selector: 'app-call-stage',
   standalone: true,
-  imports: [CallIconComponent],
+  imports: [],
   templateUrl: './call-stage.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '[style.display]': "'flex'",
+    '[style.flex]': "'1 1 0%'",
+    '[style.minHeight]': "'0'",
+    '[style.padding]': "'1rem'",
+    '[style.flexDirection]': "'column'",
+  },
 })
 export class CallStageComponent {
-  isSharingScreen = input<boolean>(false);
   isLocalSharing = input<boolean>(false);
   sharerName = input<string>('');
   screenShareTrack = input<TrackPublication | null>(null);
-
-  /** Emitted when the user clicks "Start screen sharing". */
-  readonly startShare = output<void>();
 
   private readonly shareVideo = viewChild<ElementRef<HTMLVideoElement>>('shareVideo');
 

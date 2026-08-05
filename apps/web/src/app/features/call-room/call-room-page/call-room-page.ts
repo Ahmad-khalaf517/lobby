@@ -32,8 +32,6 @@ import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
 
 type CallPageStatus = 'needs-name' | 'loading' | 'ready' | 'error';
 
-const GUEST_LINK_TOAST_MS = 1500;
-
 /**
  * Call room page — a thin composer. It owns the real connections (REST token
  * fetch + LiveKit Room + the shared ChannelChatService for the room-chat
@@ -82,7 +80,6 @@ export class CallRoomPage {
   protected readonly cameraEnabled = signal(false);
   protected readonly screenShareActive = signal(false);
   protected readonly screenSharePending = signal(false);
-  protected readonly inviteCopied = signal(false);
   protected readonly showParticipants = signal(false);
 
   protected readonly channelName = computed<string>(() => this.chat.channel()?.name ?? 'Room chat');
@@ -107,7 +104,6 @@ export class CallRoomPage {
   });
 
   private room: Room | null = null;
-  private inviteCopiedTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     if (!this.channelId) {
@@ -173,26 +169,6 @@ export class CallRoomPage {
 
   protected dismissActionError(): void {
     this.actionError.set(null);
-  }
-
-  protected copyInvite(): void {
-    const link = this.guestInviteLink();
-
-    if (typeof navigator === 'undefined' || !navigator.clipboard) {
-      return;
-    }
-
-    void navigator.clipboard.writeText(link).then(() => {
-      this.inviteCopied.set(true);
-
-      if (this.inviteCopiedTimeoutId !== null) {
-        clearTimeout(this.inviteCopiedTimeoutId);
-      }
-      this.inviteCopiedTimeoutId = setTimeout(
-        () => this.inviteCopied.set(false),
-        GUEST_LINK_TOAST_MS,
-      );
-    });
   }
 
   protected guestInviteLink(): string {

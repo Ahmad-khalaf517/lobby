@@ -23,11 +23,9 @@ export class CallControlBarComponent {
   cameraEnabled = input<boolean>(false);
   screenShareActive = input<boolean>(false);
   screenSharePending = input<boolean>(false);
-  inviteCopied = input<boolean>(false);
 
   readonly toggleMic = output<void>();
   readonly toggleCamera = output<void>();
   readonly toggleScreenShare = output<void>();
-  readonly invite = output<void>();
   readonly leave = output<void>();
 }

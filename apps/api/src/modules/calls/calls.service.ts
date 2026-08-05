@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { AccessToken, RoomServiceClient, TrackSource } from 'livekit-server-sdk';
 import {
   MAX_CALL_PARTICIPANTS,
+  type CallStatusResponse,
   type CallTokenRequest,
   type CallTokenResponse,
 } from '@lobby/shared';
@@ -55,6 +56,15 @@ export class CallsService {
       token: await token.toJwt(),
       livekitUrl: this.livekitUrl,
       roomName,
+    };
+  }
+
+  /** Whether a LiveKit call is currently live for this channel (1+ participant). */
+  async getCallStatus(channelId: string): Promise<CallStatusResponse> {
+    const participantCount = await this.getParticipantCount(this.roomNameForChannel(channelId));
+    return {
+      active: participantCount > 0,
+      participants: participantCount,
     };
   }
 

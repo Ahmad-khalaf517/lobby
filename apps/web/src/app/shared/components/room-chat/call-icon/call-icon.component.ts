@@ -77,16 +77,14 @@ export class CallIconComponent {
 
     const variantClass =
       this.variant() === 'solid'
-        ? 'bg-primary text-white shadow-[0_14px_30px_rgba(124,92,252,0.35)] hover:bg-[#8b6dff]'
+        ? this.active()
+          ? 'bg-primary text-white shadow-[0_14px_30px_rgba(124,92,252,0.45)] hover:bg-[#8b6dff]'
+          : 'bg-white/10 text-[#c7ced9] hover:bg-white/16'
         : this.variant() === 'danger'
-          ? 'bg-rose-500/90 text-white shadow-[0_14px_30px_rgba(244,63,94,0.35)] hover:bg-rose-500'
-          : 'border border-white/8 bg-white/[0.03] text-[#c8cfdb] hover:border-white/20 hover:bg-white/10 hover:text-white';
-
-    const activeClass = this.active()
-      ? this.variant() === 'ghost'
-        ? 'border-[#8f74ff]/60 bg-[#8f74ff]/20 text-[#f4f1ff]'
-        : 'ring-2 ring-white/60 ring-offset-2 ring-offset-[#141821]'
-      : '';
+          ? 'bg-rose-500 text-white shadow-[0_14px_30px_rgba(244,63,94,0.35)] hover:bg-rose-600'
+          : this.active()
+            ? 'border border-[#7c5cfc]/60 bg-[#7c5cfc]/20 text-[#f4f1ff]'
+            : 'border border-white/8 bg-white/[0.03] text-[#c8cfdb] hover:border-white/20 hover:bg-white/10 hover:text-white';
 
     const disabledClass = this.disabled() ? 'pointer-events-none opacity-40' : '';
 
@@ -95,7 +93,6 @@ export class CallIconComponent {
       shapeClass,
       this.sizeButtonClass[this.size()],
       variantClass,
-      activeClass,
       disabledClass,
     ].join(' ');
   });

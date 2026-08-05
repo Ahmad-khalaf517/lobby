@@ -4,6 +4,7 @@ import {
   Component,
   computed,
   DestroyRef,
+  effect,
   inject,
   signal,
   viewChild,
@@ -12,6 +13,7 @@ import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { io, type Socket } from 'socket.io-client';
 import {
+  CallStatusResponseSchema,
   ChannelSchema,
   ChatMessageBroadcastSchema,
   ChatMessagePayloadSchema,
@@ -60,6 +62,7 @@ type MessageReactionState = {
 
 const TOAST_LIFETIME_MS = 4500;
 const TOAST_TEXT_PREVIEW_LENGTH = 80;
+const CALL_STATUS_POLL_MS = 10_000;
 
 @Component({
   selector: 'app-guest-room-page',
@@ -97,6 +100,10 @@ export class GuestRoomPage {
   protected readonly toasts = signal<MessageToast[]>([]);
   protected readonly sidebarCollapsed = signal(false);
   protected readonly messageReactions = signal<Record<string, MessageReactionState>>({});
+  /** Whether a LiveKit call is currently live in this channel (from the API poll). */
+  protected readonly callActive = signal(false);
+  /** True once the user dismissed the "Join the call" banner. */
+  protected readonly joinCallDismissed = signal(false);
 
   protected readonly chatMessages = computed<ChatMessage[]>(() =>
     this.messages().map((message) => this.toChatMessage(message)),
@@ -130,6 +137,15 @@ export class GuestRoomPage {
   /** Shared initials derivation, exposed for the toast markup. */
   protected readonly initials = initialsFromName;
 
+  /**
+   * Show the "Join the call" banner only while a call is genuinely live AND the
+   * user hasn't dismissed it. Dismissal re-arms once the call ends so a later
+   * call can prompt again.
+   */
+  protected readonly joinCallBannerVisible = computed(
+    () => this.callActive() && !this.joinCallDismissed(),
+  );
+
   protected readonly nameControl = new FormControl('', {
     nonNullable: true,
     validators: [Validators.required, Validators.maxLength(MAX_NAME_LENGTH)],
@@ -139,6 +155,7 @@ export class GuestRoomPage {
   private audioContext: AudioContext | null = null;
   private nextToastId = 0;
   private toastTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private callStatusIntervalId: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     if (!this.channelId) {
@@ -150,7 +167,21 @@ export class GuestRoomPage {
       }
     }
 
-    this.destroyRef.onDestroy(() => this.disconnect());
+    // Re-arm the "Join the call" banner when the call ends so a later call can
+    // prompt the user again (unless they've navigated away).
+    effect(() => {
+      if (!this.callActive()) {
+        this.joinCallDismissed.set(false);
+      }
+    });
+
+    this.destroyRef.onDestroy(() => {
+      this.disconnect();
+      if (this.callStatusIntervalId !== null) {
+        clearInterval(this.callStatusIntervalId);
+        this.callStatusIntervalId = null;
+      }
+    });
   }
 
   protected submitName(): void {
@@ -190,6 +221,7 @@ export class GuestRoomPage {
           this.messageReactions.set(this.hydrateReactionState(history.messages));
           this.status.set('ready');
           queueMicrotask(() => this.roomChat()?.scrollToNewest(false));
+          this.startCallStatusPolling();
           this.connectSocket();
         } catch {
           this.errorMessage.set('Unable to parse channel history. Please refresh and try again.');
@@ -342,6 +374,34 @@ export class GuestRoomPage {
     void this.router.navigate(['/guest', this.channelId, 'call'], {
       queryParams: { name: this.displayName() },
     });
+  }
+
+  protected dismissJoinCall(): void {
+    this.joinCallDismissed.set(true);
+  }
+
+  /**
+   * Poll the API for LiveKit call state while the room is open so the "Join
+   * the call" banner only appears when a call is genuinely live.
+   */
+  private startCallStatusPolling(): void {
+    const poll = (): void => {
+      this.http
+        .get<unknown>(`${environment.apiUrl}/channels/${this.channelId}/call-status`)
+        .subscribe({
+          next: (raw) => {
+            try {
+              this.callActive.set(CallStatusResponseSchema.parse(raw).active);
+            } catch {
+              this.callActive.set(false);
+            }
+          },
+          error: () => this.callActive.set(false),
+        });
+    };
+
+    poll();
+    this.callStatusIntervalId = setInterval(poll, CALL_STATUS_POLL_MS);
   }
 
   protected goToGuests(): void {
