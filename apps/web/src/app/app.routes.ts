@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { guestGuard } from './features/auth/guards/guest-guard';
-import { authGuard } from './features/auth/guards/auth-guard';
 
 export const routes: Routes = [
   {
@@ -99,7 +98,6 @@ export const routes: Routes = [
   {
     path: 'app',
     title: 'Dashboard | Lobby',
-    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/lobby/lobby-page/lobby-page').then((component) => component.LobbyPage),
   },

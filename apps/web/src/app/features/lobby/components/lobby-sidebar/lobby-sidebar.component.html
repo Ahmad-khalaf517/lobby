@@ -1,0 +1,60 @@
+<div class="flex h-full w-60 flex-col border-r border-white/7 bg-server-sidebar">
+  <div class="flex-1 overflow-y-auto px-2 py-1">
+    <p class="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-app-muted">
+      Spaces
+    </p>
+    <p class="px-2 pb-2 text-[11px] text-app-muted">Your communities</p>
+    <nav class="space-y-0.5">
+      @for (space of spaces; track space.id) {
+        <button
+          type="button"
+          (click)="onSelectSpace(space.id)"
+          class="group flex w-full items-center gap-2 rounded-md px-2 py-1 text-sm transition text-left"
+          [class.bg-white/8]="space.active"
+          [class.text-white]="space.active"
+          [class.text-app-muted]="!space.active"
+          [class.hover:bg-white/6]="!space.active"
+          [class.hover:text-white]="!space.active"
+        >
+          <span
+            class="flex size-7 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold"
+            [class.bg-primary/15]="space.active"
+            [class.text-primary]="space.active"
+            [class.bg-white/8]="!space.active"
+            [class.text-app-muted]="!space.active"
+            [class.group-hover:bg-white/12]="!space.active"
+            [class.group-hover:text-white]="!space.active"
+          >
+            {{ space.initials }}
+          </span>
+          <span class="flex-1 truncate">{{ space.name }}</span>
+          @if (space.unread > 0) {
+            <span
+              class="flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-white"
+            >
+              {{ space.unread }}
+            </span>
+          }
+        </button>
+      }
+    </nav>
+
+    <button
+      type="button"
+      class="mt-1.5 flex w-full items-center gap-2 rounded-md border border-dashed border-white/12 px-2 py-1.5 text-[11px] font-medium text-app-muted transition hover:border-white/22 hover:text-white"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        class="size-3"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+      New space
+    </button>
+  </div>
+</div>

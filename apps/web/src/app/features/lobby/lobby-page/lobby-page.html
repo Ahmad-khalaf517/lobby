@@ -1,1 +1,238 @@
-<p>lobby-page works!</p>
+<header
+  class="flex h-12 shrink-0 items-center justify-between border-b border-white/7 bg-channel-sidebar px-4"
+>
+  <div class="flex items-center gap-4">
+    <div class="flex items-center gap-2">
+      <span
+        class="flex size-7 items-center justify-center rounded-md bg-white/10 text-sm font-semibold text-white"
+        >L</span
+      >
+      <div class="flex flex-col leading-tight">
+        <span class="text-sm font-semibold text-white">Lobby</span>
+        <span class="text-[11px] text-app-muted">Digital Hub</span>
+        <span class="text-[10px] text-app-muted">Community workspace</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <div class="relative hidden md:block">
+      <svg
+        viewBox="0 0 24 24"
+        class="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-app-muted"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.3-4.3" />
+      </svg>
+      <input
+        type="text"
+        placeholder="Search Lobby"
+        class="h-8 w-56 rounded-md border border-white/10 bg-app-background pl-8 pr-3 text-xs text-white outline-none transition placeholder:text-app-muted hover:border-white/16 focus:border-primary/70 focus:ring-1 focus:ring-primary/14"
+      />
+    </div>
+
+    <button
+      type="button"
+      class="relative inline-flex size-8 items-center justify-center rounded-md text-app-muted transition hover:bg-white/8 hover:text-white"
+      aria-label="Notifications"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        class="size-4"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+      </svg>
+      <span class="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-red-500"></span>
+    </button>
+
+    <button
+      type="button"
+      class="relative inline-flex size-8 items-center justify-center rounded-md bg-white/10 text-xs font-semibold text-white transition hover:bg-white/15"
+      aria-label="User menu"
+    >
+      MH
+      <span
+        class="absolute -bottom-0.5 -right-0.5 size-2 rounded-full bg-emerald-500 ring-2 ring-channel-sidebar"
+      ></span>
+    </button>
+
+    <span class="text-sm text-white">Mohammad</span>
+  </div>
+</header>
+
+<div class="flex h-[calc(100vh-48px)] w-full overflow-hidden bg-app-background">
+  <app-lobby-sidebar (selectSpace)="selectSpace($event)" />
+
+  <div class="flex flex-1 flex-col overflow-hidden">
+    <div class="border-b border-white/7 px-4 py-3">
+      <div class="flex items-center gap-2">
+        <span class="text-xl font-semibold tracking-tight text-white"
+          ># {{ selectedChannel?.name }}</span
+        >
+      </div>
+      <p class="mt-0.5 text-xs text-app-muted">
+        {{ selectedSpace?.name ?? 'Space' }} workspace channel
+      </p>
+    </div>
+
+    <div class="border-b border-white/7 px-4">
+      <nav class="flex gap-1">
+        <button
+          type="button"
+          class="flex items-center gap-2 border-b-2 px-3 py-2 text-xs transition text-app-muted border-transparent hover:text-white"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            class="size-3.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+          </svg>
+          <span class="font-medium">Overview</span>
+        </button>
+        @for (channel of channels; track channel.id) {
+          <button
+            type="button"
+            (click)="selectChannel(channel.id)"
+            class="flex items-center gap-2 border-b-2 px-3 py-2 text-xs transition"
+            [class.border-primary]="channel.active"
+            [class.text-white]="channel.active"
+            [class.border-transparent]="!channel.active"
+            [class.text-app-muted]="!channel.active"
+            [class.hover:text-white]="!channel.active"
+          >
+            <span class="text-sm leading-none">#</span>
+            <span class="font-medium">{{ channel.name }}</span>
+          </button>
+        }
+        <button
+          type="button"
+          class="flex items-center gap-2 border-b-2 px-3 py-2 text-xs transition text-app-muted border-transparent hover:text-white"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            class="size-3.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"
+            />
+          </svg>
+        </button>
+      </nav>
+    </div>
+
+    <main class="flex flex-1 flex-col overflow-hidden">
+      <div class="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div class="flex justify-center">
+          <span class="text-xs text-app-muted">Today</span>
+        </div>
+
+        <div class="flex h-full flex-col items-center justify-center gap-3 text-app-muted mt-8">
+          <svg
+            viewBox="0 0 24 24"
+            class="size-12 text-white/10"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+          <p class="text-sm">This is the beginning of the conversation.</p>
+          <p class="text-xs text-app-muted">Messages will appear here once implemented.</p>
+        </div>
+      </div>
+    </main>
+
+    <div class="border-t border-white/7 px-4 py-3">
+      <div
+        class="flex items-center gap-3 rounded-lg border border-white/10 bg-app-background px-3 py-2"
+      >
+        <button
+          type="button"
+          class="inline-flex size-6 items-center justify-center rounded text-app-muted transition hover:bg-white/8 hover:text-white"
+          aria-label="Add attachment"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            class="size-4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </button>
+        <input
+          type="text"
+          placeholder="Message #general"
+          class="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-app-muted"
+        />
+        <button
+          type="button"
+          class="inline-flex size-6 items-center justify-center rounded text-app-muted transition hover:bg-white/8 hover:text-white"
+          aria-label="Emoji"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            class="size-4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+            <line x1="9" y1="9" x2="9.01" y2="9" />
+            <line x1="15" y1="9" x2="15.01" y2="9" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="inline-flex size-6 items-center justify-center rounded bg-primary text-white transition hover:bg-primary/90"
+          aria-label="Send message"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            class="size-3.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M22 2 11 13" />
+            <path d="M22 2 15 22 11 13 2 9z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
