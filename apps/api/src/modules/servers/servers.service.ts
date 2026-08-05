@@ -37,7 +37,10 @@ export class ServersService {
     return server;
   }
 
-  listMembers(serverId: string): Promise<ServerMember[]> {
+  async listMembers(serverId: string, userId?: string): Promise<ServerMember[]> {
+    if (userId) {
+      await this.assertMember(serverId, userId);
+    }
     return this.serversRepository.listMembers(serverId);
   }
 

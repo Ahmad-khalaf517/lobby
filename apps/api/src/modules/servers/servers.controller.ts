@@ -26,6 +26,12 @@ export class ServersController {
     return { servers };
   }
 
+  @Get(':id/members')
+  async listMembers(@Param('id') id: string, @CurrentUser() user: User) {
+    const members = await this.servers.listMembers(id, user.id);
+    return { members };
+  }
+
   @Get(':id')
   find(@Param('id') id: string, @CurrentUser() user: User) {
     return this.servers.findServerWithChannels(id, user.id);
