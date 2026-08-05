@@ -15,3 +15,5 @@ export * from './constants/limits.js';
 
 // Mocks (dev/test only — never import these in production code paths)
 export * from './mocks/fixtures.js';
+
+export * from './schemas/screen-share.schema.js';

@@ -48,18 +48,22 @@
     <button
       type="button"
       (click)="jumpToNewestMessage()"
-      aria-label="Jump to newest message"
-      class="absolute -top-5 left-1/2 z-20 grid size-10 -translate-x-1/2 place-items-center rounded-full border border-white/14 bg-[#1a1f2b] text-[#d9deea] shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition hover:border-white/25 hover:bg-[#232938] hover:text-white"
+      class="absolute -top-14 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border border-[#7c5cfc]/40 bg-[#1c2230] px-3 py-2 text-[#d9deea] shadow-[0_14px_34px_rgba(0,0,0,0.5)] transition hover:border-[#7c5cfc]/70 hover:bg-[#242c3d] hover:text-white"
     >
-      <svg viewBox="0 0 24 24" class="size-5" fill="none" aria-hidden="true">
+      <svg viewBox="0 0 24 24" class="size-4 shrink-0" fill="none" aria-hidden="true">
         <path
           d="m7 10 5 5 5-5"
           stroke="currentColor"
-          stroke-width="1.9"
+          stroke-width="2"
           stroke-linecap="round"
           stroke-linejoin="round"
         />
       </svg>
+      @if (unreadCount() > 0) {
+        <span class="text-[11px] font-semibold">
+          {{ unreadCount() }} new message{{ unreadCount() === 1 ? '' : 's' }}
+        </span>
+      }
     </button>
   }
 

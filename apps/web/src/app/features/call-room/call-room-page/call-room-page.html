@@ -1,0 +1,257 @@
+@switch (status()) {
+  @case ('needs-name') {
+    <main
+      class="relative flex min-h-screen items-center justify-center overflow-hidden bg-app-background px-4 py-12 text-app-foreground"
+    >
+      <div
+        class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(124,92,252,0.16),transparent_38%)]"
+        aria-hidden="true"
+      ></div>
+
+      <div class="relative w-full max-w-sm">
+        <div class="mb-7 flex flex-col items-center gap-4 text-center">
+          <a
+            routerLink="/"
+            class="inline-flex items-center gap-3"
+            aria-label="Return to Lobby home"
+          >
+            <app-logo [size]="28" />
+          </a>
+          <div class="space-y-1.5">
+            <h1 class="text-2xl font-semibold tracking-[-0.03em] text-white">Join the call</h1>
+            <p class="text-sm leading-6 text-[#a0a9b7]">What should we call you in this room?</p>
+          </div>
+        </div>
+
+        <form
+          (submit)="$event.preventDefault(); submitName()"
+          class="rounded-2xl border border-white/10 bg-[#141821] p-5 shadow-[0_25px_70px_rgba(0,0,0,.34)]"
+        >
+          <label for="callName" class="block text-xs font-medium text-[#737e8e]">
+            Display name
+          </label>
+          <input
+            id="callName"
+            type="text"
+            [formControl]="nameControl"
+            [maxlength]="maxNameLength"
+            placeholder="e.g. Mohammad"
+            autocomplete="off"
+            class="mt-2 h-11 w-full rounded-xl border border-white/10 bg-[#1a1f2b] px-3.5 text-sm text-app-foreground placeholder:text-[#687282] outline-none focus:border-[#8f74ff]/60 focus:ring-2 focus:ring-[#8f74ff]/20"
+          />
+
+          <button
+            type="submit"
+            class="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-white shadow-[0_16px_38px_rgba(124,92,252,0.24)] transition hover:-translate-y-0.5 hover:bg-[#8b6dff]"
+          >
+            Start call
+          </button>
+        </form>
+      </div>
+    </main>
+  }
+
+  @case ('loading') {
+    <main
+      class="relative flex min-h-screen flex-col items-center justify-center gap-5 overflow-hidden bg-app-background px-4"
+    >
+      <div
+        class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(124,92,252,0.14),transparent_38%)]"
+        aria-hidden="true"
+      ></div>
+      <div class="relative size-12">
+        <span class="absolute inset-0 rounded-full border-2 border-[#7c5cfc]/15"></span>
+        <span
+          class="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#7c5cfc]"
+        ></span>
+      </div>
+      <div class="relative flex flex-col items-center gap-1">
+        <p class="text-sm font-semibold text-white">Starting your call…</p>
+        <p class="text-xs text-[#8b95a6]">Connecting to a secure session</p>
+      </div>
+    </main>
+  }
+
+  @case ('error') {
+    <main
+      class="flex min-h-screen flex-col items-center justify-center gap-4 bg-app-background px-4 text-center text-app-foreground"
+    >
+      <p class="text-sm font-semibold tracking-[0.22em] text-destructive uppercase">Call failed</p>
+      <h1 class="max-w-md text-lg font-medium text-white">
+        {{ errorMessage() || 'Something went wrong starting the call.' }}
+      </h1>
+      <div class="mt-2 flex flex-wrap items-center justify-center gap-3">
+        <button
+          type="button"
+          (click)="start(displayName())"
+          class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#8b6dff]"
+        >
+          Try again
+        </button>
+        <button
+          type="button"
+          (click)="leaveCall()"
+          class="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] px-5 py-3 text-sm font-semibold text-[#e7eaf0] transition hover:border-white/20 hover:bg-white/6"
+        >
+          Back to channel
+        </button>
+      </div>
+    </main>
+  }
+
+  @case ('ready') {
+    <main
+      class="relative flex h-screen flex-col overflow-hidden bg-app-background text-app-foreground"
+    >
+      <div
+        class="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_-20%,rgba(124,92,252,0.12),transparent_55%)]"
+        aria-hidden="true"
+      ></div>
+
+      <app-call-top-bar
+        [roomName]="roomName()"
+        [subtitle]="'Temporary call'"
+        [connectionState]="connectionState()"
+        [participantCount]="participants().length"
+        [currentUserName]="displayName()"
+      />
+
+      @if (actionError(); as error) {
+        <div
+          class="relative z-10 flex shrink-0 items-center gap-2.5 border-b border-amber-400/20 bg-amber-400/10 px-4 py-2 text-xs font-medium text-amber-200 backdrop-blur-sm sm:px-6"
+        >
+          <app-call-icon type="reconnecting" size="sm" label="Notice" />
+          <span class="min-w-0 flex-1">{{ error }}</span>
+          <button
+            type="button"
+            (click)="dismissActionError()"
+            aria-label="Dismiss notice"
+            class="shrink-0 rounded-md p-1 text-amber-300/70 transition hover:bg-white/6 hover:text-amber-100"
+          >
+            <app-call-icon type="close" size="sm" label="Dismiss notice" />
+          </button>
+        </div>
+      }
+
+      <div class="relative flex min-h-0 flex-1 flex-col lg:flex-row">
+        @if (showParticipants()) {
+          <div
+            class="fixed inset-0 z-30 bg-black/50 lg:hidden"
+            (click)="showParticipants.set(false)"
+            aria-hidden="true"
+          ></div>
+        }
+
+        <aside
+          class="fixed inset-y-0 left-0 z-40 w-72 flex-col overflow-y-auto border-r border-white/8 bg-[#12161f] p-4 lg:static lg:z-auto lg:flex lg:w-64 lg:shrink-0 lg:p-5"
+          [class.hidden]="!showParticipants()"
+        >
+          <div class="mb-4 flex items-center justify-between lg:hidden">
+            <p class="text-[11px] font-semibold tracking-[0.08em] text-[#a0a9b7] uppercase">
+              Call info
+            </p>
+            <button
+              type="button"
+              (click)="showParticipants.set(false)"
+              aria-label="Close participants"
+              class="grid size-8 place-items-center rounded-lg border border-white/8 bg-white/[0.03] text-[#c8cfdb] transition hover:border-white/20 hover:bg-white/10 hover:text-white"
+            >
+              <app-call-icon type="close" size="sm" label="Close participants" />
+            </button>
+          </div>
+
+          <app-call-room-code-card
+            [label]="'Guest link'"
+            [value]="guestInviteLink()"
+            [copyLabel]="'Copy link'"
+            [copiedLabel]="'Copied'"
+          />
+
+          <div class="mt-4 flex min-h-0 flex-1 flex-col">
+            <app-call-participants-sidebar [participants]="participants()" />
+          </div>
+        </aside>
+
+        <section class="flex min-h-0 flex-1 flex-col">
+          @if (activeScreenShare().track !== null) {
+            <app-call-stage
+              [isLocalSharing]="activeScreenShare().isLocal"
+              [sharerName]="activeScreenShare().sharerName"
+              [screenShareTrack]="activeScreenShare().track"
+            />
+          }
+
+          <div
+            class="lobby-scrollbar grid auto-rows-min gap-3 overflow-y-auto p-4 sm:px-6"
+            [class]="
+              activeScreenShare().track !== null
+                ? 'max-h-44 flex-none grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                : 'min-h-0 flex-1 grid-cols-1 content-start sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+            "
+          >
+            @for (participant of participants(); track participant.id) {
+              <app-call-video-tile [participant]="participant" [isLocal]="participant.isLocal" />
+            }
+          </div>
+        </section>
+
+        <aside
+          class="flex h-[45vh] shrink-0 flex-col border-t border-white/8 bg-[#12161f] lg:h-auto lg:min-h-0 lg:w-80 lg:border-l lg:border-t-0"
+        >
+          <app-room-chat
+            [title]="channelName()"
+            [subtitle]="'Temporary conversation'"
+            [infoBannerText]="'Chat history is available only while this guest room remains active.'"
+            [messages]="chat.chatMessages()"
+            [currentUserId]="chat.currentUser().id"
+            [memberNames]="chat.memberNames()"
+            [placeholder]="'Message #' + channelName()"
+            [disabled]="!chat.connected()"
+            [showCloseButton]="false"
+            (sendMessage)="chat.send($event)"
+            (reactToMessage)="onReact($event)"
+            (deleteMessage)="chat.deleteMessage($event)"
+          >
+            <ng-container chat-header-leading>
+              <button
+                type="button"
+                (click)="showParticipants.set(!showParticipants())"
+                aria-label="Toggle participants list"
+                class="grid size-8 place-items-center rounded-lg border border-white/8 bg-white/[0.03] text-[#c8cfdb] transition hover:border-white/20 hover:bg-white/10 hover:text-white lg:hidden"
+              >
+                <app-call-icon type="users" size="sm" label="Toggle participants list" />
+              </button>
+            </ng-container>
+
+            <ng-container chat-header-extra>
+              <div
+                class="flex shrink-0 items-center gap-1.5 rounded-full border border-white/8 bg-white/[0.03] px-2.5 py-1 text-[10px]"
+              >
+                <span
+                  [class]="
+                    'size-1.5 rounded-full ' + (chat.connected() ? 'bg-online' : 'bg-[#687282]')
+                  "
+                ></span>
+                {{ chat.connected() ? 'Live' : 'Connecting…' }}
+              </div>
+            </ng-container>
+          </app-room-chat>
+        </aside>
+      </div>
+
+      <app-call-control-bar
+        [currentUserName]="displayName()"
+        [enabled]="connectionState() === 'connected'"
+        [micEnabled]="micEnabled()"
+        [micPending]="micPending()"
+        [cameraEnabled]="cameraEnabled()"
+        [screenShareActive]="screenShareActive()"
+        [screenSharePending]="screenSharePending()"
+        (toggleMic)="toggleMic()"
+        (toggleCamera)="toggleCamera()"
+        (toggleScreenShare)="toggleScreenShare()"
+        (leave)="leaveCall()"
+      />
+    </main>
+  }
+}

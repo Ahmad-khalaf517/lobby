@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -15,9 +15,13 @@ import {
   JoinChannelPayloadSchema,
   LeaveChannelPayloadSchema,
   MessageReactionPayloadSchema,
+  ScreenShareRequestSchema,
+  ScreenShareStopRequestSchema,
   SOCKET_EVENTS,
   TypingPayloadSchema,
   type Member,
+  type ScreenShareAck,
+  type ScreenShareState,
 } from '@lobby/shared';
 import { ChannelsService } from '../channels/channels.service';
 
@@ -50,6 +54,14 @@ export class ChannelGateway implements OnGatewayDisconnect {
 
   /** socketId -> channelId, so disconnect/leave cleanup doesn't scan every channel. */
   private readonly socketChannel = new Map<string, string>();
+
+  /**
+   * channelId -> current screen sharer, or absent if nobody's sharing.
+   * LiveKit doesn't enforce "only one sharer" itself — this map is the
+   * actual gate. Identity comes from channelMembers (server-side truth),
+   * same as chat/reactions — never a client-supplied name.
+   */
+  private readonly screenShareState = new Map<string, { socketId: string; name: string }>();
 
   constructor(private readonly channels: ChannelsService) {}
 
@@ -163,7 +175,14 @@ export class ChannelGateway implements OnGatewayDisconnect {
       throw new WsException('Join the channel before deleting messages');
     }
 
-    await this.channels.deleteMessage(channelId, messageId);
+    try {
+      await this.channels.deleteMessage(channelId, messageId, member.memberId);
+    } catch (error) {
+      if (error instanceof ForbiddenException) {
+        throw new WsException('You can only delete your own messages');
+      }
+      throw error;
+    }
     this.server.to(channelId).emit(SOCKET_EVENTS.MESSAGE_DELETED, { messageId });
   }
 
@@ -171,6 +190,60 @@ export class ChannelGateway implements OnGatewayDisconnect {
   handleTyping(@MessageBody() payload: unknown, @ConnectedSocket() client: Socket): void {
     const { channelId, name, isTyping } = TypingPayloadSchema.parse(payload);
     client.to(channelId).emit(SOCKET_EVENTS.TYPING, { name, isTyping });
+  }
+
+  /**
+   * Gatekeeper for screen-share exclusivity. The frontend MUST call this
+   * (and get { success: true } back) before it calls
+   * localParticipant.setScreenShareEnabled(true) on the LiveKit room — the
+   * call-token grant technically allows the publish, but this is what
+   * actually enforces "only one sharer at a time".
+   */
+  @SubscribeMessage(SOCKET_EVENTS.SCREEN_SHARE_REQUEST)
+  handleScreenShareRequest(
+    @MessageBody() payload: unknown,
+    @ConnectedSocket() client: Socket,
+  ): ScreenShareAck {
+    const { channelId } = ScreenShareRequestSchema.parse(payload);
+
+    const member = this.channelMembers.get(channelId)?.get(client.id);
+    if (!member) {
+      throw new WsException('Join the channel before sharing your screen');
+    }
+
+    const current = this.screenShareState.get(channelId);
+    if (current) {
+      return {
+        success: false,
+        reason:
+          current.socketId === client.id
+            ? 'You are already sharing'
+            : `${current.name} is already sharing — they must stop first`,
+      };
+    }
+
+    this.screenShareState.set(channelId, { socketId: client.id, name: member.name });
+    this.broadcastScreenShareState(channelId);
+    return { success: true };
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.SCREEN_SHARE_STOP)
+  handleScreenShareStop(
+    @MessageBody() payload: unknown,
+    @ConnectedSocket() client: Socket,
+  ): ScreenShareAck {
+    const { channelId } = ScreenShareStopRequestSchema.parse(payload);
+
+    const current = this.screenShareState.get(channelId);
+    if (!current || current.socketId !== client.id) {
+      // Not an error — double-stop, or stop after state was already cleared
+      // (e.g. by a disconnect that raced with this request).
+      return { success: true };
+    }
+
+    this.screenShareState.delete(channelId);
+    this.broadcastScreenShareState(channelId);
+    return { success: true };
   }
 
   @SubscribeMessage(SOCKET_EVENTS.LEAVE_CHANNEL)
@@ -208,12 +281,36 @@ export class ChannelGateway implements OnGatewayDisconnect {
       .closeChannelMember(member.memberId)
       .catch((err: unknown) => console.error('Failed to close channel_members row', err));
 
+    // A leaving/disconnecting socket that happened to be the current sharer
+    // must release the lock — otherwise screen-share stays stuck "in use"
+    // forever with nobody able to claim it.
+    this.clearScreenShareIfSharer(client.id, channelId);
+
     client.to(channelId).emit(SOCKET_EVENTS.USER_LEFT, { name: member.name, socketId: client.id });
     if (members.size > 0) {
       client.to(channelId).emit(SOCKET_EVENTS.MEMBER_LIST, {
         members: this.toMemberList(members),
       });
     }
+  }
+
+  private clearScreenShareIfSharer(socketId: string, channelId: string): void {
+    const current = this.screenShareState.get(channelId);
+    if (current?.socketId === socketId) {
+      this.screenShareState.delete(channelId);
+      this.broadcastScreenShareState(channelId);
+    }
+  }
+
+  private broadcastScreenShareState(channelId: string): void {
+    const current = this.screenShareState.get(channelId);
+    const payload: ScreenShareState = {
+      channelId,
+      sharing: !!current,
+      sharerName: current?.name ?? null,
+      sharerSocketId: current?.socketId ?? null,
+    };
+    this.server.to(channelId).emit(SOCKET_EVENTS.SCREEN_SHARE_STATE, payload);
   }
 
   private toMemberList(members: Map<string, { name: string; memberId: string }>): Member[] {
