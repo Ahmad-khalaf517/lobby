@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { DatabaseModule } from '../database/database.module';
-import { SupabaseAuthGuard } from './supabase-auth.guard';
+import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 
 @Module({
   imports: [DatabaseModule],
