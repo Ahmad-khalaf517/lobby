@@ -14,7 +14,6 @@ export class ServersService {
     return this.serversRepository.listServersForUser(userId);
   }
 
-  /** GET /servers/:id — server details plus the channels that belong to it. */
   async findServerWithChannels(id: string, userId: string): Promise<ServerWithChannels> {
     await this.assertMember(id, userId);
     const [server, channels] = await Promise.all([
