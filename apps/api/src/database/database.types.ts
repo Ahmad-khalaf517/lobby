@@ -62,20 +62,31 @@ export type Database = {
           expires_at: string | null;
           id: string;
           name: string;
+          server_id?: string | null;
         };
         Insert: {
           created_at?: string;
           expires_at?: string | null;
           id: string;
           name: string;
+          server_id?: string | null;
         };
         Update: {
           created_at?: string;
           expires_at?: string | null;
           id?: string;
           name?: string;
+          server_id?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'channels_server_id_fkey';
+            columns: ['server_id'];
+            isOneToOne: false;
+            referencedRelation: 'servers';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       messages: {
         Row: {
