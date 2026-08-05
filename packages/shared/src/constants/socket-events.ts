@@ -12,12 +12,15 @@ export const SOCKET_EVENTS = {
   MESSAGE_REACTION: 'messageReaction',
   DELETE_MESSAGE: 'deleteMessage',
   TYPING: 'typing',
+  SCREEN_SHARE_REQUEST: 'screenShareRequest',
+  SCREEN_SHARE_STOP: 'screenShareStop',
 
   // server → client
   USER_JOINED: 'userJoined',
   USER_LEFT: 'userLeft',
   MEMBER_LIST: 'memberList',
   MESSAGE_DELETED: 'messageDeleted',
+  SCREEN_SHARE_STATE: 'screenShareState',
 } as const;
 
 export type SocketEvent = (typeof SOCKET_EVENTS)[keyof typeof SOCKET_EVENTS];
