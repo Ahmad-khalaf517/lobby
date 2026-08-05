@@ -6,6 +6,7 @@ import {
   type CallTokenRequest,
   type CallTokenResponse,
 } from '@lobby/shared';
+import { ChannelsService } from '../channels/channels.service.js';
 
 @Injectable()
 export class CallsService {
@@ -15,7 +16,10 @@ export class CallsService {
   private readonly livekitUrl: string; // wss:// URL the browser connects to
   private readonly roomService: RoomServiceClient;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly channelsService: ChannelsService,
+  ) {
     this.apiKey = this.config.getOrThrow<string>('LIVEKIT_API_KEY');
     this.apiSecret = this.config.getOrThrow<string>('LIVEKIT_API_SECRET');
     this.livekitUrl = this.config.getOrThrow<string>('LIVEKIT_URL');
@@ -26,9 +30,20 @@ export class CallsService {
   }
 
   async createCallToken(channelId: string, { name }: CallTokenRequest): Promise<CallTokenResponse> {
+    // Channel ID *is* the access control model for this no-auth app (per
+    // PROJECT_PLAN.md §7 risk #7) — a call token must not be mintable for a
+    // channel that doesn't exist or has expired. Reuses the same 404 behavior
+    // channels.controller.ts already has for this exact check; throws
+    // NotFoundException, which Nest turns into a 404 automatically.
+    await this.channelsService.findChannel(channelId);
+
     const roomName = this.roomNameForChannel(channelId);
 
-    // Soft cap: advisory only, logged for visibility — the token is still issued.
+    // Soft cap — DELIBERATELY advisory, not a hard reject. Decision pending
+    // confirmation; if product wants a hard cap instead, replace this log
+    // with throwing e.g. new ForbiddenException(...) before minting. Until
+    // that's decided, don't "fix" this into a reject without checking first —
+    // it's an intentional placeholder, not an oversight.
     const participantCount = await this.getParticipantCount(roomName);
     if (participantCount >= MAX_CALL_PARTICIPANTS) {
       this.logger.warn(
@@ -47,8 +62,15 @@ export class CallsService {
       roomJoin: true,
       canPublish: true,
       canSubscribe: true,
-      // audio-only per requirements — TrackSource enum, not a raw string
-      canPublishSources: [TrackSource.MICROPHONE],
+      // Mic + screen-share only — camera video stays banned per CLAUDE.md.
+      // Screen-share *availability* is granted to everyone here; the "only
+      // one sharer at a time" rule is enforced at the app layer by the
+      // gateway (screen-share request/ack/broadcast), not by this grant.
+      canPublishSources: [
+        TrackSource.MICROPHONE,
+        TrackSource.SCREEN_SHARE,
+        TrackSource.SCREEN_SHARE_AUDIO,
+      ],
     });
 
     return {
