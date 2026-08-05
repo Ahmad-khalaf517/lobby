@@ -1,5 +1,4 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
-
 /**
  * A channel membership — one row per join (guest or authenticated). Rows are
  * never deleted, only closed via `left_at`, so `messages.sender_id` always
@@ -33,7 +32,6 @@ export type MessageReactionInsert = {
   channel_member_id: string;
   emoji: string;
 };
-
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -143,6 +141,58 @@ export type Database = {
             columns: ['server_id'];
             isOneToOne: false;
             referencedRelation: 'servers';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      friendships: {
+        Row: {
+          addressee_id: string;
+          blocked_by: string | null;
+          created_at: string;
+          id: string;
+          requester_id: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          addressee_id: string;
+          blocked_by?: string | null;
+          created_at?: string;
+          id?: string;
+          requester_id: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          addressee_id?: string;
+          blocked_by?: string | null;
+          created_at?: string;
+          id?: string;
+          requester_id?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'friendships_addressee_id_fkey';
+            columns: ['addressee_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'friendships_blocked_by_fkey';
+            columns: ['blocked_by'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'friendships_requester_id_fkey';
+            columns: ['requester_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
             referencedColumns: ['id'];
           },
         ];
