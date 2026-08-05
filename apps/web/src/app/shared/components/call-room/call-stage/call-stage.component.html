@@ -1,0 +1,21 @@
+<div class="flex h-full w-full min-h-0 flex-col gap-3">
+  <div class="flex items-center justify-between gap-3">
+    <p class="flex items-center gap-2 text-xs font-medium text-[#8b95a6]">
+      <span class="size-1.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(239,68,68,0.9)]"></span>
+      {{ sharerName() }} is presenting{{ isLocalSharing() ? ' (you)' : '' }}
+    </p>
+    @if (isLocalSharing()) {
+      <span
+        class="rounded-full border border-[#7c5cfc]/40 bg-[#7c5cfc]/15 px-2.5 py-1 text-[10px] font-semibold text-[#cfc4ff]"
+      >
+        You are sharing
+      </span>
+    }
+  </div>
+
+  <div
+    class="min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_24px_70px_rgba(0,0,0,0.5)]"
+  >
+    <video #shareVideo class="h-full w-full object-contain" autoplay playsinline muted></video>
+  </div>
+</div>

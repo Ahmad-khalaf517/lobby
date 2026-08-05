@@ -1,0 +1,58 @@
+<footer
+  class="flex shrink-0 flex-wrap items-center gap-3 border-t border-white/8 bg-[#12161f]/95 px-4 py-3 backdrop-blur-xl sm:px-6"
+>
+  <div class="flex min-w-0 items-center gap-2.5">
+    <app-chat-avatar [name]="currentUserName()" size="sm" [elevated]="true" />
+    <span class="hidden max-w-40 truncate text-xs font-medium text-[#e7eaf0] md:inline">
+      {{ currentUserName() }}
+    </span>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <app-call-icon
+      [type]="micEnabled() ? 'mic' : 'mic-off'"
+      variant="solid"
+      size="lg"
+      shape="circle"
+      [active]="micEnabled()"
+      [disabled]="micPending() || !enabled()"
+      [label]="micEnabled() ? 'Mute microphone' : 'Unmute microphone'"
+      (click)="toggleMic.emit()"
+    />
+
+    <app-call-icon
+      [type]="cameraEnabled() ? 'video' : 'camera-off'"
+      variant="solid"
+      size="lg"
+      shape="circle"
+      [active]="cameraEnabled()"
+      [disabled]="!enabled()"
+      [label]="cameraEnabled() ? 'Turn camera off' : 'Turn camera on'"
+      (click)="toggleCamera.emit()"
+    />
+
+    <app-call-icon
+      [type]="screenShareActive() ? 'screen-share-off' : 'screen-share'"
+      variant="solid"
+      size="lg"
+      shape="circle"
+      [active]="screenShareActive()"
+      [disabled]="screenSharePending() || !enabled()"
+      [label]="screenShareActive() ? 'Stop screen sharing' : 'Share your screen'"
+      (click)="toggleScreenShare.emit()"
+    />
+  </div>
+
+  <span class="min-w-0 flex-1"></span>
+
+  <ng-content select="[call-control-input]" />
+
+  <app-call-icon
+    type="leave"
+    variant="danger"
+    size="lg"
+    shape="circle"
+    label="Leave call"
+    (click)="leave.emit()"
+  />
+</footer>

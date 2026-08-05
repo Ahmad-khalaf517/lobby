@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { nanoid } from 'nanoid';
 import type { Channel, Message } from '@lobby/shared';
 import type { Database } from '../../database/database.types';
@@ -239,10 +239,14 @@ export class ChannelsRepository {
     return { removed: false };
   }
 
-  async deleteMessage(channelId: string, messageId: string): Promise<void> {
+  async deleteMessage(
+    channelId: string,
+    messageId: string,
+    channelMemberId: string,
+  ): Promise<void> {
     const { data: message, error: messageLookupError } = await this.supabase.client
       .from('messages')
-      .select('id')
+      .select('id, sender_id')
       .eq('id', messageId)
       .eq('channel_id', channelId)
       .maybeSingle();
@@ -250,6 +254,9 @@ export class ChannelsRepository {
     if (messageLookupError) throw messageLookupError;
     if (!message) {
       throw new NotFoundException('Message not found in this channel');
+    }
+    if (message.sender_id !== channelMemberId) {
+      throw new ForbiddenException('You can only delete your own messages');
     }
 
     // message_reactions cascade via the `on delete cascade` FK.

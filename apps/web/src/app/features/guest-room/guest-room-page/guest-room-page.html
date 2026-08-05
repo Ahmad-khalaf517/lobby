@@ -137,6 +137,55 @@
         </div>
       }
 
+      @if (joinCallBannerVisible()) {
+        <div class="pointer-events-none fixed inset-x-0 top-3 z-40 flex justify-center sm:top-4">
+          <div
+            class="pointer-events-auto flex items-center gap-2.5 rounded-full border border-[#7c5cfc]/40 bg-[#171d2a]/95 py-1.5 pr-1.5 pl-3 shadow-[0_16px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl"
+          >
+            <span class="relative flex size-2 shrink-0">
+              <span
+                class="absolute inline-flex h-full w-full animate-ping rounded-full bg-online opacity-60"
+              ></span>
+              <span class="relative inline-flex size-2 rounded-full bg-online"></span>
+            </span>
+            <span class="whitespace-nowrap text-xs font-medium text-[#edf0f4]">
+              There's a call in this room
+            </span>
+            <button
+              type="button"
+              (click)="goToCall()"
+              class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-primary px-3.5 text-[11px] font-semibold text-white transition hover:bg-[#8b6dff]"
+            >
+              <svg viewBox="0 0 24 24" class="size-3.5" fill="none" aria-hidden="true">
+                <path
+                  d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.34 1.77.65 2.6a2 2 0 0 1-.45 2.11L8 9.99a16 16 0 0 0 6 6l1.56-1.31a2 2 0 0 1 2.11-.45c.83.31 1.7.53 2.6.65A2 2 0 0 1 22 16.92z"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              Join the call
+            </button>
+            <button
+              type="button"
+              (click)="dismissJoinCall()"
+              aria-label="Dismiss join call banner"
+              class="grid size-7 shrink-0 place-items-center rounded-full text-[#687282] transition hover:bg-white/10 hover:text-white"
+            >
+              <svg viewBox="0 0 24 24" class="size-3.5" fill="none" aria-hidden="true">
+                <path
+                  d="M18 6 6 18M6 6l12 12"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      }
+
       <div class="flex min-h-0 flex-1 flex-col md:flex-row">
         @if (!sidebarCollapsed()) {
           <aside
@@ -150,66 +199,19 @@
               <app-logo [size]="22" />
             </a>
 
-            <div
-              class="rounded-2xl border border-[#7c5cfc]/30 bg-[linear-gradient(180deg,rgba(124,92,252,0.12),rgba(124,92,252,0.03))] p-3.5"
-            >
-              <p class="text-[11px] font-semibold tracking-[0.08em] text-[#c9bbff] uppercase">
-                Guest link
-              </p>
-              <p
-                class="mt-2 truncate rounded-lg border border-white/8 bg-[#101524] px-2.5 py-2 font-mono text-[11px] text-[#dfe4ef]"
-              >
-                {{ guestInviteLink() }}
-              </p>
-              <button
-                type="button"
-                (click)="copyGuestInviteLink()"
-                class="mt-3 inline-flex h-9 w-full items-center justify-center rounded-lg border border-[#8f74ff]/45 bg-[#8f74ff]/20 text-xs font-semibold text-[#f4f1ff] transition hover:bg-[#8f74ff]/30"
-              >
-                {{ inviteCopied() ? 'Copied' : 'Copy link' }}
-              </button>
-            </div>
+            <app-call-room-code-card
+              [label]="'Guest link'"
+              [value]="guestInviteLink()"
+              [copyLabel]="'Copy link'"
+              [copiedLabel]="'Copied'"
+            />
 
-            <div
-              class="mt-4 rounded-2xl border border-white/10 bg-[#171d2a] p-3 md:mt-4 md:flex md:min-h-0 md:flex-1 md:flex-col"
-            >
-              <div class="mb-2 flex items-center justify-between">
-                <p class="text-[11px] font-semibold tracking-[0.08em] text-[#a0a9b7] uppercase">
-                  Members
-                </p>
-                <span
-                  class="rounded-full border border-white/12 bg-white/[0.04] px-2 py-0.5 text-[10px] text-[#c8cfdb]"
-                >
-                  {{ members().length }}
-                </span>
-              </div>
-
-              <div
-                class="lobby-scrollbar max-h-52 space-y-1.5 overflow-y-auto pr-1 md:max-h-none md:min-h-0 md:flex-1"
-              >
-                @if (members().length === 0) {
-                  <p
-                    class="rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2 text-xs text-[#7e8899]"
-                  >
-                    Waiting for members...
-                  </p>
-                }
-
-                @for (member of members(); track member.socketId) {
-                  <div
-                    class="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.035] px-2.5 py-2 transition hover:border-white/18 hover:bg-white/[0.06]"
-                  >
-                    <app-chat-avatar [name]="member.name" size="sm" />
-
-                    <div class="min-w-0">
-                      <p class="truncate text-xs font-medium text-[#edf0f4]">{{ member.name }}</p>
-                      @if (member.name === displayName()) {
-                        <p class="text-[10px] text-[#8f74ff]">You</p>
-                      }
-                    </div>
-                  </div>
-                }
-              </div>
+            <div class="mt-4 flex min-h-0 flex-1 flex-col md:mt-4">
+              <app-call-participants-sidebar
+                [participants]="memberParticipants()"
+                [title]="'Members'"
+                [emptyText]="'Waiting for members...'"
+              />
             </div>
           </aside>
         }
@@ -282,7 +284,7 @@
 
           <ng-container chat-header-extra>
             <div class="group relative flex shrink-0">
-              <app-call-icon type="call" size="sm" label="Meet now" />
+              <app-call-icon type="call" size="sm" label="Meet now" (click)="goToCall()" />
               <span
                 class="pointer-events-none absolute top-[calc(100%+0.5rem)] right-0 z-30 whitespace-nowrap rounded-lg border border-white/10 bg-[#141821] px-2 py-1 text-[10px] font-medium text-[#dfe4ef] shadow-[0_12px_28px_rgba(0,0,0,0.35)] opacity-0 transition group-hover:opacity-100"
               >
