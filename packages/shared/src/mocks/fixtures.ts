@@ -29,6 +29,7 @@ export const mockMessages: Message[] = [
     channelId: 'LBY-7X3Q',
     authorName: 'Nada',
     text: 'The room link worked, I joined without an account.',
+    reactions: [],
     createdAt: new Date(Date.now() - 120_000).toISOString(),
   },
   {
@@ -36,6 +37,7 @@ export const mockMessages: Message[] = [
     channelId: 'LBY-7X3Q',
     authorName: 'Youssef',
     text: "Perfect, share your screen when you're ready.",
+    reactions: [],
     createdAt: new Date(Date.now() - 60_000).toISOString(),
   },
 ];

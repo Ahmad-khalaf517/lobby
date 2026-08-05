@@ -30,6 +30,10 @@ export function toMessage(row: MessageWithAuthorRow): Message {
     channelId: row.channel_id,
     authorName: row.channel_members?.guest_name ?? 'Unknown',
     text: row.content,
+    reactions: (row.message_reactions ?? []).map((reaction) => ({
+      emoji: reaction.emoji,
+      reactedBy: reaction.channel_members?.guest_name ?? 'Unknown',
+    })),
     createdAt: row.created_at,
   };
 }

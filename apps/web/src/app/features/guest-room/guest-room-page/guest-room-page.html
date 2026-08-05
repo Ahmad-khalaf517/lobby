@@ -16,7 +16,6 @@
             aria-label="Return to Lobby home"
           >
             <app-logo [size]="28" />
-            <span class="text-lg font-semibold tracking-[-0.02em] text-white">Lobby</span>
           </a>
           <div class="space-y-1.5">
             <h1 class="text-2xl font-semibold tracking-[-0.03em] text-white">One more thing</h1>
@@ -138,158 +137,170 @@
         </div>
       }
 
-      <!-- Header -->
-      <header
-        class="flex shrink-0 items-center justify-between gap-3 border-b border-white/7 bg-[#141821] px-4 py-3 sm:px-6"
-      >
-        <div class="flex min-w-0 items-center gap-3">
-          <a routerLink="/" aria-label="Return to Lobby home">
-            <app-logo [size]="24" />
-          </a>
-          <div class="min-w-0">
-            <p class="truncate text-sm font-semibold text-white">
-              {{ channel()?.name }}
-            </p>
-            <p class="font-mono text-[10px] text-[#687282]">{{ channelId }}</p>
-          </div>
-        </div>
-
-        <div
-          class="flex shrink-0 items-center gap-1.5 rounded-full border border-white/8 bg-white/[0.03] px-2.5 py-1 text-[10px] text-[#a0a9b7]"
-        >
-          <span
-            [class]="'size-1.5 rounded-full ' + (connected() ? 'bg-online' : 'bg-[#687282]')"
-          ></span>
-          {{ connected() ? 'Live' : 'Reconnecting…' }}
-        </div>
-      </header>
-
-      <!-- Messages -->
-      <div class="lobby-scrollbar flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
-        @if (messages().length === 0) {
-          <p class="py-10 text-center text-sm text-[#687282]">
-            No messages yet — say hello to get the conversation started.
-          </p>
-        }
-
-        @for (message of messages(); track message.id) {
-          <div
-            [class]="
-              'flex w-full items-end gap-2.5 ' + (!isOwnMessage(message) ? 'flex-row-reverse' : '')
-            "
+      <div class="flex min-h-0 flex-1 flex-col md:flex-row">
+        @if (!sidebarCollapsed()) {
+          <aside
+            class="w-full shrink-0 border-b border-white/8 bg-[#111622] p-4 md:flex md:min-h-0 md:w-72 md:flex-col md:border-r md:border-b-0 md:p-5"
           >
-            <div
-              class="grid size-8 shrink-0 place-items-center rounded-full border text-[10px] font-semibold tracking-[0.08em] shadow-[0_10px_28px_rgba(0,0,0,0.22)]"
-              [style.background]="avatarBackground(message.authorName)"
-              [style.borderColor]="avatarBorder(message.authorName)"
-              [style.color]="avatarText(message.authorName)"
-              [style.boxShadow]="'0 10px 28px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.10)'"
-              aria-hidden="true"
+            <a
+              routerLink="/"
+              aria-label="Return to Lobby home"
+              class="mb-4 inline-flex items-center gap-2.5"
             >
-              {{ initials(message.authorName) }}
+              <app-logo [size]="22" />
+            </a>
+
+            <div
+              class="rounded-2xl border border-[#7c5cfc]/30 bg-[linear-gradient(180deg,rgba(124,92,252,0.12),rgba(124,92,252,0.03))] p-3.5"
+            >
+              <p class="text-[11px] font-semibold tracking-[0.08em] text-[#c9bbff] uppercase">
+                Guest link
+              </p>
+              <p
+                class="mt-2 truncate rounded-lg border border-white/8 bg-[#101524] px-2.5 py-2 font-mono text-[11px] text-[#dfe4ef]"
+              >
+                {{ guestInviteLink() }}
+              </p>
+              <button
+                type="button"
+                (click)="copyGuestInviteLink()"
+                class="mt-3 inline-flex h-9 w-full items-center justify-center rounded-lg border border-[#8f74ff]/45 bg-[#8f74ff]/20 text-xs font-semibold text-[#f4f1ff] transition hover:bg-[#8f74ff]/30"
+              >
+                {{ inviteCopied() ? 'Copied' : 'Copy link' }}
+              </button>
             </div>
 
-            <div class="min-w-0 max-w-[75%] sm:max-w-[65%]">
-              <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                <p class="text-xs font-semibold text-[#edf0f4]">
-                  {{ message.authorName }}
+            <div
+              class="mt-4 rounded-2xl border border-white/10 bg-[#171d2a] p-3 md:mt-4 md:flex md:min-h-0 md:flex-1 md:flex-col"
+            >
+              <div class="mb-2 flex items-center justify-between">
+                <p class="text-[11px] font-semibold tracking-[0.08em] text-[#a0a9b7] uppercase">
+                  Members
                 </p>
-                @if (isOwnMessage(message)) {
-                  <span class="text-[10px] font-medium text-[#8f74ff]">You</span>
+                <span
+                  class="rounded-full border border-white/12 bg-white/[0.04] px-2 py-0.5 text-[10px] text-[#c8cfdb]"
+                >
+                  {{ members().length }}
+                </span>
+              </div>
+
+              <div
+                class="lobby-scrollbar max-h-52 space-y-1.5 overflow-y-auto pr-1 md:max-h-none md:min-h-0 md:flex-1"
+              >
+                @if (members().length === 0) {
+                  <p
+                    class="rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2 text-xs text-[#7e8899]"
+                  >
+                    Waiting for members...
+                  </p>
+                }
+
+                @for (member of members(); track member.socketId) {
+                  <div
+                    class="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.035] px-2.5 py-2 transition hover:border-white/18 hover:bg-white/[0.06]"
+                  >
+                    <app-chat-avatar [name]="member.name" size="sm" />
+
+                    <div class="min-w-0">
+                      <p class="truncate text-xs font-medium text-[#edf0f4]">{{ member.name }}</p>
+                      @if (member.name === displayName()) {
+                        <p class="text-[10px] text-[#8f74ff]">You</p>
+                      }
+                    </div>
+                  </div>
                 }
               </div>
-              <p
-                [class]="
-                  'mt-1 inline-flex gap-2 items-end rounded-2xl px-3.5 py-2 text-sm leading-5 wrap-break-word ' +
-                  (isOwnMessage(message)
-                    ? 'rounded-tr-sm bg-primary text-white'
-                    : 'rounded-tl-sm bg-[#1f2531] text-[#c4cad4]')
-                "
-              >
-                {{ message.text }}
-                <span
-                  [class]="
-                    'text-[10px] ' + (isOwnMessage(message) ? 'text-white' : 'text-[#687282]')
-                  "
-                  >{{ messageTime(message) }}</span
-                >
-              </p>
             </div>
-          </div>
+          </aside>
         }
 
-        <div #scrollAnchor></div>
-      </div>
-
-      <!-- Composer -->
-      <form
-        (submit)="$event.preventDefault(); sendMessage()"
-        class="flex shrink-0 items-end gap-2 border-t border-white/7 bg-[#141821] p-3 sm:p-4"
-      >
-        <input
-          #composerInput
-          type="text"
-          [formControl]="messageControl"
-          [maxlength]="maxMessageLength"
+        <app-room-chat
+          [title]="channel()?.name ?? 'Room chat'"
+          [subtitle]="'Temporary conversation'"
+          [infoBannerText]="'Chat history is available only while this guest room remains active.'"
+          [messages]="chatMessages()"
+          [currentUserId]="currentUser().id"
+          [memberNames]="memberNames()"
           [placeholder]="'Message #' + (channel()?.name ?? '')"
-          autocomplete="off"
-          class="h-11 flex-1 rounded-xl border border-white/10 bg-[#1a1f2b] px-3.5 text-sm text-app-foreground placeholder:text-[#687282] outline-none focus:border-[#8f74ff]/60 focus:ring-2 focus:ring-[#8f74ff]/20"
-        />
-
-        <div #emojiPickerHost class="relative">
+          [disabled]="!connected()"
+          [showCloseButton]="false"
+          (sendMessage)="onSendMessage($event)"
+          (reactToMessage)="onReact($event)"
+          (deleteMessage)="onDelete($event)"
+          (close)="onCloseChat()"
+        >
           <button
+            chat-header-leading
             type="button"
-            (click)="toggleEmojiPicker()"
-            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/12 bg-white/[0.045] text-[#c8cfdb] transition hover:border-white/22 hover:bg-white/10 hover:text-white"
-            aria-label="Open emoji picker"
-            [attr.aria-expanded]="emojiPickerOpen()"
-            aria-haspopup="true"
+            (click)="toggleSidebar()"
+            [attr.aria-expanded]="!sidebarCollapsed()"
+            [attr.aria-label]="sidebarCollapsed() ? 'Show sidebar' : 'Hide sidebar'"
+            class="grid size-8 place-items-center rounded-lg border border-white/8 bg-white/[0.03] text-[#c8cfdb] transition hover:border-white/20 hover:bg-white/10 hover:text-white"
           >
-            <svg viewBox="0 0 24 24" class="size-5" fill="none" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
-              <path
-                d="M9.2 10.5a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4ZM14.8 10.5a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4Z"
-                fill="currentColor"
-              />
-              <path
-                d="M8.2 14.2c.9 1.3 2.2 2 3.8 2s2.9-.7 3.8-2"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-              />
-            </svg>
+            @if (sidebarCollapsed()) {
+              <svg viewBox="0 0 24 24" class="size-4" fill="none" aria-hidden="true">
+                <rect
+                  x="3"
+                  y="4"
+                  width="18"
+                  height="16"
+                  rx="2"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                />
+                <path d="M9.5 4v16" stroke="currentColor" stroke-width="1.8" />
+                <path
+                  d="m10 6 6 6-6 6"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            } @else {
+              <svg viewBox="0 0 24 24" class="size-4" fill="none" aria-hidden="true">
+                <rect
+                  x="3"
+                  y="4"
+                  width="18"
+                  height="16"
+                  rx="2"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                />
+                <path d="M9.5 4v16" stroke="currentColor" stroke-width="1.8" />
+                <path
+                  d="m14 6-6 6 6 6"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            }
           </button>
 
-          @if (emojiPickerOpen()) {
-            <div
-              class="absolute right-0 bottom-[calc(100%+0.6rem)] z-20 w-56 rounded-xl border border-white/12 bg-[#1a1f2b] p-2 shadow-[0_24px_50px_rgba(0,0,0,0.45)]"
-              role="menu"
-              aria-label="Emoji picker"
-            >
-              <div class="grid grid-cols-6 gap-1">
-                @for (emoji of emojis; track emoji) {
-                  <button
-                    type="button"
-                    (click)="selectEmoji(emoji)"
-                    class="flex h-8 w-8 items-center justify-center rounded-lg text-lg transition hover:bg-white/10"
-                    [attr.aria-label]="'Insert emoji ' + emoji"
-                  >
-                    {{ emoji }}
-                  </button>
-                }
-              </div>
+          <ng-container chat-header-extra>
+            <div class="group relative flex shrink-0">
+              <app-call-icon type="call" size="sm" label="Meet now" />
+              <span
+                class="pointer-events-none absolute top-[calc(100%+0.5rem)] right-0 z-30 whitespace-nowrap rounded-lg border border-white/10 bg-[#141821] px-2 py-1 text-[10px] font-medium text-[#dfe4ef] shadow-[0_12px_28px_rgba(0,0,0,0.35)] opacity-0 transition group-hover:opacity-100"
+              >
+                Meet now
+              </span>
             </div>
-          }
-        </div>
 
-        <button
-          type="submit"
-          [disabled]="messageControl.invalid || !connected()"
-          class="flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-white transition hover:bg-[#8b6dff] disabled:pointer-events-none disabled:opacity-40"
-        >
-          Send
-        </button>
-      </form>
+            <div
+              class="flex shrink-0 items-center gap-1.5 rounded-full border border-white/8 bg-white/[0.03] px-2.5 py-1 text-[10px]"
+            >
+              <span
+                [class]="'size-1.5 rounded-full ' + (connected() ? 'bg-online' : 'bg-[#687282]')"
+              ></span>
+              {{ connected() ? 'Live' : 'Reconnecting…' }}
+            </div>
+          </ng-container>
+        </app-room-chat>
+      </div>
     </main>
   }
 }

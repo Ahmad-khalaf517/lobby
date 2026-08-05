@@ -34,6 +34,24 @@ export class ChannelsService {
     return this.channelsRepository.addMessage(channelId, senderId, text);
   }
 
+  upsertMessageReaction(
+    channelId: string,
+    messageId: string,
+    channelMemberId: string,
+    emoji: string,
+  ): Promise<{ removed: boolean }> {
+    return this.channelsRepository.upsertMessageReaction(
+      channelId,
+      messageId,
+      channelMemberId,
+      emoji,
+    );
+  }
+
+  deleteMessage(channelId: string, messageId: string): Promise<void> {
+    return this.channelsRepository.deleteMessage(channelId, messageId);
+  }
+
   deleteChannel(id: string): Promise<void> {
     return this.channelsRepository.deleteChannel(id);
   }

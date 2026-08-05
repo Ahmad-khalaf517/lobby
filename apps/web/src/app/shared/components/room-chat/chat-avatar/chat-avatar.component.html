@@ -1,0 +1,9 @@
+{{ initials() }}
+@if (status(); as s) {
+  <span
+    class="pointer-events-none"
+    [class]="statusDotClass()"
+    [attr.aria-label]="s === 'online' ? 'Online' : s === 'muted' ? 'Muted' : 'Offline'"
+    role="img"
+  ></span>
+}
