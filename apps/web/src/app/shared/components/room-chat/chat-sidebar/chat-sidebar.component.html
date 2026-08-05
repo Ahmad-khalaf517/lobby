@@ -1,0 +1,77 @@
+@if (infoBannerText(); as bannerText) {
+  <div class="shrink-0 border-b border-white/7 bg-[#161b28] px-4 py-2.5 sm:px-6">
+    <p class="flex items-start gap-2 text-xs leading-5 text-[#a0a9b7]">
+      <svg
+        viewBox="0 0 24 24"
+        class="mt-px size-3.5 shrink-0 text-[#8f74ff]"
+        fill="none"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
+        <path d="M12 8h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+        <path d="M12 12v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+      </svg>
+      <span>{{ bannerText }}</span>
+    </p>
+  </div>
+}
+
+<div
+  #messagesContainer
+  (scroll)="onMessagesScroll()"
+  class="lobby-scrollbar flex-1 space-y-4 overflow-y-auto p-4 sm:p-6"
+>
+  @if (messages().length === 0) {
+    <p class="py-10 text-center text-sm text-[#687282]">
+      No messages yet — say hello to get the conversation started.
+    </p>
+  }
+
+  @for (message of messages(); track message.id) {
+    <app-chat-message
+      [message]="message"
+      [currentUserId]="currentUserId()"
+      [memberNames]="memberNames()"
+      [reactionMenuOpen]="reactionMenuOpenMessageId() === message.id"
+      (reply)="reply.emit($event)"
+      (toggleReactionMenu)="toggleReactionMenu.emit($event)"
+      (react)="react.emit($event)"
+      (delete)="delete.emit($event)"
+    />
+  }
+
+  <div #scrollAnchor></div>
+</div>
+
+<div class="relative">
+  @if (showScrollToNewest()) {
+    <button
+      type="button"
+      (click)="jumpToNewestMessage()"
+      aria-label="Jump to newest message"
+      class="absolute -top-5 left-1/2 z-20 grid size-10 -translate-x-1/2 place-items-center rounded-full border border-white/14 bg-[#1a1f2b] text-[#d9deea] shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition hover:border-white/25 hover:bg-[#232938] hover:text-white"
+    >
+      <svg viewBox="0 0 24 24" class="size-5" fill="none" aria-hidden="true">
+        <path
+          d="m7 10 5 5 5-5"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </button>
+  }
+
+  @if (replyPreview(); as preview) {
+    <app-chat-reply [preview]="preview" (cancelReply)="cancelReply.emit()" />
+  }
+
+  <app-chat-bar
+    [placeholder]="placeholder()"
+    [disabled]="disabled()"
+    [memberNames]="memberNames()"
+    [emojis]="emojis()"
+    (send)="send.emit($event)"
+  />
+</div>

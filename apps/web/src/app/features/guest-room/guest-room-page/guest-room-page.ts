@@ -2,12 +2,11 @@ import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   DestroyRef,
-  HostListener,
   inject,
   signal,
   viewChild,
-  type ElementRef,
 } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -20,7 +19,6 @@ import {
   JoinChannelPayloadSchema,
   LeaveChannelPayloadSchema,
   MemberListSchema,
-  MAX_MESSAGE_LENGTH,
   MAX_NAME_LENGTH,
   MessageDeletedBroadcastSchema,
   MessageReactionBroadcastSchema,
@@ -32,6 +30,15 @@ import {
   type Message,
 } from '@lobby/shared';
 import { environment } from '../../../../environments/environment';
+import {
+  type ChatMessage,
+  type ChatReaction,
+  type ChatUser,
+  CallIconComponent,
+  ChatAvatarComponent,
+  RoomChatComponent,
+  initialsFromName,
+} from '../../../shared/components/room-chat';
 import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
 
 type RoomStatus = 'needs-name' | 'loading' | 'ready' | 'not-found' | 'error';
@@ -42,21 +49,9 @@ type MessageToast = {
   text: string;
 };
 
-type PendingReply = {
-  messageId: string;
-  authorName: string;
-  text: string;
-};
-
 type MessageReactionState = {
   counts: Record<string, number>;
   byUser: Record<string, string>;
-};
-
-type ParsedReplyMessage = {
-  authorName: string;
-  previewText: string;
-  bodyText: string;
 };
 
 const TOAST_LIFETIME_MS = 4500;
@@ -64,7 +59,14 @@ const TOAST_TEXT_PREVIEW_LENGTH = 80;
 
 @Component({
   selector: 'app-guest-room-page',
-  imports: [ReactiveFormsModule, RouterLink, LogoComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    LogoComponent,
+    RoomChatComponent,
+    CallIconComponent,
+    ChatAvatarComponent,
+  ],
   templateUrl: './guest-room-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -74,15 +76,11 @@ export class GuestRoomPage {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
-  private readonly scrollAnchor = viewChild<ElementRef<HTMLDivElement>>('scrollAnchor');
-  private readonly messagesContainer = viewChild<ElementRef<HTMLDivElement>>('messagesContainer');
-  private readonly composerInput = viewChild<ElementRef<HTMLInputElement>>('composerInput');
-  private readonly emojiPickerHost = viewChild<ElementRef<HTMLElement>>('emojiPickerHost');
+  private readonly roomChat = viewChild(RoomChatComponent);
 
   protected readonly channelId = this.route.snapshot.paramMap.get('inviteCode') ?? '';
 
   protected readonly maxNameLength = MAX_NAME_LENGTH;
-  protected readonly maxMessageLength = MAX_MESSAGE_LENGTH;
   protected readonly status = signal<RoomStatus>('needs-name');
   protected readonly errorMessage = signal('');
   protected readonly channel = signal<Channel | null>(null);
@@ -90,40 +88,33 @@ export class GuestRoomPage {
   protected readonly members = signal<Member[]>([]);
   protected readonly connected = signal(false);
   protected readonly displayName = signal('');
-  protected readonly emojiPickerOpen = signal(false);
-  protected readonly emojis = [
-    '😀',
-    '😂',
-    '😍',
-    '😎',
-    '🤔',
-    '👏',
-    '🙌',
-    '🔥',
-    '💯',
-    '🎉',
-    '👍',
-    '❤️',
-  ];
   /** At most one entry — a new toast replaces whatever's currently showing rather than stacking. */
   protected readonly toasts = signal<MessageToast[]>([]);
-  protected readonly showScrollToNewest = signal(false);
   protected readonly inviteCopied = signal(false);
-  protected readonly messageReactionMenuId = signal<string | null>(null);
   protected readonly sidebarCollapsed = signal(false);
-  protected readonly mentionQuery = signal<string | null>(null);
-  protected readonly mentionHighlightIndex = signal(0);
-  protected readonly pendingReply = signal<PendingReply | null>(null);
   protected readonly messageReactions = signal<Record<string, MessageReactionState>>({});
+
+  protected readonly chatMessages = computed<ChatMessage[]>(() =>
+    this.messages().map((message) => this.toChatMessage(message)),
+  );
+
+  protected readonly currentUser = computed<ChatUser>(() => ({
+    id: this.displayName(),
+    name: this.displayName(),
+  }));
+
+  protected readonly memberNames = computed<string[]>(() =>
+    this.members()
+      .map((member) => member.name.trim())
+      .filter(Boolean),
+  );
+
+  /** Shared initials derivation, exposed for the toast markup. */
+  protected readonly initials = initialsFromName;
 
   protected readonly nameControl = new FormControl('', {
     nonNullable: true,
     validators: [Validators.required, Validators.maxLength(MAX_NAME_LENGTH)],
-  });
-
-  protected readonly messageControl = new FormControl('', {
-    nonNullable: true,
-    validators: [Validators.required, Validators.maxLength(MAX_MESSAGE_LENGTH)],
   });
 
   private socket: Socket | null = null;
@@ -181,7 +172,7 @@ export class GuestRoomPage {
           this.messages.set(history.messages);
           this.messageReactions.set(this.hydrateReactionState(history.messages));
           this.status.set('ready');
-          queueMicrotask(() => this.scrollToNewest(false));
+          queueMicrotask(() => this.roomChat()?.scrollToNewest(false));
           this.connectSocket();
         } catch {
           this.errorMessage.set('Unable to parse channel history. Please refresh and try again.');
@@ -219,15 +210,15 @@ export class GuestRoomPage {
     });
 
     socket.on(SOCKET_EVENTS.CHAT_MESSAGE, (raw: unknown) => {
-      const shouldStickToBottom = this.isNearBottom();
+      const shouldStickToBottom = this.roomChat()?.isNearBottom() ?? true;
       const message = ChatMessageBroadcastSchema.parse(raw);
       this.messages.update((current) => [...current, message]);
 
-      if (shouldStickToBottom || this.isOwnMessage(message)) {
-        queueMicrotask(() => this.scrollToNewest(false));
+      if (shouldStickToBottom || message.authorName === this.displayName()) {
+        queueMicrotask(() => this.roomChat()?.scrollToNewest(false));
       }
 
-      if (!this.isOwnMessage(message)) {
+      if (message.authorName !== this.displayName()) {
         this.playNotificationSound();
         this.showToast(message);
       }
@@ -254,169 +245,44 @@ export class GuestRoomPage {
     });
   }
 
-  protected sendMessage(): void {
-    if (this.messageControl.invalid || !this.socket?.connected) {
-      this.messageControl.markAsTouched();
+  /** room-chat emits the final text (reply prefix already applied); send it over the socket. */
+  protected onSendMessage(text: string): void {
+    if (!this.socket?.connected) {
       return;
     }
 
-    const rawText = this.messageControl.value.trim();
-    const reply = this.pendingReply();
-    const replySnippet = reply?.text.replace(/\s+/g, ' ').trim().slice(0, 80);
-    const text = reply ? `↪ Reply to ${reply.authorName}: ${replySnippet}\n${rawText}` : rawText;
-
-    const payload = {
+    const payload = ChatMessagePayloadSchema.parse({
       channelId: this.channelId,
       name: this.displayName(),
       text,
-    };
-
-    this.socket.emit(SOCKET_EVENTS.CHAT_MESSAGE, ChatMessagePayloadSchema.parse(payload));
-    this.messageControl.reset('');
-    this.pendingReply.set(null);
-    this.emojiPickerOpen.set(false);
-    this.mentionQuery.set(null);
-    queueMicrotask(() => this.scrollToNewest(false));
-  }
-
-  protected onMessagesScroll(): void {
-    this.showScrollToNewest.set(!this.isNearBottom());
-  }
-
-  protected jumpToNewestMessage(): void {
-    this.scrollToNewest(true);
-  }
-
-  protected toggleMessageReactionMenu(messageId: string): void {
-    this.messageReactionMenuId.update((current) => (current === messageId ? null : messageId));
-  }
-
-  protected toggleSidebar(): void {
-    this.playClickSound();
-    this.sidebarCollapsed.update((collapsed) => !collapsed);
-  }
-
-  protected replyToMessage(message: Message): void {
-    this.messageReactionMenuId.set(null);
-    this.emojiPickerOpen.set(false);
-    this.pendingReply.set({
-      messageId: message.id,
-      authorName: message.authorName,
-      text: message.text,
     });
 
-    queueMicrotask(() => {
-      this.composerInput()?.nativeElement.focus();
-    });
+    this.socket.emit(SOCKET_EVENTS.CHAT_MESSAGE, payload);
+    queueMicrotask(() => this.roomChat()?.scrollToNewest(false));
   }
 
-  protected clearPendingReply(): void {
-    this.pendingReply.set(null);
-  }
-
-  protected onComposerInput(): void {
-    const input = this.composerInput()?.nativeElement;
-    if (!input) return;
-
-    const caret = input.selectionStart ?? input.value.length;
-    const before = input.value.slice(0, caret);
-    const match = before.match(/(?:^|\s)@([\p{L}\p{N}_]*)$/u);
-
-    this.mentionQuery.set(match ? match[1] : null);
-    if (match) {
-      this.mentionHighlightIndex.set(0);
-    }
-  }
-
-  protected mentionSuggestions(): Array<{ name: string; kind: 'all' | 'member' }> {
-    const query = this.mentionQuery();
-    if (query === null) return [];
-
-    const normalized = query.trim().toLocaleLowerCase();
-    const members = this.members()
-      .filter(
-        (member) => !normalized || member.name.trim().toLocaleLowerCase().includes(normalized),
-      )
-      .map((member) => ({ name: member.name.trim(), kind: 'member' as const }));
-    const results: Array<{ name: string; kind: 'all' | 'member' }> = [...members];
-
-    if (!normalized || 'all'.includes(normalized)) {
-      results.unshift({ name: 'all', kind: 'all' });
-    }
-
-    return results.slice(0, 8);
-  }
-
-  protected insertMention(name: string): void {
-    const input = this.composerInput()?.nativeElement;
-    if (!input) return;
-
-    const value = input.value;
-    const caret = input.selectionStart ?? value.length;
-    const before = value.slice(0, caret);
-    const match = before.match(/(?:^|\s)@[\p{L}\p{N}_]*$/u);
-    const mentionStart = match ? match.index! + match[0].indexOf('@') : caret;
-    const mention = `@${name} `;
-
-    this.messageControl.setValue(value.slice(0, mentionStart) + mention + value.slice(caret));
-    this.mentionQuery.set(null);
-
-    queueMicrotask(() => {
-      input.focus();
-      input.setSelectionRange(mentionStart + mention.length, mentionStart + mention.length);
-    });
-  }
-
-  protected onMentionKeydown(event: KeyboardEvent): void {
-    if (this.mentionQuery() === null) return;
-
-    const suggestions = this.mentionSuggestions();
-    if (suggestions.length === 0) return;
-
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      const index = Math.min(this.mentionHighlightIndex(), suggestions.length - 1);
-      this.insertMention(suggestions[index].name);
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      this.mentionQuery.set(null);
-    } else if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      this.mentionHighlightIndex.update((index) => (index + 1) % suggestions.length);
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      this.mentionHighlightIndex.update(
-        (index) => (index - 1 + suggestions.length) % suggestions.length,
-      );
-    }
-  }
-
-  protected onComposerBlur(): void {
-    this.mentionQuery.set(null);
-  }
-
-  protected reactToMessage(message: Message, emoji: string): void {
+  /** room-chat already shows the reply preview + focuses the composer — nothing more needed for guests. */
+  protected onReact({ messageId, emoji }: { messageId: string; emoji: string }): void {
     if (!this.socket?.connected) {
       return;
     }
 
     const reactedBy = this.displayName();
     const userKey = reactedBy.trim().toLocaleLowerCase();
-    const currentEmoji = this.messageReactions()[message.id]?.byUser[userKey];
+    const currentEmoji = this.messageReactions()[messageId]?.byUser[userKey];
     const removing = currentEmoji === emoji;
 
-    this.applyReactionUpdate(message.id, reactedBy, emoji, removing);
+    this.applyReactionUpdate(messageId, reactedBy, emoji, removing);
 
     const payload = MessageReactionPayloadSchema.parse({
       channelId: this.channelId,
-      messageId: message.id,
+      messageId,
       emoji,
     });
     this.socket.emit(SOCKET_EVENTS.MESSAGE_REACTION, payload);
-    this.messageReactionMenuId.set(null);
   }
 
-  protected deleteMessage(messageId: string): void {
+  protected onDelete(messageId: string): void {
     this.removeMessageLocally(messageId);
 
     if (this.socket?.connected) {
@@ -428,14 +294,12 @@ export class GuestRoomPage {
     }
   }
 
+  protected onCloseChat(): void {
+    this.goToGuests();
+  }
+
   private removeMessageLocally(messageId: string): void {
     this.messages.update((current) => current.filter((message) => message.id !== messageId));
-
-    if (this.pendingReply()?.messageId === messageId) {
-      this.pendingReply.set(null);
-    }
-
-    this.messageReactionMenuId.set(null);
     this.messageReactions.update((current) => {
       const next = { ...current };
       delete next[messageId];
@@ -443,19 +307,9 @@ export class GuestRoomPage {
     });
   }
 
-  protected currentReactionForMessage(messageId: string): string | null {
-    const state = this.messageReactions()[messageId];
-    if (!state) return null;
-
-    return state.byUser[this.currentReactionUserKey()] ?? null;
-  }
-
-  protected reactionSummary(messageId: string): Array<{ emoji: string; count: number }> {
-    const reactions = this.messageReactions()[messageId]?.counts ?? {};
-
-    return Object.entries(reactions)
-      .map(([emoji, count]) => ({ emoji, count }))
-      .sort((a, b) => b.count - a.count);
+  protected toggleSidebar(): void {
+    this.playClickSound();
+    this.sidebarCollapsed.update((collapsed) => !collapsed);
   }
 
   protected guestInviteLink(): string {
@@ -485,151 +339,28 @@ export class GuestRoomPage {
     });
   }
 
-  protected toggleEmojiPicker(): void {
-    this.emojiPickerOpen.update((open) => !open);
+  protected goToGuests(): void {
+    void this.router.navigate(['/guests']);
   }
 
-  protected selectEmoji(emoji: string): void {
-    const input = this.composerInput()?.nativeElement;
-    const current = this.messageControl.value;
+  private toChatMessage(message: Message): ChatMessage {
+    const state = this.messageReactions()[message.id];
+    const ownReaction = state?.byUser[this.currentReactionUserKey()] ?? null;
 
-    if (!input) {
-      this.messageControl.setValue(`${current}${emoji}`);
-      this.emojiPickerOpen.set(false);
-      return;
-    }
+    const reactions: ChatReaction[] = state
+      ? Object.entries(state.counts)
+          .map(([emoji, count]) => ({ emoji, count, reactedByMe: ownReaction === emoji }))
+          .sort((a, b) => b.count - a.count)
+      : [];
 
-    const start = input.selectionStart ?? current.length;
-    const end = input.selectionEnd ?? current.length;
-    const nextValue = `${current.slice(0, start)}${emoji}${current.slice(end)}`;
-
-    this.messageControl.setValue(nextValue);
-    this.emojiPickerOpen.set(false);
-
-    queueMicrotask(() => {
-      input.focus();
-      const cursor = start + emoji.length;
-      input.setSelectionRange(cursor, cursor);
-    });
-  }
-
-  @HostListener('document:click', ['$event'])
-  protected handleDocumentClick(event: MouseEvent): void {
-    if (!this.emojiPickerOpen()) {
-      // fall through to close the message reaction menu if needed
-    }
-
-    const target = event.target;
-    const host = this.emojiPickerHost()?.nativeElement;
-    if (this.emojiPickerOpen() && target instanceof Node && host && !host.contains(target)) {
-      this.emojiPickerOpen.set(false);
-    }
-
-    if (
-      this.messageReactionMenuId() &&
-      target instanceof Element &&
-      !target.closest('[data-message-reaction-menu]') &&
-      !target.closest('[data-message-react-button]')
-    ) {
-      this.messageReactionMenuId.set(null);
-    }
-  }
-
-  protected initials(name: string): string {
-    const parts = name.trim().split(/\s+/).filter(Boolean);
-
-    if (parts.length === 0) {
-      return '??';
-    }
-
-    if (parts.length === 1) {
-      return parts[0].slice(0, 2).toUpperCase();
-    }
-
-    return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
-  }
-
-  protected avatarBackground(name: string): string {
-    return `linear-gradient(135deg, ${this.avatarColor(name, 0.34)}, ${this.avatarColor(name, 0.2)})`;
-  }
-
-  protected avatarBorder(name: string): string {
-    return this.avatarColor(name, 0.42);
-  }
-
-  protected avatarText(name: string): string {
-    return this.avatarColor(name, 0.96, 88);
-  }
-
-  protected messageTime(message: Message): string {
-    return new Date(message.createdAt).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
-
-  protected parsedReplyMessage(message: Message): ParsedReplyMessage | null {
-    const match = message.text.match(/^↪ Reply to (.+?): (.*)\n([\s\S]+)$/);
-    if (!match) {
-      return null;
-    }
-
-    const [, authorName, previewText, bodyText] = match;
     return {
-      authorName,
-      previewText,
-      bodyText,
+      id: message.id,
+      author: { id: message.authorName, name: message.authorName },
+      text: message.text,
+      createdAt: message.createdAt,
+      reactions,
+      ownReaction,
     };
-  }
-
-  /**
-   * Splits raw message text into plain/mention segments so the template can
-   * render @mentions as highlighted chips without touching innerHTML (no
-   * XSS surface). A mention is any `@word`, a full multi-word member name
-   * (e.g. `@Mahmoud Ag`), or the special `@all` / `@everyone`.
-   */
-  protected mentionParts(text: string): Array<{ text: string; kind: 'all' | 'member' | 'text' }> {
-    const names = Array.from(
-      new Set(
-        this.members()
-          .map((m) => m.name.trim())
-          .filter(Boolean),
-      ),
-    ).sort((a, b) => b.length - a.length);
-    const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const patterns = ['@(?:all|everyone)\\b'];
-    if (names.length > 0) {
-      patterns.push(`@(?:${names.map(escapeRegExp).join('|')})(?=\\s|$)`);
-    }
-    patterns.push('@[\\p{L}\\p{N}_]+');
-    const matcher = new RegExp(patterns.join('|'), 'giu');
-
-    const parts: Array<{ text: string; kind: 'all' | 'member' | 'text' }> = [];
-    let lastIndex = 0;
-    let match: RegExpExecArray | null;
-
-    while ((match = matcher.exec(text)) !== null) {
-      const index = match.index;
-      if (index > lastIndex) {
-        parts.push({ text: text.slice(lastIndex, index), kind: 'text' });
-      }
-      const matched = match[0].slice(1).toLocaleLowerCase();
-      parts.push({
-        text: match[0],
-        kind: matched === 'all' || matched === 'everyone' ? 'all' : 'member',
-      });
-      lastIndex = index + match[0].length;
-    }
-
-    if (lastIndex < text.length) {
-      parts.push({ text: text.slice(lastIndex), kind: 'text' });
-    }
-
-    return parts;
-  }
-
-  protected isOwnMessage(message: Message): boolean {
-    return message.authorName === this.displayName();
   }
 
   /**
@@ -656,25 +387,6 @@ export class GuestRoomPage {
 
   protected dismissToast(id: number): void {
     this.toasts.update((current) => current.filter((toast) => toast.id !== id));
-  }
-
-  private isNearBottom(): boolean {
-    const el = this.messagesContainer()?.nativeElement;
-    if (!el) return true;
-
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    return distanceFromBottom <= 56;
-  }
-
-  private scrollToNewest(smooth: boolean): void {
-    const el = this.scrollAnchor()?.nativeElement;
-    if (!el) return;
-
-    el.scrollIntoView({
-      block: 'end',
-      behavior: smooth ? 'smooth' : 'auto',
-    });
-    this.showScrollToNewest.set(false);
   }
 
   private applyReactionUpdate(
@@ -864,22 +576,6 @@ export class GuestRoomPage {
 
     this.socket.disconnect();
     this.socket = null;
-  }
-
-  protected goToGuests(): void {
-    void this.router.navigate(['/guests']);
-  }
-
-  private avatarColor(name: string, alpha: number, lightness = 62): string {
-    const normalized = name.trim().toLocaleLowerCase();
-    let hash = 0;
-
-    for (let index = 0; index < normalized.length; index += 1) {
-      hash = normalized.charCodeAt(index) + ((hash << 5) - hash);
-    }
-
-    const hue = Math.abs(hash) % 360;
-    return `hsla(${hue} 72% ${lightness}% / ${alpha})`;
   }
 
   private currentReactionUserKey(): string {
