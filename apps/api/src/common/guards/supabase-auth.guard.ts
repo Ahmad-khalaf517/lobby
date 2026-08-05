@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import type { Request } from 'express';
 import type { User } from '@supabase/supabase-js';
-import { SupabaseService } from '../database/supabase.service';
+import { SupabaseService } from '../../modules/database/supabase.service';
 
 export type AuthenticatedRequest = Request & {
   user: User;
