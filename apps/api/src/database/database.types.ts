@@ -351,19 +351,28 @@ export type Database = {
       };
       users: {
         Row: {
+          avatar_url: string | null;
+          bio: string | null;
           created_at: string;
           id: string;
           name: string;
+          user_name: string;
         };
         Insert: {
+          avatar_url?: string | null;
+          bio?: string | null;
           created_at?: string;
           id: string;
           name: string;
+          user_name: string;
         };
         Update: {
+          avatar_url?: string | null;
+          bio?: string | null;
           created_at?: string;
           id?: string;
           name?: string;
+          user_name?: string;
         };
         Relationships: [];
       };
