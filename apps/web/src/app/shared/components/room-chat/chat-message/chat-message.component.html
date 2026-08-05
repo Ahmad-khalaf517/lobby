@@ -11,7 +11,9 @@
       (toggleMenu)="onToggleReactionMenu()"
       (react)="onReact($event)"
     />
-    <app-chat-delete [messageId]="message().id" (delete)="onDelete($event)" />
+    @if (isOwn()) {
+      <app-chat-delete [messageId]="message().id" (delete)="onDelete($event)" />
+    }
   </div>
 
   <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">

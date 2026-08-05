@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -163,7 +163,14 @@ export class ChannelGateway implements OnGatewayDisconnect {
       throw new WsException('Join the channel before deleting messages');
     }
 
-    await this.channels.deleteMessage(channelId, messageId);
+    try {
+      await this.channels.deleteMessage(channelId, messageId, member.memberId);
+    } catch (error) {
+      if (error instanceof ForbiddenException) {
+        throw new WsException('You can only delete your own messages');
+      }
+      throw error;
+    }
     this.server.to(channelId).emit(SOCKET_EVENTS.MESSAGE_DELETED, { messageId });
   }
 

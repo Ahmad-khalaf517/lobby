@@ -48,8 +48,8 @@ export class ChannelsService {
     );
   }
 
-  deleteMessage(channelId: string, messageId: string): Promise<void> {
-    return this.channelsRepository.deleteMessage(channelId, messageId);
+  deleteMessage(channelId: string, messageId: string, channelMemberId: string): Promise<void> {
+    return this.channelsRepository.deleteMessage(channelId, messageId, channelMemberId);
   }
 
   deleteChannel(id: string): Promise<void> {
