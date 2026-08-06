@@ -147,12 +147,9 @@ export class FriendshipsRepository {
   async findUsersByIds(ids: string[]): Promise<UserRow[]> {
     if (ids.length === 0) return [];
 
-    const { data, error } = await this.db
-      .from('users')
-      .select('id, name, user_name, avatar_url')
-      .in('id', ids);
+    const { data, error } = await this.db.from('users').select().in('id', ids);
 
     if (error) throw error;
-    return (data ?? []) as UserRow[];
+    return data ?? [];
   }
 }

@@ -145,6 +145,84 @@ export type Database = {
           },
         ];
       };
+      dm_conversations: {
+        Row: {
+          created_at: string;
+          id: string;
+          updated_at: string;
+          user_a_id: string;
+          user_b_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          updated_at?: string;
+          user_a_id: string;
+          user_b_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          updated_at?: string;
+          user_a_id?: string;
+          user_b_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'dm_conversations_user_a_id_fkey';
+            columns: ['user_a_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'dm_conversations_user_b_id_fkey';
+            columns: ['user_b_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      dm_messages: {
+        Row: {
+          content: string;
+          conversation_id: string;
+          created_at: string;
+          id: string;
+          sender_id: string;
+        };
+        Insert: {
+          content: string;
+          conversation_id: string;
+          created_at?: string;
+          id?: string;
+          sender_id: string;
+        };
+        Update: {
+          content?: string;
+          conversation_id?: string;
+          created_at?: string;
+          id?: string;
+          sender_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'dm_messages_conversation_id_fkey';
+            columns: ['conversation_id'];
+            isOneToOne: false;
+            referencedRelation: 'dm_conversations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'dm_messages_sender_id_fkey';
+            columns: ['sender_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       friendships: {
         Row: {
           addressee_id: string;

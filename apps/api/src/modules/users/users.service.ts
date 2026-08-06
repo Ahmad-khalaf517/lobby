@@ -57,4 +57,9 @@ export class UsersService {
 
     return rows.map(toUserProfile);
   }
+
+  async findUsersByIds(ids: string[]): Promise<UserProfile[]> {
+    const rows = await this.usersRepository.findUsersByIds(ids);
+    return rows.map(toUserProfile);
+  }
 }

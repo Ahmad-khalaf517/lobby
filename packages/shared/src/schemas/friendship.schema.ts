@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { UserProfileSchema } from './user-profile.schema.js';
 
 /**
  * Mirrors the `status` check constraint on schema.friendships:
@@ -49,15 +50,6 @@ export const FriendshipSchema = z.object({
 });
 export type Friendship = z.infer<typeof FriendshipSchema>;
 
-/** The OTHER user in a relationship — joined from the `users` table. */
-export const FriendUserSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string(),
-  userName: z.string(),
-  avatarUrl: z.string().nullable(),
-});
-export type FriendUser = z.infer<typeof FriendUserSchema>;
-
 /**
  * What list endpoints actually return. A raw Friendship row doesn't tell
  * the caller which side of requesterId/addresseeId *they* are — this
@@ -68,7 +60,8 @@ export const FriendSchema = z.object({
   friendshipId: z.string().uuid(),
   /** The OTHER user in the relationship — never the viewer's own id. */
   userId: z.string().uuid(),
-  user: FriendUserSchema,
+  /** The other user's full profile — same shape DM conversations embed. */
+  user: UserProfileSchema,
   status: FriendshipStatusSchema,
   /** Only meaningful when status === 'pending'. Null for accepted/blocked. */
   direction: z.enum(['incoming', 'outgoing']).nullable(),

@@ -1,5 +1,6 @@
-import type { Friend, FriendUser, Friendship, FriendshipStatus } from '@lobby/shared';
+import type { Friend, Friendship, FriendshipStatus } from '@lobby/shared';
 import type { Database } from '../../database/database.types';
+import { toUserProfile } from '../users/users.mappers';
 
 export type FriendshipRow = Database['public']['Tables']['friendships']['Row'];
 export type UserRow = Database['public']['Tables']['users']['Row'];
@@ -13,15 +14,6 @@ export function toFriendship(row: FriendshipRow): Friendship {
     blockedBy: row.blocked_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-  };
-}
-
-export function toFriendUser(row: UserRow): FriendUser {
-  return {
-    id: row.id,
-    name: row.name,
-    userName: row.user_name,
-    avatarUrl: row.avatar_url,
   };
 }
 
@@ -40,7 +32,7 @@ export function toFriend(row: FriendshipRow, viewerId: string, user: UserRow): F
   return {
     friendshipId: row.id,
     userId: otherUserId,
-    user: toFriendUser(user),
+    user: toUserProfile(user),
     status: row.status as FriendshipStatus,
     direction,
     createdAt: row.created_at,
