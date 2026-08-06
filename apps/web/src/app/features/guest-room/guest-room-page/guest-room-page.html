@@ -495,111 +495,362 @@
             </div>
           } @else {
             <div
-              class="lobby-scrollbar flex h-full min-h-0 items-center overflow-y-auto px-5 py-8 sm:px-8 lg:px-10"
+              class="lobby-scrollbar flex h-full min-h-0 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8"
             >
-              <div class="mx-auto w-full max-w-4xl">
-                <div
-                  class="relative overflow-hidden rounded-[2rem] border border-white/9 bg-[linear-gradient(145deg,rgba(25,31,45,0.88),rgba(12,16,25,0.96))] p-6 shadow-[0_32px_90px_rgba(0,0,0,0.35)] sm:p-8 lg:p-10"
+              <div class="mx-auto flex w-full max-w-5xl flex-col justify-center">
+                <section
+                  class="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[linear-gradient(145deg,rgba(25,31,45,0.88),rgba(12,16,25,0.96))] shadow-[0_28px_80px_rgba(0,0,0,0.34)] sm:rounded-[1.75rem]"
                 >
+                  <!-- Ambient background -->
                   <div
-                    class="pointer-events-none absolute -top-28 left-1/2 size-72 -translate-x-1/2 rounded-full bg-primary/14 blur-[90px]"
                     aria-hidden="true"
+                    class="pointer-events-none absolute -top-28 left-1/2 size-72 -translate-x-1/2 rounded-full blur-[95px]"
+                    [class.bg-emerald-400/12]="callActive()"
+                    [class.bg-primary/14]="!callActive()"
                   ></div>
-                  <div class="relative grid gap-8 lg:grid-cols-[1fr_0.86fr] lg:items-center">
-                    <div>
-                      <span
-                        class="inline-flex items-center gap-2 rounded-full border border-white/9 bg-white/[0.045] px-3 py-1.5 text-[10px] font-semibold text-[#c3cad6]"
-                      >
-                        <span
-                          [class]="
-                            'size-1.5 rounded-full ' +
-                            (callActive() ? 'bg-emerald-400' : 'bg-primary')
-                          "
-                        ></span>
-                        {{ callActive() ? 'A call is live now' : 'Ready when your team is' }}
-                      </span>
-                      <h2
-                        class="mt-5 max-w-xl text-3xl font-semibold leading-[1.08] tracking-[-0.04em] text-white sm:text-4xl"
-                      >
-                        Talk naturally. Share the screen. Keep the chat moving.
-                      </h2>
-                      <p class="mt-4 max-w-lg text-sm leading-7 text-[#8d99ac]">
-                        Join the audio room without leaving this dashboard. Messages, replies, and
-                        reactions remain available beside the call.
-                      </p>
 
-                      <div class="mt-7 flex flex-wrap items-center gap-3">
-                        <button
-                          type="button"
-                          (click)="joinCall()"
-                          [disabled]="callJoining()"
-                          class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(124,92,252,0.28)] transition hover:-translate-y-0.5 hover:bg-[#8b6dff] disabled:cursor-not-allowed disabled:opacity-60"
+                  @if (callActive()) {
+                    <!-- ====================================================== -->
+                    <!-- ACTIVE CALL: strong, visible invitation to join        -->
+                    <!-- ====================================================== -->
+
+                    <div
+                      class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(52,211,153,0.08),transparent_38%)]"
+                      aria-hidden="true"
+                    ></div>
+
+                    <div
+                      class="relative grid gap-6 p-4 sm:p-6 lg:grid-cols-[1fr_0.72fr] lg:items-center lg:gap-10 lg:p-9"
+                    >
+                      <div class="min-w-0">
+                        <!-- Live status -->
+                        <div
+                          role="status"
+                          aria-live="polite"
+                          class="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/[0.08] px-3 py-1.5 text-[10px] font-semibold tracking-[0.04em] text-emerald-200"
                         >
-                          @if (callJoining()) {
-                            <span class="auth-spinner" aria-hidden="true"></span>
-                            Connecting…
-                          } @else {
-                            <app-icon name="call" [size]="17" />
-                            {{ callButtonLabel() }}
-                          }
-                        </button>
-                        <button
-                          type="button"
-                          (click)="mobileChatOpen.set(true)"
-                          class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-5 text-sm font-semibold text-[#d7dee9] transition hover:border-white/18 hover:bg-white/[0.075] lg:hidden"
+                          <span class="relative flex size-2 shrink-0">
+                            <span
+                              class="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-50"
+                            ></span>
+
+                            <span
+                              class="relative inline-flex size-2 rounded-full bg-emerald-400"
+                            ></span>
+                          </span>
+
+                          LIVE CALL IN PROGRESS
+                        </div>
+
+                        <h2
+                          class="mt-4 max-w-xl text-2xl font-semibold leading-[1.1] tracking-[-0.035em] text-white sm:mt-5 sm:text-3xl lg:text-4xl"
                         >
-                          <app-icon name="chat" [size]="17" />
-                          Open chat
-                        </button>
+                          People are already talking in this room.
+                        </h2>
+
+                        <p
+                          class="mt-3 max-w-xl text-xs leading-6 text-[#929daf] sm:mt-4 sm:text-sm sm:leading-7"
+                        >
+                          Join the live audio conversation now. Your chat messages remain available
+                          while you listen, speak, or share your screen.
+                        </p>
+
+                        <!-- Active call summary -->
+                        <div
+                          class="mt-5 flex items-center gap-3 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.045] p-3 sm:mt-6 sm:rounded-2xl sm:p-4"
+                        >
+                          <div
+                            class="grid size-10 shrink-0 place-items-center rounded-xl border border-emerald-400/20 bg-emerald-400/[0.09] text-emerald-200 sm:size-11"
+                          >
+                            <app-icon name="call" aria-hidden="true" class="size-4" />
+                          </div>
+
+                          <div class="min-w-0 flex-1">
+                            <p class="truncate text-xs font-semibold text-white sm:text-sm">
+                              Audio room is live
+                            </p>
+
+                            <p class="mt-0.5 truncate text-[10px] text-[#839083] sm:text-[11px]">
+                              {{ callParticipantCount() }}
+                              participant{{ callParticipantCount() === 1 ? '' : 's' }}
+                              currently connected
+                            </p>
+                          </div>
+
+                          <span
+                            class="hidden shrink-0 items-center gap-1.5 text-[10px] font-medium text-emerald-300 sm:inline-flex"
+                          >
+                            <span class="size-1.5 rounded-full bg-emerald-400"></span>
+                            Live now
+                          </span>
+                        </div>
+
+                        <!-- Active-call actions -->
+                        <div
+                          class="mt-5 flex flex-col gap-2.5 sm:mt-6 sm:flex-row sm:items-center sm:gap-3"
+                        >
+                          <button
+                            type="button"
+                            (click)="joinCall()"
+                            [disabled]="callJoining()"
+                            class="group relative isolate inline-flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-emerald-300 px-5 text-sm font-semibold text-[#07130d] shadow-[0_18px_45px_rgba(52,211,153,0.22)] outline-none transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-200 hover:shadow-[0_22px_55px_rgba(52,211,153,0.3)] focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#111722] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 sm:w-auto sm:min-w-44"
+                          >
+                            <span
+                              aria-hidden="true"
+                              class="absolute inset-y-0 -left-20 w-16 -skew-x-12 bg-white/25 blur-md transition-transform duration-700 group-hover:translate-x-72"
+                            ></span>
+
+                            @if (callJoining()) {
+                              <span
+                                aria-hidden="true"
+                                class="size-4 animate-spin rounded-full border-2 border-[#07130d]/25 border-t-[#07130d]"
+                              ></span>
+
+                              <span>Joining call…</span>
+                            } @else {
+                              <span
+                                class="relative flex size-4 shrink-0 items-center justify-center"
+                              >
+                                <span
+                                  class="absolute size-3 animate-ping rounded-full bg-[#07130d]/15"
+                                ></span>
+
+                                <app-icon name="call" aria-hidden="true" class="relative size-4" />
+                              </span>
+
+                              <span>Join live call</span>
+                            }
+                          </button>
+
+                          <button
+                            type="button"
+                            (click)="mobileChatOpen.set(true)"
+                            class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/[0.09] bg-white/[0.035] px-4 text-xs font-medium text-[#c8d0dc] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-12 sm:w-auto lg:hidden"
+                          >
+                            <app-icon name="chat" aria-hidden="true" class="size-4" />
+
+                            Open chat
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- Live-call visual -->
+                      <div
+                        class="relative mx-auto hidden aspect-square w-full max-w-[270px] sm:block lg:max-w-[300px]"
+                        aria-hidden="true"
+                      >
+                        <div
+                          class="absolute inset-[3%] animate-[spin_24s_linear_infinite] rounded-full border border-dashed border-emerald-400/20"
+                        ></div>
+
+                        <div
+                          class="absolute inset-[16%] rounded-full border border-emerald-400/20"
+                        ></div>
+
+                        <div
+                          class="absolute inset-[29%] rounded-full border border-emerald-400/25 bg-emerald-400/[0.055] shadow-[0_0_80px_rgba(52,211,153,0.14)]"
+                        ></div>
+
+                        <!-- Floating participants -->
+                        <span
+                          class="absolute top-[10%] left-[12%] grid size-11 place-items-center rounded-xl border border-white/[0.09] bg-[#171d2a]/95 text-[#cbd3de] shadow-xl sm:size-12"
+                        >
+                          <app-icon name="mic" class="size-4" />
+                        </span>
+
+                        <span
+                          class="absolute right-[7%] bottom-[16%] grid size-11 place-items-center rounded-xl border border-white/[0.09] bg-[#171d2a]/95 text-[#cbd3de] shadow-xl sm:size-12"
+                        >
+                          <app-icon name="screen-share" class="size-4" />
+                        </span>
+
+                        <span
+                          class="absolute right-[10%] top-[22%] size-3 rounded-full border-2 border-[#121827] bg-emerald-400 shadow-[0_0_14px_rgba(52,211,153,0.65)]"
+                        ></span>
+
+                        <!-- Center -->
+                        <div
+                          class="absolute top-1/2 left-1/2 flex size-20 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-[1.5rem] border border-emerald-400/25 bg-[#121827] shadow-[0_20px_60px_rgba(0,0,0,0.42)]"
+                        >
+                          <span class="text-xl font-semibold tabular-nums text-white">
+                            {{ callParticipantCount() }}
+                          </span>
+
+                          <span
+                            class="mt-0.5 text-[8px] font-semibold tracking-[0.1em] text-emerald-300 uppercase"
+                          >
+                            Live
+                          </span>
+                        </div>
                       </div>
                     </div>
+                  } @else {
+                    <!-- ====================================================== -->
+                    <!-- NO ACTIVE CALL: retain the calmer start-call hierarchy -->
+                    <!-- ====================================================== -->
 
-                    <div class="relative mx-auto aspect-square w-full max-w-[320px]">
-                      <div class="absolute inset-[4%] rounded-full border border-primary/15"></div>
-                      <div class="absolute inset-[17%] rounded-full border border-primary/20"></div>
+                    <div
+                      class="relative grid gap-6 p-4 sm:p-6 lg:grid-cols-[1fr_0.72fr] lg:items-center lg:gap-10 lg:p-9"
+                    >
+                      <div class="min-w-0">
+                        <span
+                          class="inline-flex items-center gap-2 rounded-full border border-white/[0.09] bg-white/[0.045] px-3 py-1.5 text-[10px] font-semibold text-[#c3cad6]"
+                        >
+                          <span class="size-1.5 rounded-full bg-primary"></span>
+                          Ready when your team is
+                        </span>
+
+                        <h2
+                          class="mt-4 max-w-xl text-2xl font-semibold leading-[1.1] tracking-[-0.035em] text-white sm:mt-5 sm:text-3xl lg:text-4xl"
+                        >
+                          Talk naturally. Share the screen. Keep the chat moving.
+                        </h2>
+
+                        <p
+                          class="mt-3 max-w-lg text-xs leading-6 text-[#8d99ac] sm:mt-4 sm:text-sm sm:leading-7"
+                        >
+                          Start an audio room without leaving this dashboard. Messages, replies, and
+                          reactions remain available beside the call.
+                        </p>
+
+                        <div
+                          class="mt-5 flex flex-col gap-2.5 sm:mt-7 sm:flex-row sm:items-center sm:gap-3"
+                        >
+                          <button
+                            type="button"
+                            (click)="joinCall()"
+                            [disabled]="callJoining()"
+                            class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(124,92,252,0.28)] outline-none transition hover:-translate-y-0.5 hover:bg-[#8b6dff] focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#111722] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 sm:w-auto"
+                          >
+                            @if (callJoining()) {
+                              <span
+                                aria-hidden="true"
+                                class="size-4 animate-spin rounded-full border-2 border-white/25 border-t-white"
+                              ></span>
+
+                              Connecting…
+                            } @else {
+                              <app-icon name="call" aria-hidden="true" class="size-4" />
+
+                              Start audio call
+                            }
+                          </button>
+
+                          <button
+                            type="button"
+                            (click)="mobileChatOpen.set(true)"
+                            class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/[0.09] bg-white/[0.035] px-4 text-xs font-medium text-[#c8d0dc] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-12 sm:w-auto lg:hidden"
+                          >
+                            <app-icon name="chat" aria-hidden="true" class="size-4" />
+
+                            Open chat
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- Start-call visual -->
                       <div
-                        class="absolute inset-[30%] rounded-full border border-primary/30 bg-primary/8 shadow-[0_0_80px_rgba(124,92,252,0.18)]"
-                      ></div>
-                      <div
-                        class="absolute inset-0 animate-[spin_22s_linear_infinite] rounded-full border border-dashed border-white/8"
-                      ></div>
-                      <span
-                        class="absolute top-[12%] left-[14%] grid size-12 place-items-center rounded-2xl border border-white/10 bg-[#171d2a] text-[#c9d0dc] shadow-2xl"
-                        ><app-icon name="mic" [size]="20"
-                      /></span>
-                      <span
-                        class="absolute right-[8%] bottom-[18%] grid size-12 place-items-center rounded-2xl border border-white/10 bg-[#171d2a] text-[#c9d0dc] shadow-2xl"
-                        ><app-icon name="screen-share" [size]="20"
-                      /></span>
-                      <span
-                        class="absolute top-1/2 left-1/2 grid size-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-[1.65rem] border border-primary/30 bg-[#121827] shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
-                        ><app-logo [size]="38"
-                      /></span>
+                        class="relative mx-auto hidden aspect-square w-full max-w-[270px] sm:block lg:max-w-[300px]"
+                        aria-hidden="true"
+                      >
+                        <div
+                          class="absolute inset-[4%] rounded-full border border-primary/15"
+                        ></div>
+
+                        <div
+                          class="absolute inset-[17%] rounded-full border border-primary/20"
+                        ></div>
+
+                        <div
+                          class="absolute inset-[30%] rounded-full border border-primary/30 bg-primary/[0.08] shadow-[0_0_80px_rgba(124,92,252,0.18)]"
+                        ></div>
+
+                        <div
+                          class="absolute inset-0 animate-[spin_22s_linear_infinite] rounded-full border border-dashed border-white/[0.08]"
+                        ></div>
+
+                        <span
+                          class="absolute top-[12%] left-[14%] grid size-11 place-items-center rounded-xl border border-white/[0.1] bg-[#171d2a] text-[#c9d0dc] shadow-2xl sm:size-12"
+                        >
+                          <app-icon name="mic" class="size-4" />
+                        </span>
+
+                        <span
+                          class="absolute right-[8%] bottom-[18%] grid size-11 place-items-center rounded-xl border border-white/[0.1] bg-[#171d2a] text-[#c9d0dc] shadow-2xl sm:size-12"
+                        >
+                          <app-icon name="screen-share" class="size-4" />
+                        </span>
+
+                        <span
+                          class="absolute top-1/2 left-1/2 grid size-18 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-[1.4rem] border border-primary/30 bg-[#121827] shadow-[0_20px_60px_rgba(0,0,0,0.4)] sm:size-20"
+                        >
+                          <app-logo [size]="36" />
+                        </span>
+                      </div>
+                    </div>
+                  }
+                </section>
+
+                <!-- Feature summary -->
+                <div class="mt-3 grid gap-2 sm:mt-4 sm:grid-cols-3 sm:gap-3">
+                  <div
+                    class="flex items-start gap-3 rounded-xl border border-white/[0.07] bg-white/[0.022] p-3 sm:block sm:rounded-2xl sm:p-4"
+                  >
+                    <app-icon
+                      name="mic"
+                      aria-hidden="true"
+                      class="mt-0.5 size-4 shrink-0 text-[#a995ff] sm:mt-0"
+                    />
+
+                    <div class="min-w-0 sm:mt-3">
+                      <p class="text-xs font-semibold text-white">Audio first</p>
+
+                      <p
+                        class="mt-1 text-[10px] leading-4 text-[#718095] sm:mt-1.5 sm:text-[11px] sm:leading-5"
+                      >
+                        No camera controls or video permissions.
+                      </p>
                     </div>
                   </div>
-                </div>
 
-                <div class="mt-4 grid gap-3 sm:grid-cols-3">
-                  <div class="rounded-2xl border border-white/8 bg-white/[0.025] p-4">
-                    <app-icon name="mic" [size]="17" class="text-[#a995ff]" />
-                    <p class="mt-3 text-xs font-semibold text-white">Audio first</p>
-                    <p class="mt-1.5 text-[11px] leading-5 text-[#718095]">
-                      No camera controls or video permissions.
-                    </p>
+                  <div
+                    class="flex items-start gap-3 rounded-xl border border-white/[0.07] bg-white/[0.022] p-3 sm:block sm:rounded-2xl sm:p-4"
+                  >
+                    <app-icon
+                      name="screen-share"
+                      aria-hidden="true"
+                      class="mt-0.5 size-4 shrink-0 text-[#a995ff] sm:mt-0"
+                    />
+
+                    <div class="min-w-0 sm:mt-3">
+                      <p class="text-xs font-semibold text-white">One presenter</p>
+
+                      <p
+                        class="mt-1 text-[10px] leading-4 text-[#718095] sm:mt-1.5 sm:text-[11px] sm:leading-5"
+                      >
+                        Sharing is disabled while someone presents.
+                      </p>
+                    </div>
                   </div>
-                  <div class="rounded-2xl border border-white/8 bg-white/[0.025] p-4">
-                    <app-icon name="screen-share" [size]="17" class="text-[#a995ff]" />
-                    <p class="mt-3 text-xs font-semibold text-white">One presenter</p>
-                    <p class="mt-1.5 text-[11px] leading-5 text-[#718095]">
-                      Sharing is disabled while someone presents.
-                    </p>
-                  </div>
-                  <div class="rounded-2xl border border-white/8 bg-white/[0.025] p-4">
-                    <app-icon name="chat" [size]="17" class="text-[#a995ff]" />
-                    <p class="mt-3 text-xs font-semibold text-white">Chat stays open</p>
-                    <p class="mt-1.5 text-[11px] leading-5 text-[#718095]">
-                      Keep writing before, during, and after calls.
-                    </p>
+
+                  <div
+                    class="flex items-start gap-3 rounded-xl border border-white/[0.07] bg-white/[0.022] p-3 sm:block sm:rounded-2xl sm:p-4"
+                  >
+                    <app-icon
+                      name="chat"
+                      aria-hidden="true"
+                      class="mt-0.5 size-4 shrink-0 text-[#a995ff] sm:mt-0"
+                    />
+
+                    <div class="min-w-0 sm:mt-3">
+                      <p class="text-xs font-semibold text-white">Chat stays open</p>
+
+                      <p
+                        class="mt-1 text-[10px] leading-4 text-[#718095] sm:mt-1.5 sm:text-[11px] sm:leading-5"
+                      >
+                        Keep writing before, during, and after calls.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
