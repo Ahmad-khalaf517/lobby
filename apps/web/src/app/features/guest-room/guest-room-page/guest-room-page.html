@@ -645,61 +645,135 @@
 
       @if (membersPanelOpen()) {
         <div class="fixed inset-0 z-50">
+          <!-- Backdrop -->
           <button
             type="button"
-            class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            class="absolute inset-0 cursor-default bg-black/65 backdrop-blur-[2px]"
             (click)="membersPanelOpen.set(false)"
-            aria-label="Close room members"
+            aria-label="Close room members panel"
           ></button>
+
+          <!-- Members drawer -->
           <aside
-            class="absolute inset-y-0 right-0 flex w-[min(92vw,380px)] flex-col border-l border-white/9 bg-[#0d121b] p-5 shadow-[-30px_0_80px_rgba(0,0,0,0.5)]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="members-panel-title"
+            class="absolute inset-y-0 right-0 flex w-[min(92vw,23.5rem)] flex-col overflow-hidden border-l border-white/[0.08] bg-[#0d121b] shadow-[-24px_0_70px_rgba(0,0,0,0.48)]"
           >
-            <div class="mb-5 flex items-center justify-between gap-3">
-              <div>
-                <p class="text-sm font-semibold text-white">Room members</p>
-                <p class="mt-1 text-[10px] text-[#748095]">
-                  {{ roomMemberCount() }} currently present
-                </p>
+            <!-- Drawer header -->
+            <header
+              class="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-white/[0.07] px-4"
+            >
+              <div class="flex min-w-0 items-center gap-3">
+                <div
+                  class="grid size-9 shrink-0 place-items-center rounded-lg border border-white/[0.08] bg-white/[0.035] text-[#aeb8c8]"
+                >
+                  <app-icon name="users" aria-hidden="true" class="size-4" />
+                </div>
+
+                <div class="min-w-0">
+                  <div class="flex min-w-0 items-center gap-2">
+                    <h2
+                      id="members-panel-title"
+                      class="truncate text-sm font-semibold leading-5 text-white"
+                    >
+                      Room members
+                    </h2>
+
+                    <span
+                      class="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-md bg-white/[0.055] px-1.5 text-[10px] font-medium tabular-nums text-[#bcc5d2]"
+                      [attr.aria-label]="roomMemberCount() + ' members currently present'"
+                    >
+                      {{ roomMemberCount() }}
+                    </span>
+                  </div>
+
+                  <p class="mt-0.5 truncate text-[10px] leading-4 text-[#707c90]">
+                    People currently present
+                  </p>
+                </div>
               </div>
+
               <button
                 type="button"
                 (click)="membersPanelOpen.set(false)"
-                class="grid size-9 place-items-center rounded-xl border border-white/8 bg-white/[0.035] text-[#c5ccd8] transition hover:bg-white/[0.075]"
-                aria-label="Close members"
+                aria-label="Close members panel"
+                class="grid size-9 shrink-0 place-items-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-[#9ca7b8] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60"
               >
-                <app-icon name="close" class="size-4" />
+                <app-icon name="close" aria-hidden="true" class="size-3.5" />
               </button>
-            </div>
+            </header>
 
-            <div class="mb-5 rounded-2xl border border-white/8 bg-white/[0.025] p-3">
-              <label
-                for="drawerInviteLink"
-                class="text-[10px] font-semibold tracking-[0.14em] text-[#7b8799] uppercase"
-                >Invite link</label
-              >
+            <!-- Invite section -->
+            <section
+              aria-labelledby="drawer-invite-title"
+              class="shrink-0 border-b border-white/[0.07] px-4 py-4"
+            >
+              <div class="mb-2 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <h3
+                    id="drawer-invite-title"
+                    class="text-[10px] font-semibold tracking-[0.12em] text-[#8994a6] uppercase"
+                  >
+                    Invite link
+                  </h3>
+
+                  <p class="mt-0.5 truncate text-[10px] text-[#626e82]">
+                    Share this link to invite someone
+                  </p>
+                </div>
+
+                @if (inviteCopied()) {
+                  <span role="status" class="shrink-0 text-[10px] font-medium text-emerald-300">
+                    Link copied
+                  </span>
+                }
+              </div>
+
+              <!-- Unified invite control -->
               <div
-                class="mt-2 flex h-10 min-w-0 items-center overflow-hidden rounded-xl border border-white/8 bg-[#090d14]/80"
+                class="flex h-9 min-w-0 items-stretch overflow-hidden rounded-lg border border-white/[0.08] bg-[#090d14]/80 focus-within:border-violet-400/35 focus-within:ring-1 focus-within:ring-violet-400/20"
               >
-                <input
-                  id="drawerInviteLink"
-                  type="text"
-                  readonly
-                  [value]="guestInviteLink()"
-                  class="min-w-0 flex-1 bg-transparent px-3 text-[10px] text-[#aab4c3] outline-none"
-                />
+                <div class="flex min-w-0 flex-1 items-center">
+                  <app-icon
+                    name="link"
+                    aria-hidden="true"
+                    class="ml-3 size-3.5 shrink-0 text-[#687488]"
+                  />
+
+                  <input
+                    id="drawerInviteLink"
+                    type="text"
+                    readonly
+                    [value]="guestInviteLink()"
+                    aria-label="Guest invite link"
+                    class="min-w-0 flex-1 truncate bg-transparent px-2.5 text-xs font-normal leading-none text-[#9ca7b8] outline-none selection:bg-violet-400/25"
+                  />
+                </div>
+
                 <button
                   type="button"
                   (click)="copyInviteLink()"
-                  class="mr-1 grid size-8 shrink-0 place-items-center rounded-lg text-[#d7ddea] transition hover:bg-white/[0.08]"
                   [attr.aria-label]="inviteCopied() ? 'Invite link copied' : 'Copy invite link'"
+                  class="inline-flex h-full shrink-0 items-center justify-center gap-1.5 border-l border-white/[0.08] bg-white/[0.035] px-3 text-xs font-medium leading-none text-[#c3cbd7] outline-none transition-colors hover:bg-white/[0.075] hover:text-white focus-visible:bg-white/[0.075] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-400/60"
                 >
-                  <app-icon [name]="inviteCopied() ? 'check' : 'copy'" [size]="15" />
+                  <app-icon
+                    [name]="inviteCopied() ? 'check' : 'copy'"
+                    aria-hidden="true"
+                    class="size-3.5 shrink-0"
+                  />
+
+                  <span>
+                    {{ inviteCopied() ? 'Copied' : 'Copy' }}
+                  </span>
                 </button>
               </div>
-            </div>
+            </section>
 
-            <div class="flex min-h-0 flex-1 flex-col">
+            <!-- Updated participants sidebar -->
+            <div class="flex min-h-0 flex-1 flex-col px-3 py-4">
               <app-call-participants-sidebar
+                class="flex min-h-0 flex-1 flex-col"
                 [participants]="roomParticipants()"
                 [title]="'People'"
                 [emptyText]="'Waiting for someone to join…'"
