@@ -5,16 +5,19 @@ import { RouterOutlet } from '@angular/router';
 import { AppLoadingService } from './core/loading/app-loading.service';
 import { RouteProgressComponent } from './core/loading/route-progress.component';
 import { AuthService } from './features/auth/services/auth';
+import { ProfilePopupComponent } from './features/profile/profile-popup/profile-popup';
+import { ProfilePopupService } from './features/profile/services/profile-popup.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouteProgressComponent],
+  imports: [RouterOutlet, RouteProgressComponent, ProfilePopupComponent],
   templateUrl: './app.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
   private readonly auth = inject(AuthService);
   private readonly document = inject(DOCUMENT);
+  private readonly profilePopup = inject(ProfilePopupService);
   protected readonly loading = inject(AppLoadingService);
 
   constructor() {
@@ -24,5 +27,12 @@ export class App {
 
   protected reload(): void {
     this.document.defaultView?.location.reload();
+  }
+
+  protected openMyProfile(): void {
+    const userId = this.auth.user()?.id;
+    if (userId) {
+      this.profilePopup.open(userId);
+    }
   }
 }

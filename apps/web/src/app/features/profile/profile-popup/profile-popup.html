@@ -1,0 +1,170 @@
+@if (isOpen()) {
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+    (click)="onBackdropClick($event)"
+  >
+    <div
+      class="w-full max-w-sm rounded-2xl border border-app-border bg-surface shadow-2xl overflow-hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label="User profile"
+    >
+      <!-- Banner -->
+      <div class="h-20 bg-gradient-to-r from-primary/40 to-primary/10"></div>
+
+      <div class="px-6 pb-6">
+        <!-- Avatar -->
+        <div class="-mt-10 mb-4 relative w-20">
+          @if (profile()?.avatarUrl) {
+            <img
+              [src]="profile()?.avatarUrl"
+              alt=""
+              class="h-20 w-20 rounded-2xl object-cover border-4 border-surface bg-surface"
+            />
+          } @else {
+            <div
+              class="h-20 w-20 rounded-2xl border-4 border-surface bg-primary/20 flex items-center justify-center text-2xl font-semibold text-primary"
+            >
+              {{ initials() }}
+            </div>
+          }
+
+          @if (mode() === 'edit') {
+            <button
+              type="button"
+              class="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/50 text-xs font-medium text-white opacity-0 hover:opacity-100 transition-opacity disabled:opacity-100 disabled:cursor-wait"
+              [disabled]="uploadingAvatar()"
+              (click)="triggerAvatarPicker()"
+            >
+              {{ uploadingAvatar() ? '…' : 'Change' }}
+            </button>
+          }
+        </div>
+
+        <input
+          #avatarInput
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          class="hidden"
+          (change)="onAvatarSelected($event)"
+        />
+
+        @if (loading()) {
+          <p class="text-sm text-app-muted py-4">Loading profile…</p>
+        } @else if (mode() === 'view') {
+          <!-- VIEW MODE -->
+          <h2 class="text-lg font-semibold text-app-foreground">
+            {{ profile()?.displayName }}
+          </h2>
+          <p class="text-sm text-app-muted">@{{ profile()?.username }}</p>
+          @if (profile()?.bio) {
+            <p class="mt-1 text-sm text-app-muted whitespace-pre-wrap break-words">
+              {{ profile()?.bio }}
+            </p>
+          } @else if (isOwnProfile()) {
+            <p class="mt-1 text-sm text-app-muted italic">No bio yet.</p>
+          }
+
+          @if (errorMessage()) {
+            <p class="mt-3 text-sm text-destructive">{{ errorMessage() }}</p>
+          }
+
+          <div class="mt-5 flex gap-2">
+            @if (isOwnProfile()) {
+              <button
+                type="button"
+                class="flex-1 rounded-lg border border-app-border bg-surface-hover px-4 py-2 text-sm font-medium text-app-foreground hover:bg-app-border transition-colors"
+                (click)="enterEditMode()"
+              >
+                Edit profile
+              </button>
+            }
+            <button
+              type="button"
+              class="rounded-lg border border-app-border px-4 py-2 text-sm font-medium text-app-muted hover:text-app-foreground hover:bg-surface-hover transition-colors"
+              (click)="close()"
+            >
+              Close
+            </button>
+          </div>
+        } @else {
+          <!-- EDIT MODE -->
+          <h2 class="text-base font-semibold text-app-foreground mb-4">Edit profile</h2>
+
+          @if (profile()?.avatarUrl) {
+            <button
+              type="button"
+              class="mb-4 -mt-2 text-xs font-medium text-app-muted hover:text-destructive transition-colors disabled:opacity-50"
+              [disabled]="uploadingAvatar()"
+              (click)="removeAvatar()"
+            >
+              Remove avatar
+            </button>
+          }
+
+          <label class="block text-xs font-medium text-app-muted mb-1.5" for="profile-display-name">
+            Display name
+          </label>
+          <input
+            id="profile-display-name"
+            type="text"
+            class="w-full rounded-lg border border-app-border bg-app-background px-3 py-2 text-sm text-app-foreground placeholder:text-app-muted focus:outline-none focus:ring-2 focus:ring-primary"
+            [maxlength]="maxNameLength"
+            [ngModel]="displayNameInput()"
+            (ngModelChange)="displayNameInput.set($event)"
+          />
+          <label
+            class="block text-xs font-medium text-app-muted mt-4 mb-1.5"
+            for="profile-user-name"
+          >
+            Username
+          </label>
+          <input
+            id="profile-user-name"
+            type="text"
+            class="w-full rounded-lg border border-app-border bg-app-background px-3 py-2 text-sm text-app-foreground placeholder:text-app-muted focus:outline-none focus:ring-2 focus:ring-primary"
+            [maxlength]="maxUserNameLength"
+            [ngModel]="usernameInput()"
+            (ngModelChange)="usernameInput.set($event)"
+          />
+          <label class="block text-xs font-medium text-app-muted mt-4 mb-1.5" for="profile-bio">
+            Bio
+          </label>
+          <textarea
+            id="profile-bio"
+            rows="3"
+            class="w-full resize-none rounded-lg border border-app-border bg-app-background px-3 py-2 text-sm text-app-foreground placeholder:text-app-muted focus:outline-none focus:ring-2 focus:ring-primary"
+            [ngModel]="bioInput()"
+            (ngModelChange)="onBioInput($event)"
+          ></textarea>
+          <p class="mt-1 text-right text-xs text-app-muted">
+            {{ bioCharCount() }}/{{ maxBioLength }}
+          </p>
+
+          @if (errorMessage()) {
+            <p class="mt-2 text-sm text-destructive">{{ errorMessage() }}</p>
+          }
+
+          <div class="mt-5 flex gap-2">
+            <button
+              type="button"
+              class="flex-1 rounded-lg border border-app-border bg-surface-hover px-4 py-2 text-sm font-medium text-app-foreground hover:bg-app-border transition-colors disabled:opacity-50"
+              [disabled]="saving()"
+              (click)="cancelEdit()"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="flex-1 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover transition-colors disabled:opacity-50"
+              [disabled]="saving()"
+              (click)="save()"
+            >
+              {{ saving() ? 'Saving…' : 'Save changes' }}
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
