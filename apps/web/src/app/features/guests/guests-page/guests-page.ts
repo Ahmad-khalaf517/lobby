@@ -1,11 +1,29 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
+import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MAX_CHANNEL_NAME_LENGTH, MAX_NAME_LENGTH } from '@lobby/shared';
+import type { ZodType } from 'zod';
 
+import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
+import {
+  guestChannelNameSchema,
+  guestDisplayNameSchema,
+  guestInviteCodeSchema,
+} from '../../../shared/validation/guest-channel.schema';
 import { AuthService } from '../../auth/services/auth';
 import { GuestChannelStore } from '../../guest-room/services/guest-channel.store';
-import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
+
+type GuestIdentityState = 'loading' | 'registered' | 'guest';
+type GuestField = 'displayName' | 'inviteCode' | 'channelName';
+type GuestOperation = 'join' | 'create';
 
 @Component({
   selector: 'app-guests-page',
@@ -18,94 +36,260 @@ export class GuestsPage {
   private readonly auth = inject(AuthService);
   private readonly guest = inject(GuestChannelStore);
 
+  private readonly displayNameInput = viewChild<ElementRef<HTMLInputElement>>('displayNameInput');
+  private readonly inviteCodeInput =
+    viewChild.required<ElementRef<HTMLInputElement>>('inviteCodeInput');
+  private readonly channelNameInput =
+    viewChild.required<ElementRef<HTMLInputElement>>('channelNameInput');
+
   protected readonly maxNameLength = MAX_NAME_LENGTH;
   protected readonly maxChannelNameLength = MAX_CHANNEL_NAME_LENGTH;
-  protected readonly submitting = signal(false);
+  protected readonly submittingOperation = signal<GuestOperation | null>(null);
+  protected readonly submitting = computed(() => this.submittingOperation() !== null);
+  protected readonly joinSubmitted = signal(false);
+  protected readonly createSubmitted = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
-  protected readonly requiresDisplayName = computed(() => this.auth.status() !== 'authenticated');
+
+  protected readonly identityState = computed<GuestIdentityState>(() => {
+    switch (this.auth.status()) {
+      case 'initializing':
+        return 'loading';
+      case 'authenticated':
+        return 'registered';
+      default:
+        return 'guest';
+    }
+  });
+  protected readonly authLoading = computed(() => this.identityState() === 'loading');
+  protected readonly requiresDisplayName = computed(() => this.identityState() === 'guest');
 
   protected readonly identityForm = new FormGroup({
-    displayName: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.maxLength(MAX_NAME_LENGTH)],
-    }),
+    displayName: new FormControl('', { nonNullable: true }),
   });
 
   protected readonly joinForm = new FormGroup({
-    inviteCode: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    inviteCode: new FormControl('', { nonNullable: true }),
   });
 
   protected readonly createForm = new FormGroup({
-    channelName: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(MAX_CHANNEL_NAME_LENGTH)],
-    }),
+    channelName: new FormControl('', { nonNullable: true }),
   });
 
   constructor() {
     void this.auth.initialize();
   }
 
+  protected fieldError(field: GuestField): string | null {
+    const control = this.control(field);
+    const error = control.errors?.['zod'] ?? control.errors?.['server'];
+    const submitted =
+      field === 'displayName'
+        ? this.joinSubmitted() || this.createSubmitted()
+        : field === 'inviteCode'
+          ? this.joinSubmitted()
+          : this.createSubmitted();
+    const shouldShow = control.touched || control.dirty || submitted;
+
+    return shouldShow && typeof error === 'string' ? error : null;
+  }
+
+  protected validateField(field: GuestField): void {
+    this.validateSingleField(field);
+  }
+
+  protected handleFieldInput(field: GuestField): void {
+    this.errorMessage.set(null);
+    this.validateSingleField(field);
+  }
+
   protected async joinChannel(): Promise<void> {
-    if (!this.identityValid() || this.joinForm.invalid) {
-      this.identityForm.markAllAsTouched();
-      this.joinForm.markAllAsTouched();
+    if (this.submitting() || this.authLoading()) {
       return;
     }
 
-    await this.run(async () => {
-      const code = this.joinForm.controls.inviteCode.value.trim().toUpperCase();
-      await this.guest.join(code, this.displayName());
-      await this.router.navigate(['/guest', code]);
+    this.joinSubmitted.set(true);
+    this.errorMessage.set(null);
+
+    const displayName = this.validateDisplayName();
+    const inviteCode = this.validateValue(
+      'inviteCode',
+      this.joinForm.controls.inviteCode.value,
+      guestInviteCodeSchema,
+    );
+
+    if (displayName === null || inviteCode === null) {
+      this.focusFirstInvalidField('join');
+      return;
+    }
+
+    await this.run('join', async () => {
+      await this.guest.join(inviteCode, displayName);
+      await this.router.navigate(['/guest', inviteCode]);
     });
   }
 
   protected async createChannel(): Promise<void> {
-    if (!this.identityValid() || this.createForm.invalid) {
-      this.identityForm.markAllAsTouched();
-      this.createForm.markAllAsTouched();
+    if (this.submitting() || this.authLoading()) {
       return;
     }
 
-    await this.run(async () => {
-      const result = await this.guest.create(
-        this.createForm.controls.channelName.value,
-        this.displayName(),
-      );
+    this.createSubmitted.set(true);
+    this.errorMessage.set(null);
+
+    const displayName = this.validateDisplayName();
+    const channelName = this.validateValue(
+      'channelName',
+      this.createForm.controls.channelName.value,
+      guestChannelNameSchema,
+    );
+
+    if (displayName === null || channelName === null) {
+      this.focusFirstInvalidField('create');
+      return;
+    }
+
+    await this.run('create', async () => {
+      const result = await this.guest.create(channelName, displayName);
       await this.router.navigate(['/guest', result.code]);
     });
   }
 
-  private identityValid(): boolean {
-    return !this.requiresDisplayName() || Boolean(this.displayName());
-  }
-
-  private displayName(): string | undefined {
-    const value = this.identityForm.controls.displayName.value.trim();
-    return value || undefined;
-  }
-
-  private async run(operation: () => Promise<void>): Promise<void> {
-    this.submitting.set(true);
-    this.errorMessage.set(null);
-    try {
-      await operation();
-    } catch (error: unknown) {
-      this.errorMessage.set(describeError(error));
-    } finally {
-      this.submitting.set(false);
+  private validateDisplayName(): string | undefined | null {
+    if (!this.requiresDisplayName()) {
+      this.identityForm.controls.displayName.setErrors(null);
+      return undefined;
     }
+
+    return this.validateValue(
+      'displayName',
+      this.identityForm.controls.displayName.value,
+      guestDisplayNameSchema,
+    );
+  }
+
+  private validateSingleField(field: GuestField): void {
+    switch (field) {
+      case 'displayName':
+        this.validateDisplayName();
+        break;
+      case 'inviteCode':
+        this.validateValue(field, this.joinForm.controls.inviteCode.value, guestInviteCodeSchema);
+        break;
+      case 'channelName':
+        this.validateValue(
+          field,
+          this.createForm.controls.channelName.value,
+          guestChannelNameSchema,
+        );
+        break;
+    }
+  }
+
+  private validateValue<TOutput>(
+    field: GuestField,
+    value: string,
+    schema: ZodType<TOutput>,
+  ): TOutput | null {
+    const control = this.control(field);
+    control.setErrors(null);
+
+    const result = schema.safeParse(value);
+    if (result.success) {
+      return result.data;
+    }
+
+    control.setErrors({ zod: result.error.issues[0]?.message ?? 'This value is invalid.' });
+    return null;
+  }
+
+  private control(field: GuestField): FormControl<string> {
+    switch (field) {
+      case 'displayName':
+        return this.identityForm.controls.displayName;
+      case 'inviteCode':
+        return this.joinForm.controls.inviteCode;
+      case 'channelName':
+        return this.createForm.controls.channelName;
+    }
+  }
+
+  private focusFirstInvalidField(operation: GuestOperation): void {
+    if (this.requiresDisplayName() && this.identityForm.controls.displayName.invalid) {
+      this.displayNameInput()?.nativeElement.focus();
+      return;
+    }
+
+    if (operation === 'join' && this.joinForm.controls.inviteCode.invalid) {
+      this.inviteCodeInput().nativeElement.focus();
+    } else if (operation === 'create' && this.createForm.controls.channelName.invalid) {
+      this.channelNameInput().nativeElement.focus();
+    }
+  }
+
+  private async run(operation: GuestOperation, callback: () => Promise<void>): Promise<void> {
+    this.submittingOperation.set(operation);
+    this.errorMessage.set(null);
+
+    try {
+      await callback();
+    } catch (error: unknown) {
+      const message = describeError(error);
+      if (!this.applyFieldError(operation, message)) {
+        this.errorMessage.set(message);
+      }
+    } finally {
+      this.submittingOperation.set(null);
+    }
+  }
+
+  private applyFieldError(operation: GuestOperation, message: string): boolean {
+    const normalized = message.toLowerCase();
+    let field: GuestField | null = null;
+
+    if (/display[ _-]?name|guest name/.test(normalized)) {
+      field = 'displayName';
+    } else if (operation === 'join' && /invite|channel code|\bcode\b/.test(normalized)) {
+      field = 'inviteCode';
+    } else if (operation === 'create' && /channel name|room name|\bname\b/.test(normalized)) {
+      field = 'channelName';
+    }
+
+    if (!field) {
+      return false;
+    }
+
+    const control = this.control(field);
+    control.setErrors({ ...control.errors, server: message });
+    queueMicrotask(() => this.focusFirstInvalidField(operation));
+    return true;
   }
 }
 
 function describeError(error: unknown): string {
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof error.message === 'string'
-  ) {
-    return error.message;
+  if (typeof error === 'object' && error !== null) {
+    const nestedMessage = readMessage(Reflect.get(error, 'error'));
+    if (nestedMessage) {
+      return nestedMessage;
+    }
   }
-  return 'The guest channel request failed. Please try again.';
+
+  const directMessage = readMessage(error);
+  return directMessage || 'The guest channel request failed. Please try again.';
+}
+
+function readMessage(value: unknown): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (typeof value !== 'object' || value === null) {
+    return '';
+  }
+
+  const message = Reflect.get(value, 'message');
+  if (Array.isArray(message)) {
+    return message.filter((item): item is string => typeof item === 'string').join(' ');
+  }
+
+  return typeof message === 'string' ? message : '';
 }

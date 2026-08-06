@@ -11,8 +11,9 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, NavigationStart, Router, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { firstValueFrom } from 'rxjs';
 import { CallTokenRequestSchema, CallTokenResponseSchema, MAX_NAME_LENGTH } from '@lobby/shared';
 import {
@@ -34,8 +35,13 @@ import {
   type CallConnectionState,
   type CallParticipant,
 } from '../../../shared/components/call-room';
-import { CallIconComponent, RoomChatComponent } from '../../../shared/components/room-chat';
+import {
+  CallIconComponent,
+  RoomChatComponent,
+  type SendChatMessage,
+} from '../../../shared/components/room-chat';
 import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
+import { guestDisplayNameSchema } from '../../../shared/validation/guest-channel.schema';
 import { GuestChannelStore } from '../../guest-room/services/guest-channel.store';
 
 type CallPageStatus = 'needs-name' | 'loading' | 'ready' | 'error';
@@ -51,6 +57,7 @@ type CallPageStatus = 'needs-name' | 'loading' | 'ready' | 'error';
   selector: 'app-call-room-page',
   imports: [
     ReactiveFormsModule,
+    RouterLink,
     LogoComponent,
     RoomChatComponent,
     CallIconComponent,
@@ -76,7 +83,7 @@ export class CallRoomPage {
 
   protected readonly inviteCode = this.route.snapshot.paramMap.get('inviteCode') ?? '';
   protected readonly maxNameLength = MAX_NAME_LENGTH;
-  protected readonly status = signal<CallPageStatus>('needs-name');
+  protected readonly status = signal<CallPageStatus>('loading');
   protected readonly errorMessage = signal('');
   protected readonly actionError = signal<string | null>(null);
   protected readonly displayName = signal('');
@@ -106,12 +113,11 @@ export class CallRoomPage {
     };
   });
 
-  protected readonly nameControl = new FormControl('', {
-    nonNullable: true,
-    validators: [Validators.required, Validators.maxLength(MAX_NAME_LENGTH)],
-  });
+  protected readonly nameSubmitted = signal(false);
+  protected readonly nameControl = new FormControl('', { nonNullable: true });
 
   private room: Room | null = null;
+  private preserveGuestStateOnDestroy = false;
 
   /** Audio elements created for remote tracks, keyed by participant + publication. */
   private readonly audioElements = new Map<string, HTMLAudioElement>();
@@ -137,15 +143,46 @@ export class CallRoomPage {
       }
     });
 
-    this.destroyRef.onDestroy(() => this.cleanup());
+    this.router.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event) => {
+      if (!(event instanceof NavigationStart)) {
+        return;
+      }
+
+      const targetPath = event.url.split(/[?#]/, 1)[0]?.replace(/\/$/, '') ?? '';
+      this.preserveGuestStateOnDestroy = targetPath === `/guest/${this.inviteCode}`;
+    });
+
+    this.destroyRef.onDestroy(() => {
+      this.disconnectLiveKit();
+      if (!this.preserveGuestStateOnDestroy) {
+        void this.chat.cleanup();
+      }
+    });
+  }
+
+  protected nameFieldError(): string | null {
+    const error = this.nameControl.errors?.['zod'];
+    const shouldShow = this.nameControl.touched || this.nameControl.dirty || this.nameSubmitted();
+    return shouldShow && typeof error === 'string' ? error : null;
+  }
+
+  protected validateNameField(): void {
+    this.parseDisplayName(this.nameControl.value);
+  }
+
+  protected handleNameInput(): void {
+    this.errorMessage.set('');
+    this.parseDisplayName(this.nameControl.value);
   }
 
   protected submitName(): void {
-    if (this.nameControl.invalid) {
+    this.nameSubmitted.set(true);
+    const name = this.parseDisplayName(this.nameControl.value);
+    if (name === null) {
       this.nameControl.markAsTouched();
       return;
     }
-    void this.start(this.nameControl.value.trim());
+    void this.start(name);
   }
 
   protected async toggleMic(): Promise<void> {
@@ -199,8 +236,28 @@ export class CallRoomPage {
   }
 
   protected leaveCall(): void {
-    this.cleanup();
+    this.disconnectLiveKit();
     void this.router.navigate(['/guest', this.inviteCode]);
+  }
+
+  protected onSendMessage(message: SendChatMessage): void {
+    const shouldStickToBottom = this.roomChat()?.isNearBottom() ?? true;
+    void this.chat
+      .send(message)
+      .then(() => {
+        if (shouldStickToBottom) {
+          queueMicrotask(() => this.roomChat()?.scrollToNewest(false));
+        }
+      })
+      .catch((error: unknown) => {
+        this.actionError.set(this.describeError(error));
+      });
+  }
+
+  protected onDelete(messageId: string): void {
+    void this.chat.deleteMessage(messageId).catch((error: unknown) => {
+      this.actionError.set(this.describeError(error));
+    });
   }
 
   protected onReact({ messageId, emoji }: { messageId: string; emoji: string }): void {
@@ -214,21 +271,42 @@ export class CallRoomPage {
       return;
     }
 
-    this.displayName.set(name);
+    this.nameControl.setValue(name);
+    const parsedName = this.parseDisplayName(name);
+    if (parsedName === null) {
+      this.nameSubmitted.set(true);
+      this.status.set('needs-name');
+      return;
+    }
+
+    this.displayName.set(parsedName);
     this.status.set('loading');
     this.actionError.set(null);
 
     try {
-      await this.chat.join(this.inviteCode, name);
+      await this.chat.join(this.inviteCode, parsedName);
       this.displayName.set(this.chat.displayName());
       await this.connectLiveKit();
       this.status.set('ready');
       queueMicrotask(() => this.roomChat()?.scrollToNewest(false));
     } catch (error: unknown) {
-      this.cleanup();
+      this.disconnectLiveKit();
       this.errorMessage.set(this.describeError(error));
       this.status.set('error');
     }
+  }
+
+  private parseDisplayName(value: string): string | null {
+    this.nameControl.setErrors(null);
+    const result = guestDisplayNameSchema.safeParse(value);
+    if (result.success) {
+      return result.data;
+    }
+
+    this.nameControl.setErrors({
+      zod: result.error.issues[0]?.message ?? 'Enter a valid display name.',
+    });
+    return null;
   }
 
   private async connectLiveKit(): Promise<void> {
@@ -383,11 +461,6 @@ export class CallRoomPage {
     );
   };
 
-  private cleanup(): void {
-    this.disconnectLiveKit();
-    void this.chat.cleanup();
-  }
-
   private disconnectLiveKit(): void {
     const room = this.room;
     this.room = null;
@@ -433,7 +506,7 @@ export class CallRoomPage {
       await this.connectLiveKit();
       this.status.set('ready');
     } catch (error: unknown) {
-      this.cleanup();
+      this.disconnectLiveKit();
       this.errorMessage.set(this.describeError(error));
       this.status.set('error');
     }

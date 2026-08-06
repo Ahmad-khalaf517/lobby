@@ -73,13 +73,29 @@ export class GuestChannelStore {
       return 'needs-name';
     }
 
+    const normalizedCode = inviteCode.trim().toUpperCase();
+    const currentChannel = this._channel();
+    const currentMember = this._currentMember();
+    const currentStateIsReusable =
+      this._initialized() &&
+      currentChannel?.code === normalizedCode &&
+      currentChannel.status === 'active' &&
+      Date.parse(currentChannel.expires_at) > Date.now() &&
+      currentMember !== null &&
+      currentMember.left_at === null &&
+      currentMember.removed_at === null;
+
+    if (currentStateIsReusable) {
+      return 'restored';
+    }
+
     this._loading.set(true);
     this._error.set(null);
     try {
       const { data, error } = await this.guest
         .from('channels')
         .select()
-        .eq('code', inviteCode.trim().toUpperCase())
+        .eq('code', normalizedCode)
         .maybeSingle();
 
       if (error) throw error;
@@ -89,7 +105,7 @@ export class GuestChannelStore {
       }
 
       if (this.auth.status() === 'authenticated') {
-        await this.join(inviteCode);
+        await this.join(normalizedCode);
         return 'restored';
       }
 

@@ -21,6 +21,8 @@ export class AppLoadingService {
   private readonly startupState = signal<AppStartupState>('booting');
   private readonly navigationLoading = signal(false);
   private initialNavigationSettled = false;
+  private sessionRestorationSettled = false;
+  private startupFailed = false;
 
   readonly startup = this.startupState.asReadonly();
   readonly routeLoading = this.navigationLoading.asReadonly();
@@ -61,7 +63,7 @@ export class AppLoadingService {
           event.code === NavigationCancellationCode.SupersededByNewNavigation;
 
         if (!this.initialNavigationSettled && !replacementNavigationExpected) {
-          this.failInitialNavigation();
+          this.failStartup();
         }
         return;
       }
@@ -71,16 +73,27 @@ export class AppLoadingService {
         this.navigationLoading.set(false);
 
         if (!this.initialNavigationSettled) {
-          this.failInitialNavigation();
+          this.failStartup();
         }
       }
     });
   }
 
   sessionRestorationStarted(): void {
-    if (this.startupState() === 'booting') {
+    if (!this.initialNavigationSettled) {
       this.startupState.set('restoring-session');
     }
+  }
+
+  sessionRestorationFinished(): void {
+    this.sessionRestorationSettled = true;
+    this.finishStartupWhenReady();
+  }
+
+  sessionRestorationFailed(error: unknown): void {
+    console.error('Lobby session restoration failed.', error);
+    this.sessionRestorationSettled = true;
+    this.failStartup();
   }
 
   private finishNavigation(): void {
@@ -88,11 +101,25 @@ export class AppLoadingService {
 
     if (!this.initialNavigationSettled) {
       this.initialNavigationSettled = true;
-      this.startupState.set('ready');
+      this.finishStartupWhenReady();
     }
   }
 
-  private failInitialNavigation(): void {
+  private finishStartupWhenReady(): void {
+    if (this.startupFailed) {
+      return;
+    }
+
+    if (this.initialNavigationSettled && this.sessionRestorationSettled) {
+      this.startupState.set('ready');
+      return;
+    }
+
+    this.startupState.set(this.initialNavigationSettled ? 'restoring-session' : 'navigating');
+  }
+
+  private failStartup(): void {
+    this.startupFailed = true;
     this.initialNavigationSettled = true;
     this.startupState.set('error');
   }

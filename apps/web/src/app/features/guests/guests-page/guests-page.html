@@ -26,24 +26,50 @@
     <div
       class="space-y-4 rounded-2xl border border-white/10 bg-[#141821] p-5 shadow-[0_25px_70px_rgba(0,0,0,.34)] sm:p-6"
     >
-      @if (requiresDisplayName()) {
-        <form [formGroup]="identityForm" class="space-y-2">
-          <label for="displayName" class="block text-xs font-medium text-[#737e8e]"
-            >Display name</label
+      @switch (identityState()) {
+        @case ('loading') {
+          <div
+            class="flex min-h-11 items-center gap-3 rounded-xl border border-white/7 bg-white/2.5 px-3.5 py-3 text-xs text-[#a0a9b7]"
+            role="status"
+            aria-label="Checking your profile"
           >
-          <input
-            id="displayName"
-            formControlName="displayName"
-            [maxlength]="maxNameLength"
-            autocomplete="off"
-            placeholder="e.g. Mohammad"
-            class="h-11 w-full rounded-xl border border-white/10 bg-[#1a1f2b] px-3.5 text-sm outline-none focus:border-[#8f74ff]/60"
-          />
-        </form>
-      } @else {
-        <p class="rounded-xl border border-white/7 bg-white/2.5 px-3.5 py-3 text-xs text-[#a0a9b7]">
-          Your registered profile name will be used.
-        </p>
+            <span
+              class="size-3.5 animate-spin rounded-full border-2 border-white/15 border-t-[#9d85ff]"
+              aria-hidden="true"
+            ></span>
+            Checking your profile…
+          </div>
+        }
+        @case ('guest') {
+          <form [formGroup]="identityForm" class="space-y-2" novalidate>
+            <label for="displayName" class="block text-xs font-medium text-[#737e8e]">
+              Display name
+            </label>
+            <input
+              #displayNameInput
+              id="displayName"
+              formControlName="displayName"
+              [maxlength]="maxNameLength"
+              autocomplete="name"
+              placeholder="e.g. Mohammad"
+              class="h-11 w-full rounded-xl border border-white/10 bg-[#1a1f2b] px-3.5 text-sm outline-none transition focus:border-[#8f74ff]/60 focus:ring-2 focus:ring-[#8f74ff]/20"
+              [class.auth-input-error]="fieldError('displayName')"
+              [attr.aria-invalid]="fieldError('displayName') ? 'true' : null"
+              [attr.aria-describedby]="fieldError('displayName') ? 'display-name-error' : null"
+              (input)="handleFieldInput('displayName')"
+            />
+            @if (fieldError('displayName'); as error) {
+              <p id="display-name-error" class="auth-field-error">{{ error }}</p>
+            }
+          </form>
+        }
+        @case ('registered') {
+          <p
+            class="flex min-h-11 items-center rounded-xl border border-white/7 bg-white/2.5 px-3.5 py-3 text-xs text-[#a0a9b7]"
+          >
+            Your registered profile name will be used.
+          </p>
+        }
       }
 
       @if (errorMessage(); as error) {
@@ -58,6 +84,7 @@
         [formGroup]="joinForm"
         (ngSubmit)="joinChannel()"
         class="space-y-3 border-t border-white/8 pt-4"
+        novalidate
       >
         <label
           for="inviteCode"
@@ -65,18 +92,33 @@
           >Invite code</label
         >
         <input
+          #inviteCodeInput
           id="inviteCode"
           formControlName="inviteCode"
           autocomplete="off"
+          autocapitalize="characters"
+          spellcheck="false"
           placeholder="ABC12345"
-          class="h-11 w-full rounded-xl border border-white/10 bg-[#1a1f2b] px-3.5 font-mono text-sm uppercase outline-none focus:border-[#8f74ff]/60"
+          class="h-11 w-full rounded-xl border border-white/10 bg-[#1a1f2b] px-3.5 font-mono text-sm uppercase outline-none transition focus:border-[#8f74ff]/60 focus:ring-2 focus:ring-[#8f74ff]/20"
+          [class.auth-input-error]="fieldError('inviteCode')"
+          [attr.aria-invalid]="fieldError('inviteCode') ? 'true' : null"
+          [attr.aria-describedby]="fieldError('inviteCode') ? 'invite-code-error' : null"
+          (input)="handleFieldInput('inviteCode')"
         />
+        @if (fieldError('inviteCode'); as error) {
+          <p id="invite-code-error" class="auth-field-error">{{ error }}</p>
+        }
         <button
           type="submit"
-          [disabled]="submitting()"
-          class="flex h-11 w-full items-center justify-center rounded-xl bg-primary text-sm font-semibold text-white disabled:opacity-40"
+          [disabled]="submitting() || authLoading()"
+          class="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Join channel
+          @if (submittingOperation() === 'join') {
+            <span class="auth-spinner" aria-hidden="true"></span>
+            Joining…
+          } @else {
+            Join channel
+          }
         </button>
       </form>
 
@@ -84,6 +126,7 @@
         [formGroup]="createForm"
         (ngSubmit)="createChannel()"
         class="space-y-3 border-t border-white/8 pt-4"
+        novalidate
       >
         <label
           for="channelName"
@@ -91,19 +134,32 @@
           >New channel name</label
         >
         <input
+          #channelNameInput
           id="channelName"
           formControlName="channelName"
           [maxlength]="maxChannelNameLength"
           autocomplete="off"
           placeholder="Project review"
-          class="h-11 w-full rounded-xl border border-white/10 bg-[#1a1f2b] px-3.5 text-sm outline-none focus:border-[#8f74ff]/60"
+          class="h-11 w-full rounded-xl border border-white/10 bg-[#1a1f2b] px-3.5 text-sm outline-none transition focus:border-[#8f74ff]/60 focus:ring-2 focus:ring-[#8f74ff]/20"
+          [class.auth-input-error]="fieldError('channelName')"
+          [attr.aria-invalid]="fieldError('channelName') ? 'true' : null"
+          [attr.aria-describedby]="fieldError('channelName') ? 'channel-name-error' : null"
+          (input)="handleFieldInput('channelName')"
         />
+        @if (fieldError('channelName'); as error) {
+          <p id="channel-name-error" class="auth-field-error">{{ error }}</p>
+        }
         <button
           type="submit"
-          [disabled]="submitting()"
-          class="flex h-11 w-full items-center justify-center rounded-xl border border-primary/50 text-sm font-semibold text-[#d9d0ff] disabled:opacity-40"
+          [disabled]="submitting() || authLoading()"
+          class="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-primary/50 text-sm font-semibold text-[#d9d0ff] disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Create temporary channel
+          @if (submittingOperation() === 'create') {
+            <span class="auth-spinner" aria-hidden="true"></span>
+            Creating…
+          } @else {
+            Create temporary channel
+          }
         </button>
       </form>
     </div>

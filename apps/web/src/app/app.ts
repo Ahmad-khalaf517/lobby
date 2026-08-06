@@ -19,7 +19,10 @@ export class App {
 
   constructor() {
     this.loading.sessionRestorationStarted();
-    void this.auth.initialize();
+    void this.auth
+      .initialize()
+      .then(() => this.loading.sessionRestorationFinished())
+      .catch((error: unknown) => this.loading.sessionRestorationFailed(error));
   }
 
   protected reload(): void {

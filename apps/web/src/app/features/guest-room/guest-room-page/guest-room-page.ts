@@ -9,8 +9,9 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, NavigationStart, Router, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { firstValueFrom } from 'rxjs';
 import { CallStatusResponseSchema, MAX_NAME_LENGTH } from '@lobby/shared';
 
@@ -28,6 +29,7 @@ import {
   type CallParticipant,
 } from '../../../shared/components/call-room';
 import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
+import { guestDisplayNameSchema } from '../../../shared/validation/guest-channel.schema';
 import { GuestChannelStore } from '../services/guest-channel.store';
 
 type RoomStatus = 'needs-name' | 'loading' | 'ready' | 'not-found' | 'error';
@@ -90,27 +92,49 @@ export class GuestRoomPage {
     () => this.callActive() && !this.joinCallDismissed(),
   );
 
-  protected readonly nameControl = new FormControl('', {
-    nonNullable: true,
-    validators: [Validators.required, Validators.maxLength(MAX_NAME_LENGTH)],
-  });
+  protected readonly nameSubmitted = signal(false);
+  protected readonly nameControl = new FormControl('', { nonNullable: true });
 
   private audioContext: AudioContext | null = null;
   private callStatusIntervalId: ReturnType<typeof setInterval> | null = null;
+  private preserveGuestStateOnDestroy = false;
 
   constructor() {
     if (!this.inviteCode) {
       this.status.set('not-found');
     } else {
       const requestedName = this.route.snapshot.queryParamMap.get('name')?.trim();
-      if (requestedName) void this.enterRoom(requestedName);
-      else void this.restoreRoom();
+      if (requestedName) {
+        this.nameControl.setValue(requestedName);
+        const parsedName = this.parseDisplayName();
+        if (parsedName) {
+          void this.enterRoom(parsedName);
+        } else {
+          this.nameSubmitted.set(true);
+          this.status.set('needs-name');
+        }
+      } else {
+        void this.restoreRoom();
+      }
     }
+
+    this.router.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event) => {
+      if (!(event instanceof NavigationStart)) {
+        return;
+      }
+
+      const targetPath = event.url.split(/[?#]/, 1)[0]?.replace(/\/$/, '') ?? '';
+      this.preserveGuestStateOnDestroy =
+        targetPath === `/guest/${this.inviteCode}` ||
+        targetPath === `/guest/${this.inviteCode}/call`;
+    });
 
     this.destroyRef.onDestroy(() => {
       if (this.callStatusIntervalId) clearInterval(this.callStatusIntervalId);
       void this.audioContext?.close();
-      void this.guest.cleanup();
+      if (!this.preserveGuestStateOnDestroy) {
+        void this.guest.cleanup();
+      }
     });
 
     effect(() => {
@@ -123,12 +147,29 @@ export class GuestRoomPage {
     });
   }
 
+  protected nameFieldError(): string | null {
+    const error = this.nameControl.errors?.['zod'];
+    const shouldShow = this.nameControl.touched || this.nameControl.dirty || this.nameSubmitted();
+    return shouldShow && typeof error === 'string' ? error : null;
+  }
+
+  protected validateNameField(): void {
+    this.parseDisplayName();
+  }
+
+  protected handleNameInput(): void {
+    this.errorMessage.set('');
+    this.parseDisplayName();
+  }
+
   protected submitName(): void {
-    if (this.nameControl.invalid) {
+    this.nameSubmitted.set(true);
+    const name = this.parseDisplayName();
+    if (name === null) {
       this.nameControl.markAsTouched();
       return;
     }
-    void this.enterRoom(this.nameControl.value.trim());
+    void this.enterRoom(name);
   }
 
   protected onSendMessage(message: SendChatMessage): void {
@@ -191,8 +232,17 @@ export class GuestRoomPage {
     return typeof window === 'undefined' ? path : `${window.location.origin}${path}`;
   }
 
-  protected goToCall(): void {
-    void this.router.navigate(['/guest', this.inviteCode, 'call']);
+  protected async goToCall(): Promise<void> {
+    this.preserveGuestStateOnDestroy = true;
+    try {
+      const navigated = await this.router.navigate(['/guest', this.inviteCode, 'call']);
+      if (!navigated) {
+        this.preserveGuestStateOnDestroy = false;
+      }
+    } catch (error: unknown) {
+      this.preserveGuestStateOnDestroy = false;
+      this.showActionError(error);
+    }
   }
 
   protected dismissJoinCall(): void {
@@ -205,6 +255,19 @@ export class GuestRoomPage {
 
   protected goToGuests(): void {
     void this.leaveChannel();
+  }
+
+  private parseDisplayName(): string | null {
+    this.nameControl.setErrors(null);
+    const result = guestDisplayNameSchema.safeParse(this.nameControl.value);
+    if (result.success) {
+      return result.data;
+    }
+
+    this.nameControl.setErrors({
+      zod: result.error.issues[0]?.message ?? 'Enter a valid display name.',
+    });
+    return null;
   }
 
   private async restoreRoom(): Promise<void> {
@@ -237,6 +300,10 @@ export class GuestRoomPage {
   }
 
   private startCallStatusPolling(): void {
+    if (this.callStatusIntervalId) {
+      clearInterval(this.callStatusIntervalId);
+    }
+
     const poll = async (): Promise<void> => {
       const channelId = this.guest.channel()?.id;
       if (!channelId) return;
