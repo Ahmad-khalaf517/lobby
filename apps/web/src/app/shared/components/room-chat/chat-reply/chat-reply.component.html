@@ -1,19 +1,23 @@
 @if (preview(); as preview) {
-  <div class="mx-3 mb-2 rounded-xl border border-white/12 bg-[#1a2030] px-3 py-2 sm:mx-4">
-    <div class="flex items-start justify-between gap-2">
+  <div class="border-t border-white/[0.06] bg-[#101621]/96 px-3 pt-2.5 sm:px-4">
+    <div
+      class="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 rounded-t-lg border-l-2 border-primary/60 bg-white/[0.025] px-3 py-2"
+    >
       <div class="min-w-0">
-        <p class="text-[10px] font-semibold tracking-[0.08em] text-[#a0a9b7] uppercase">
+        <p class="text-[10px] font-semibold leading-4 text-[#aa9cff]">
           Replying to {{ preview.authorName }}
         </p>
-        <p class="mt-1 truncate text-xs text-[#d8deea]">{{ preview.text }}</p>
+        <p class="truncate text-[11px] leading-4 text-[#7f8b9e]">{{ preview.text }}</p>
       </div>
+
       <button
         type="button"
         (click)="cancelReply.emit()"
-        class="shrink-0 rounded-md p-1 text-[#7d8898] transition hover:bg-white/10 hover:text-white"
+        class="grid size-7 shrink-0 place-items-center rounded-md text-[#7d8898] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:bg-white/[0.07] focus-visible:text-white"
         aria-label="Cancel reply"
+        title="Cancel reply"
       >
-        <app-icon name="close" [size]="14" />
+        <app-icon name="close" class="size-3.5" />
       </button>
     </div>
   </div>
@@ -22,8 +26,8 @@
     type="button"
     (click)="onReply()"
     aria-label="Reply to message"
-    class="grid size-7 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-[#c8cfdb] transition hover:border-white/20 hover:bg-white/10 hover:text-white"
+    class="grid size-8 shrink-0 place-items-center rounded-md text-[#929db0] outline-none transition-colors hover:bg-white/[0.08] hover:text-white focus-visible:bg-white/[0.08] focus-visible:text-white focus-visible:ring-1 focus-visible:ring-violet-400/70"
   >
-    <app-icon name="reply" [size]="14" />
+    <app-icon name="reply" aria-hidden="true" class="size-3.5" />
   </button>
 }

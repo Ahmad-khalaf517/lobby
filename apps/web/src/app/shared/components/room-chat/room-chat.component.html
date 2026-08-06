@@ -1,13 +1,15 @@
-<div class="flex min-h-0 min-w-0 flex-1 flex-col bg-[#0d121b]/72">
+<div class="flex min-h-0 min-w-0 flex-1 flex-col bg-[#0d121b]">
   <header
-    class="flex min-h-[4.75rem] shrink-0 items-center gap-3 border-b border-white/7 bg-[#0e131d]/82 px-4 backdrop-blur-xl"
+    class="flex h-14 shrink-0 items-center gap-3 border-b border-white/[0.07] bg-[#0e131d]/94 px-4 backdrop-blur-xl"
   >
-    <div class="flex shrink-0 items-center"><ng-content select="[chat-header-leading]" /></div>
+    <div class="flex shrink-0 items-center">
+      <ng-content select="[chat-header-leading]" />
+    </div>
 
     <div class="min-w-0 flex-1">
-      <p class="truncate text-sm font-semibold text-white">{{ title() }}</p>
+      <p class="truncate text-sm font-semibold leading-5 text-white">{{ title() }}</p>
       @if (subtitle()) {
-        <p class="mt-1 truncate text-[10px] font-medium text-[#748095]">{{ subtitle() }}</p>
+        <p class="truncate text-[10px] font-normal leading-4 text-[#748095]">{{ subtitle() }}</p>
       }
     </div>
 
@@ -18,9 +20,10 @@
           type="button"
           (click)="onClose()"
           aria-label="Close chat"
-          class="grid size-9 place-items-center rounded-xl border border-white/8 bg-white/[0.035] text-[#aeb8c7] transition hover:border-white/16 hover:bg-white/[0.08] hover:text-white"
+          title="Close chat"
+          class="grid size-8 place-items-center rounded-lg border border-white/[0.08] bg-white/[0.025] text-[#9da8b8] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60"
         >
-          <app-icon name="close" [size]="16" />
+          <app-icon name="close" class="size-3.5" />
         </button>
       }
     </div>

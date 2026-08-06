@@ -56,15 +56,15 @@ export class ChatAvatarComponent {
   textColorOverride = input<string | null>(null);
 
   private readonly sizeClasses: Record<ChatAvatarSize, string> = {
-    xs: 'size-6 text-[9px]',
-    sm: 'size-7 text-[10px]',
-    md: 'size-8 text-[10px] tracking-[0.08em]',
-    lg: 'size-16 text-base tracking-[0.08em]',
+    xs: 'size-6 rounded-md text-[9px]',
+    sm: 'size-7 rounded-lg text-[10px]',
+    md: 'size-9 rounded-xl text-[10px] tracking-[0.08em]',
+    lg: 'size-16 rounded-2xl text-base tracking-[0.08em]',
   };
 
   protected readonly classes = computed(
     () =>
-      `relative grid shrink-0 place-items-center rounded-full border font-semibold ${this.sizeClasses[this.size()]}`,
+      `relative grid shrink-0 place-items-center border font-semibold ${this.sizeClasses[this.size()]}`,
   );
 
   protected readonly initials = computed(

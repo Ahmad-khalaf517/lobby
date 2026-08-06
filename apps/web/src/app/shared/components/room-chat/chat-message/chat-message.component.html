@@ -1,120 +1,233 @@
-<app-chat-avatar [name]="message().author.name" [elevated]="true" />
+<app-chat-avatar [name]="message().author.name" size="md" />
 
-<div class="relative min-w-0 max-w-[82%] sm:max-w-[76%]">
-  <div
-    [class]="
-      'absolute -top-3 z-20 flex items-center gap-1 rounded-full border border-white/10 bg-[#121822]/96 p-1 shadow-[0_16px_32px_rgba(0,0,0,0.35)] opacity-100 backdrop-blur-xl transition md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100 ' +
-      (isOwn() ? 'left-0' : 'right-0')
-    "
-  >
-    @if (!message().deleted) {
-      <app-chat-reply [message]="message()" (reply)="onReply()" />
-      <app-chat-react
-        [message]="message()"
-        [menuOpen]="reactionMenuOpen()"
-        (toggleMenu)="onToggleReactionMenu()"
-        (react)="onReact($event)"
-      />
-    }
-    @if (isOwn() && !message().deleted && !message().pending) {
-      <button
-        type="button"
-        (click)="onEdit()"
-        class="grid size-7 place-items-center rounded-full text-[#8f98a8] transition hover:bg-white/8 hover:text-white"
-        aria-label="Edit message"
-      >
-        <app-icon name="edit" [size]="14" />
-      </button>
-      <app-chat-delete [messageId]="message().id" (delete)="onDelete($event)" />
-    }
-  </div>
-
-  <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5" [class.justify-end]="isOwn()">
-    <p class="text-[11px] font-semibold text-[#e9edf4]">{{ message().author.name }}</p>
-    @if (isOwn()) {
-      <span class="text-[9px] font-semibold tracking-[0.08em] text-[#9d89ff] uppercase">You</span>
-    }
-    @if (message().edited) {
-      <span class="text-[9px] text-[#657186]">edited</span>
-    }
-    @if (message().pending) {
-      <span class="text-[9px] text-[#657186]">sending…</span>
-    }
-    @if (message().failed) {
-      <span class="text-[9px] text-rose-300">failed</span>
-    }
-  </div>
-
-  @if (parsedReply(); as replyMessage) {
+<div class="min-w-0 flex-1 pt-0.5">
+  @if (!message().deleted) {
+    <!--
+      Floating message actions.
+      The toolbar is visually separate from the message row and remains visible
+      while one of its controls or menus has focus.
+    -->
     <div
-      [class]="
-        'mt-1.5 rounded-[1.25rem] border px-3.5 py-3 shadow-[0_10px_28px_rgba(0,0,0,0.14)] ' +
-        (isOwn()
-          ? 'rounded-tr-sm border-primary/30 bg-[linear-gradient(145deg,#7c5cfc,#6747df)] text-white'
-          : 'rounded-tl-sm border-white/8 bg-[#171e2a] text-[#cbd2de]')
-      "
+      data-message-actions
+      [class.pointer-events-auto]="moreMenuOpen() || reactionMenuOpen()"
+      [class.translate-y-0]="moreMenuOpen() || reactionMenuOpen()"
+      [class.scale-100]="moreMenuOpen() || reactionMenuOpen()"
+      [class.opacity-100]="moreMenuOpen() || reactionMenuOpen()"
+      class="pointer-events-none absolute -top-3 right-3 z-30 flex translate-y-1 scale-95 items-center rounded-lg border border-white/[0.09] bg-[#171c27]/95 p-0.5 opacity-0 shadow-[0_16px_40px_rgba(0,0,0,0.38)] backdrop-blur-xl transition duration-150 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:scale-100 group-focus-within:opacity-100"
+      aria-label="Message actions"
     >
-      <div
-        [class]="
-          'mb-2 rounded-xl border-l-2 px-2.5 py-2 ' +
-          (isOwn()
-            ? 'border-white/70 bg-white/12 text-white/90'
-            : 'border-primary bg-[#111722] text-[#aeb8c8]')
-        "
-      >
-        <p class="text-[9px] font-semibold tracking-[0.08em] uppercase">
-          Reply to {{ replyMessage.authorName }}
-        </p>
-        <p class="mt-1 truncate text-[11px] opacity-90">{{ replyMessage.previewText }}</p>
-      </div>
-      <p class="whitespace-pre-wrap text-[13px] leading-5">
-        @for (part of mentionParts(replyMessage.bodyText); track $index) {
-          @if (part.kind === 'all') {
-            <span [class]="chipClass(true)">@all</span>
-          } @else if (part.kind === 'member') {
-            <span [class]="chipClass(false)">{{ part.text }}</span>
-          } @else {
-            {{ part.text }}
-          }
+      <!-- React -->
+      <div class="group/action relative flex">
+        <app-chat-react
+          [message]="message()"
+          [menuOpen]="reactionMenuOpen()"
+          (toggleMenu)="onToggleReactionMenu()"
+          (react)="onReact($event)"
+        />
+
+        @if (!reactionMenuOpen()) {
+          <span
+            role="tooltip"
+            class="pointer-events-none absolute left-1/2 top-[calc(100%+0.45rem)] z-50 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/[0.08] bg-[#0b1018]/98 px-2 py-1 text-[10px] font-medium leading-none text-[#d3dae5] opacity-0 shadow-lg shadow-black/30 transition-opacity group-hover/action:opacity-100 group-focus-within/action:opacity-100"
+          >
+            Add reaction
+          </span>
         }
-      </p>
-      <div class="mt-1.5 flex" [class.justify-end]="true">
-        <span [class]="'text-[9px] ' + (isOwn() ? 'text-white/75' : 'text-[#667287]')">{{
-          messageTime(message())
-        }}</span>
       </div>
-    </div>
-  } @else {
-    <div
-      [class]="
-        'mt-1.5 rounded-[1.25rem] border px-3.5 py-2.5 shadow-[0_10px_28px_rgba(0,0,0,0.14)] ' +
-        (isOwn()
-          ? 'rounded-tr-sm border-primary/30 bg-[linear-gradient(145deg,#7c5cfc,#6747df)] text-white'
-          : 'rounded-tl-sm border-white/8 bg-[#171e2a] text-[#cbd2de]')
-      "
-    >
-      <p class="wrap-break-word whitespace-pre-wrap text-[13px] leading-5">
-        @for (part of mentionParts(message().text); track $index) {
-          @if (part.kind === 'all') {
-            <span [class]="chipClass(true)">@all</span>
-          } @else if (part.kind === 'member') {
-            <span [class]="chipClass(false)">{{ part.text }}</span>
-          } @else {
-            {{ part.text }}
-          }
+
+      <!-- Reply -->
+      <div class="group/action relative flex">
+        <app-chat-reply [message]="message()" (reply)="onReply()" />
+
+        <span
+          role="tooltip"
+          class="pointer-events-none absolute left-1/2 top-[calc(100%+0.45rem)] z-50 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/[0.08] bg-[#0b1018]/98 px-2 py-1 text-[10px] font-medium leading-none text-[#d3dae5] opacity-0 shadow-lg shadow-black/30 transition-opacity group-hover/action:opacity-100 group-focus-within/action:opacity-100"
+        >
+          Reply
+        </span>
+      </div>
+
+      <!-- More actions -->
+      <div class="group/action relative flex">
+        <button
+          type="button"
+          data-message-more-button
+          (click)="toggleMoreMenu($event)"
+          [attr.aria-expanded]="moreMenuOpen()"
+          aria-haspopup="menu"
+          aria-label="More message actions"
+          [class]="
+            'grid size-8 shrink-0 place-items-center rounded-md outline-none transition-colors hover:bg-white/[0.08] hover:text-white focus-visible:bg-white/[0.08] focus-visible:text-white focus-visible:ring-1 focus-visible:ring-violet-400/70 ' +
+            (moreMenuOpen() ? 'bg-white/[0.08] text-white' : 'text-[#929db0]')
+          "
+        >
+          <svg
+            aria-hidden="true"
+            class="size-3.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="5" cy="12" r="1" />
+            <circle cx="12" cy="12" r="1" />
+            <circle cx="19" cy="12" r="1" />
+          </svg>
+        </button>
+
+        @if (!moreMenuOpen()) {
+          <span
+            role="tooltip"
+            class="pointer-events-none absolute left-1/2 top-[calc(100%+0.45rem)] z-50 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/[0.08] bg-[#0b1018]/98 px-2 py-1 text-[10px] font-medium leading-none text-[#d3dae5] opacity-0 shadow-lg shadow-black/30 transition-opacity group-hover/action:opacity-100 group-focus-within/action:opacity-100"
+          >
+            More
+          </span>
         }
-      </p>
-      <div class="mt-1 flex justify-end">
-        <span [class]="'text-[9px] ' + (isOwn() ? 'text-white/75' : 'text-[#667287]')">{{
-          messageTime(message())
-        }}</span>
+
+        @if (moreMenuOpen()) {
+          <div
+            data-message-more-menu
+            role="menu"
+            class="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-44 overflow-hidden rounded-xl border border-white/[0.09] bg-[#171c27]/98 p-1.5 shadow-[0_20px_48px_rgba(0,0,0,0.46)] backdrop-blur-xl"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              (click)="copyMessageText($event)"
+              class="flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-xs font-medium text-[#b9c2d0] outline-none transition-colors hover:bg-white/[0.065] hover:text-white focus-visible:bg-white/[0.065] focus-visible:text-white"
+            >
+              <svg
+                aria-hidden="true"
+                class="size-3.5 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+              </svg>
+
+              <span>{{ copied() ? 'Copied' : 'Copy text' }}</span>
+            </button>
+
+            @if (isOwn() && !message().pending) {
+              <button
+                type="button"
+                role="menuitem"
+                (click)="onEditFromMenu($event)"
+                class="flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-xs font-medium text-[#b9c2d0] outline-none transition-colors hover:bg-white/[0.065] hover:text-white focus-visible:bg-white/[0.065] focus-visible:text-white"
+              >
+                <app-icon name="edit" aria-hidden="true" class="size-3.5 shrink-0" />
+                <span>Edit message</span>
+              </button>
+
+              <div aria-hidden="true" class="my-1 h-px bg-white/[0.07]"></div>
+
+              <button
+                type="button"
+                role="menuitem"
+                (click)="onDeleteFromMenu($event)"
+                class="flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-xs font-medium text-rose-300 outline-none transition-colors hover:bg-rose-400/[0.09] hover:text-rose-200 focus-visible:bg-rose-400/[0.09] focus-visible:text-rose-200"
+              >
+                <app-icon name="delete" aria-hidden="true" class="size-3.5 shrink-0" />
+                <span>Delete message</span>
+              </button>
+            }
+          </div>
+        }
       </div>
     </div>
   }
 
-  @if (message().reactions.length > 0) {
-    <div [class.flex]="true" [class.justify-end]="isOwn()">
-      <app-chat-react [message]="message()" mode="chips" (react)="onReact($event)" />
+  <!-- Author and metadata -->
+  <div class="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 pr-20">
+    <p class="truncate text-[13px] font-semibold leading-5 text-[#eef2f7]">
+      {{ message().author.name }}
+    </p>
+
+    @if (isOwn()) {
+      <span
+        class="rounded bg-primary/[0.12] px-1.5 py-0.5 text-[9px] font-semibold leading-none tracking-[0.06em] text-[#b9aaff] uppercase"
+      >
+        You
+      </span>
+    }
+
+    <time
+      class="text-[10px] font-normal leading-none text-[#69768a]"
+      [attr.datetime]="message().createdAt"
+    >
+      {{ messageTime(message()) }}
+    </time>
+
+    @if (message().edited) {
+      <span class="text-[9px] text-[#606d80]">edited</span>
+    }
+
+    @if (message().pending) {
+      <span class="text-[9px] text-[#606d80]">sending…</span>
+    }
+
+    @if (message().failed) {
+      <span class="text-[9px] font-medium text-rose-300">failed</span>
+    }
+  </div>
+
+  <!-- Reply context -->
+  @if (parsedReply(); as replyMessage) {
+    <div
+      class="mt-1.5 max-w-2xl rounded-r-lg border-l-2 border-primary/55 bg-white/[0.025] px-3 py-2"
+    >
+      <p class="text-[10px] font-semibold leading-4 text-[#a99bff]">
+        Replying to {{ replyMessage.authorName }}
+      </p>
+      <p class="truncate text-[11px] leading-4 text-[#78859a]">
+        {{ replyMessage.previewText }}
+      </p>
     </div>
+
+    <p
+      [class]="
+        'mt-1.5 max-w-3xl wrap-break-word whitespace-pre-wrap text-[13px] leading-[1.55] ' +
+        (message().deleted ? 'italic text-[#707c8e]' : 'text-[#d7dde7]')
+      "
+    >
+      @for (part of mentionParts(replyMessage.bodyText); track $index) {
+        @if (part.kind === 'all') {
+          <span [class]="chipClass(true)">@all</span>
+        } @else if (part.kind === 'member') {
+          <span [class]="chipClass(false)">{{ part.text }}</span>
+        } @else {
+          {{ part.text }}
+        }
+      }
+    </p>
+  } @else {
+    <p
+      [class]="
+        'mt-1 max-w-3xl wrap-break-word whitespace-pre-wrap text-[13px] leading-[1.55] ' +
+        (message().deleted ? 'italic text-[#707c8e]' : 'text-[#d7dde7]')
+      "
+    >
+      @for (part of mentionParts(message().text); track $index) {
+        @if (part.kind === 'all') {
+          <span [class]="chipClass(true)">@all</span>
+        } @else if (part.kind === 'member') {
+          <span [class]="chipClass(false)">{{ part.text }}</span>
+        } @else {
+          {{ part.text }}
+        }
+      }
+    </p>
+  }
+
+  @if (message().reactions.length > 0) {
+    <app-chat-react [message]="message()" mode="chips" (react)="onReact($event)" />
   }
 </div>

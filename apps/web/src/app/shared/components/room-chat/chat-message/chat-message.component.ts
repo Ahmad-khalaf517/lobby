@@ -1,7 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  HostListener,
+  computed,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { LobbyIconComponent } from '../../../ui/icon/lobby-icon.component';
 import { ChatAvatarComponent } from '../chat-avatar/chat-avatar.component';
-import { ChatDeleteComponent } from '../chat-delete/chat-delete.component';
 import { ChatReactComponent } from '../chat-react/chat-react.component';
 import { ChatReplyComponent } from '../chat-reply/chat-reply.component';
 import type { ChatMessage } from '../models/chat-message.model';
@@ -9,28 +16,19 @@ import type { ChatMessage } from '../models/chat-message.model';
 export type ParsedReply = { authorName: string; previewText: string; bodyText: string };
 
 /**
- * A single message bubble: avatar, author name, "You" tag, timestamp, text
- * (with @mention chips), an inline reply-quote when the message is a reply,
- * hover actions (reply / react / delete) and reaction chips.
- *
- * Presentational only — all data comes in via inputs and actions go out via
- * outputs. The parent (via room-chat) owns the actual state.
+ * A clean, full-width message row with a compact floating action toolbar.
+ * Fast actions (React and Reply) remain one click away, while secondary and
+ * destructive actions live in a structured More menu.
  */
 @Component({
   selector: 'app-chat-message',
   standalone: true,
-  imports: [
-    LobbyIconComponent,
-    ChatAvatarComponent,
-    ChatReplyComponent,
-    ChatReactComponent,
-    ChatDeleteComponent,
-  ],
+  imports: [LobbyIconComponent, ChatAvatarComponent, ChatReplyComponent, ChatReactComponent],
   templateUrl: './chat-message.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'group flex w-full items-start gap-2.5',
-    '[class.flex-row-reverse]': 'isOwn()',
+    class:
+      'group relative flex w-full items-start gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-white/[0.025] focus-within:bg-white/[0.025]',
   },
 })
 export class ChatMessageComponent {
@@ -54,10 +52,14 @@ export class ChatMessageComponent {
   /** Emitted when an emoji is picked or a chip is toggled. */
   readonly react = output<{ messageId: string; emoji: string }>();
 
-  /** Emitted with the message id when deletion is confirmed / triggered. */
+  /** Emitted with the message id when deletion is triggered. */
   readonly delete = output<string>();
+
+  /** Emitted when the user chooses Edit from the More menu. */
   readonly edit = output<ChatMessage>();
 
+  protected readonly moreMenuOpen = signal(false);
+  protected readonly copied = signal(false);
   protected readonly isOwn = computed(() => this.message().author.id === this.currentUserId());
 
   protected readonly parsedReply = computed<ParsedReply | null>(() => {
@@ -68,10 +70,12 @@ export class ChatMessageComponent {
   });
 
   protected onReply(): void {
+    this.closeMoreMenu();
     this.reply.emit(this.message());
   }
 
   protected onToggleReactionMenu(): void {
+    this.closeMoreMenu();
     this.toggleReactionMenu.emit(this.message().id);
   }
 
@@ -79,12 +83,63 @@ export class ChatMessageComponent {
     this.react.emit(payload);
   }
 
-  protected onDelete(messageId: string): void {
-    this.delete.emit(messageId);
+  protected toggleMoreMenu(event: MouseEvent): void {
+    event.stopPropagation();
+
+    if (this.reactionMenuOpen()) {
+      this.toggleReactionMenu.emit(this.message().id);
+    }
+
+    this.moreMenuOpen.update((open) => !open);
   }
 
-  protected onEdit(): void {
+  protected async copyMessageText(event: MouseEvent): Promise<void> {
+    event.stopPropagation();
+
+    try {
+      await navigator.clipboard.writeText(this.message().text);
+      this.copied.set(true);
+      window.setTimeout(() => this.copied.set(false), 1200);
+    } catch {
+      this.copied.set(false);
+    }
+  }
+
+  protected onEditFromMenu(event: MouseEvent): void {
+    event.stopPropagation();
+    this.closeMoreMenu();
     this.edit.emit(this.message());
+  }
+
+  protected onDeleteFromMenu(event: MouseEvent): void {
+    event.stopPropagation();
+    this.closeMoreMenu();
+    this.delete.emit(this.message().id);
+  }
+
+  protected closeMoreMenu(): void {
+    this.moreMenuOpen.set(false);
+  }
+
+  @HostListener('document:click', ['$event'])
+  protected handleDocumentClick(event: MouseEvent): void {
+    if (!this.moreMenuOpen()) {
+      return;
+    }
+
+    const target = event.target;
+    if (
+      target instanceof Element &&
+      !target.closest('[data-message-more-menu]') &&
+      !target.closest('[data-message-more-button]')
+    ) {
+      this.closeMoreMenu();
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  protected handleEscape(): void {
+    this.closeMoreMenu();
   }
 
   protected chipClass(isAll: boolean): string {
