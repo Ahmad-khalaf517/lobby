@@ -1,7 +1,7 @@
-/* eslint-disable no-console */
 import 'dotenv/config';
 
 import cookieParser from 'cookie-parser';
+import express from 'express';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
@@ -9,6 +9,8 @@ import { AppModule } from './app.module';
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
   app.use(cookieParser());
 
   const allowedOrigins = (
