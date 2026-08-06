@@ -1,87 +1,149 @@
 <footer
-  class="pointer-events-none absolute inset-x-0 bottom-4 z-30 flex justify-center px-4 sm:bottom-5"
+  class="pointer-events-none absolute inset-x-0 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 flex justify-center px-3 sm:bottom-5 sm:px-4"
 >
   <div
-    class="pointer-events-auto flex max-w-full items-center gap-2 rounded-[1.35rem] border border-white/10 bg-[#0d1119]/90 p-2 shadow-[0_24px_70px_rgba(0,0,0,0.55)] backdrop-blur-2xl"
+    class="pointer-events-auto flex max-w-full items-center gap-1.5 rounded-2xl border border-white/[0.09] bg-[#11151d]/95 p-1.5 shadow-[0_20px_55px_rgba(0,0,0,0.45)] backdrop-blur-2xl"
+    role="toolbar"
+    aria-label="Call controls"
   >
-    <div class="hidden min-w-0 items-center gap-2.5 border-r border-white/8 pr-3 sm:flex">
-      <app-chat-avatar [name]="currentUserName()" size="sm" [elevated]="true" />
+    <!-- Current participant -->
+    <div class="hidden min-w-0 items-center gap-2.5 border-r border-white/[0.08] px-2 pr-3 lg:flex">
+      <app-chat-avatar [name]="currentUserName()" size="sm" />
+
       <div class="min-w-0">
-        <p class="max-w-32 truncate text-xs font-semibold text-white">{{ currentUserName() }}</p>
-        <p class="text-[10px] text-[#778295]">In the call</p>
+        <p class="max-w-32 truncate text-xs font-medium text-[#f0f2f5]">
+          {{ currentUserName() }}
+        </p>
+
+        <div class="mt-0.5 flex items-center gap-1.5">
+          <span aria-hidden="true" class="size-1.5 rounded-full bg-emerald-400"></span>
+
+          <p class="text-[10px] text-[#818c9d]">In the call</p>
+        </div>
       </div>
     </div>
 
-    <button
-      type="button"
-      (click)="toggleMic.emit()"
-      [disabled]="micPending() || !enabled()"
-      class="grid size-12 place-items-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-45"
-      [class]="
-        micEnabled()
-          ? 'border-primary/35 bg-primary/20 text-[#e8e2ff] hover:bg-primary/28'
-          : 'border-rose-400/25 bg-rose-400/10 text-rose-200 hover:bg-rose-400/16'
-      "
-      [attr.aria-label]="micEnabled() ? 'Mute microphone' : 'Unmute microphone'"
-      [attr.title]="micEnabled() ? 'Mute microphone' : 'Unmute microphone'"
-    >
-      <app-icon [name]="micEnabled() ? 'mic' : 'mic-off'" [size]="19" />
-    </button>
+    <!-- Microphone -->
+    <div class="group/control relative">
+      <button
+        type="button"
+        (click)="toggleMic.emit()"
+        [disabled]="micPending() || !enabled()"
+        [attr.aria-label]="micEnabled() ? 'Mute microphone' : 'Unmute microphone'"
+        [attr.aria-pressed]="!micEnabled()"
+        class="grid size-11 shrink-0 place-items-center rounded-xl border outline-none transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45 sm:size-12"
+        [class]="
+          micEnabled()
+            ? 'border-white/[0.08] bg-white/[0.055] text-[#e3e7ed] hover:bg-white/[0.1] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60'
+            : 'border-rose-400/20 bg-rose-500/90 text-white hover:bg-rose-500 focus-visible:ring-2 focus-visible:ring-rose-400/70'
+        "
+      >
+        @if (micPending()) {
+          <span
+            aria-hidden="true"
+            class="size-4 animate-spin rounded-full border-2 border-current/25 border-t-current"
+          ></span>
+        } @else {
+          <app-icon [name]="micEnabled() ? 'mic' : 'mic-off'" aria-hidden="true" class="size-4" />
+        }
+      </button>
 
-    <div class="group relative flex">
+      <span
+        role="tooltip"
+        class="pointer-events-none absolute bottom-[calc(100%+0.55rem)] left-1/2 z-50 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-white/[0.08] bg-[#171c25] px-2 py-1.5 text-[10px] font-medium leading-none text-[#d8dde5] shadow-xl group-hover/control:block group-focus-within/control:block"
+      >
+        {{ micEnabled() ? 'Mute microphone' : 'Turn on microphone' }}
+      </span>
+    </div>
+
+    <!-- Screen sharing -->
+    <div class="group/control relative">
       <button
         type="button"
         (click)="toggleScreenShare.emit()"
         [disabled]="screenSharePending() || !enabled() || screenShareDisabled()"
-        class="grid size-12 place-items-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-45"
-        [class]="
-          screenShareActive()
-            ? 'border-emerald-400/35 bg-emerald-400/14 text-emerald-200 hover:bg-emerald-400/20'
-            : 'border-white/9 bg-white/[0.055] text-[#d7ddea] hover:border-white/16 hover:bg-white/10'
-        "
         [attr.aria-label]="
           screenShareActive()
             ? 'Stop screen sharing'
             : screenShareDisabledReason() || 'Share your screen'
         "
-        [attr.title]="
+        [attr.aria-pressed]="screenShareActive()"
+        class="grid size-11 shrink-0 place-items-center rounded-xl border outline-none transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45 sm:size-12"
+        [class]="
           screenShareActive()
-            ? 'Stop screen sharing'
-            : screenShareDisabledReason() || 'Share your screen'
+            ? 'border-primary/40 bg-primary text-white shadow-[0_8px_24px_rgba(124,92,252,0.22)] hover:bg-[#896aff] focus-visible:ring-2 focus-visible:ring-violet-400/70'
+            : 'border-white/[0.08] bg-white/[0.055] text-[#e3e7ed] hover:bg-white/[0.1] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60'
         "
       >
-        <app-icon [name]="screenShareActive() ? 'screen-share-off' : 'screen-share'" [size]="19" />
+        @if (screenSharePending()) {
+          <span
+            aria-hidden="true"
+            class="size-4 animate-spin rounded-full border-2 border-current/25 border-t-current"
+          ></span>
+        } @else {
+          <app-icon
+            [name]="screenShareActive() ? 'screen-share-off' : 'screen-share'"
+            aria-hidden="true"
+            class="size-4"
+          />
+        }
       </button>
 
-      @if (screenShareDisabledReason(); as reason) {
-        <span
-          class="pointer-events-none absolute bottom-[calc(100%+0.6rem)] left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg border border-white/10 bg-[#111722] px-2.5 py-1.5 text-[10px] font-medium text-[#d7ddea] shadow-xl group-hover:block"
-        >
-          {{ reason }}
-        </span>
-      }
+      <span
+        role="tooltip"
+        class="pointer-events-none absolute bottom-[calc(100%+0.55rem)] left-1/2 z-50 hidden max-w-56 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/[0.08] bg-[#171c25] px-2 py-1.5 text-[10px] font-medium leading-none text-[#d8dde5] shadow-xl group-hover/control:block group-focus-within/control:block"
+      >
+        {{
+          screenShareActive()
+            ? 'Stop presenting'
+            : screenShareDisabledReason() || 'Present your screen'
+        }}
+      </span>
     </div>
 
-    <button
-      type="button"
-      (click)="toggleParticipants.emit()"
-      class="hidden h-12 items-center gap-2 rounded-full border border-white/8 bg-white/[0.055] px-4 text-xs font-semibold text-[#d7ddea] transition hover:border-white/16 hover:bg-white/10 sm:inline-flex"
-      aria-label="Open participants"
-    >
-      <app-icon name="users" [size]="17" />
-      {{ participantCount() }}
-    </button>
+    <!-- Participants -->
+    <div class="group/control relative">
+      <button
+        type="button"
+        (click)="toggleParticipants.emit()"
+        class="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.055] px-2.5 text-xs font-medium tabular-nums text-[#e0e4eb] outline-none transition-colors hover:bg-white/[0.1] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-12 sm:px-3"
+        aria-label="Open participants"
+      >
+        <app-icon name="users" aria-hidden="true" class="size-4" />
 
-    <span class="mx-0.5 h-7 w-px bg-white/8"></span>
+        <span>
+          {{ participantCount() }}
+        </span>
+      </button>
 
-    <button
-      type="button"
-      (click)="leave.emit()"
-      class="grid size-12 place-items-center rounded-full border border-rose-400/25 bg-rose-500/14 text-rose-200 transition hover:bg-rose-500/22"
-      aria-label="Leave call"
-      title="Leave call"
-    >
-      <app-icon name="leave-call" [size]="19" />
-    </button>
+      <span
+        role="tooltip"
+        class="pointer-events-none absolute bottom-[calc(100%+0.55rem)] left-1/2 z-50 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-white/[0.08] bg-[#171c25] px-2 py-1.5 text-[10px] font-medium leading-none text-[#d8dde5] shadow-xl group-hover/control:block group-focus-within/control:block"
+      >
+        View participants
+      </span>
+    </div>
+
+    <!-- Leave separator -->
+    <span aria-hidden="true" class="mx-0.5 h-7 w-px shrink-0 bg-white/[0.08]"></span>
+
+    <!-- Leave call -->
+    <div class="group/control relative">
+      <button
+        type="button"
+        (click)="leave.emit()"
+        class="grid size-11 shrink-0 place-items-center rounded-xl bg-rose-500 text-white outline-none transition-colors duration-150 hover:bg-rose-400 focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#11151d] sm:size-12"
+        aria-label="Leave call"
+      >
+        <app-icon name="leave-call" aria-hidden="true" class="size-4" />
+      </button>
+
+      <span
+        role="tooltip"
+        class="pointer-events-none absolute right-0 bottom-[calc(100%+0.55rem)] z-50 hidden whitespace-nowrap rounded-md border border-white/[0.08] bg-[#171c25] px-2 py-1.5 text-[10px] font-medium leading-none text-[#d8dde5] shadow-xl group-hover/control:block group-focus-within/control:block"
+      >
+        Leave call
+      </span>
+    </div>
   </div>
 </footer>

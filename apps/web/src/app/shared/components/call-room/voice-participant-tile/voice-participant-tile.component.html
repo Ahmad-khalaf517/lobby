@@ -1,81 +1,147 @@
-<div
-  class="group relative overflow-hidden rounded-[1.4rem] border bg-[linear-gradient(145deg,rgba(27,33,48,0.96),rgba(13,17,27,0.96))] shadow-[0_18px_55px_rgba(0,0,0,0.28)] transition duration-300"
-  [class]="
-    participant().isSpeaking
-      ? 'border-emerald-400/55 ring-1 ring-emerald-400/20'
-      : participant().isLocal
-        ? 'border-primary/45'
-        : 'border-white/9 hover:border-white/16'
-  "
->
+@if (compact()) {
+  <!-- Compact participant tile -->
   <div
-    class="pointer-events-none absolute inset-0 opacity-0 transition duration-300 group-hover:opacity-100"
+    role="group"
+    [attr.aria-label]="participant().name + ' call participant'"
     [class]="
-      participant().isSpeaking
-        ? 'bg-[radial-gradient(circle_at_50%_18%,rgba(34,197,94,0.16),transparent_52%)] opacity-100'
-        : 'bg-[radial-gradient(circle_at_50%_18%,rgba(124,92,252,0.13),transparent_58%)]'
-    "
-    aria-hidden="true"
-  ></div>
-
-  <div
-    [class]="
-      compact()
-        ? 'flex items-center gap-3 px-3.5 py-3'
-        : 'grid min-h-44 place-items-center px-5 py-7'
+      'group relative flex min-h-16 items-center gap-3 overflow-hidden rounded-xl bg-[#0a1320] px-3 py-2.5 transition-colors duration-200 ' +
+      (participant().isSpeaking ? 'ring-2 ring-inset ring-emerald-400/65' : 'hover:bg-[#191f29]')
     "
   >
-    <div class="relative shrink-0">
-      <div
-        class="rounded-full transition duration-300"
-        [class]="participant().isSpeaking ? 'ring-4 ring-emerald-400/20' : ''"
-      >
-        <app-chat-avatar
-          [name]="participant().name"
-          [size]="compact() ? 'md' : 'lg'"
-          [elevated]="true"
-          status="online"
-        />
-      </div>
-      @if (participant().isSpeaking) {
-        <span
-          class="absolute -right-1 -bottom-1 size-3 rounded-full border-2 border-[#111622] bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.9)]"
-        ></span>
-      }
+    <!-- Avatar -->
+    <div
+      [class]="
+        'shrink-0 rounded-full transition-shadow duration-200 ' +
+        (participant().isSpeaking
+          ? 'ring-2 ring-emerald-400/70 ring-offset-2 ring-offset-[#151a22]'
+          : '')
+      "
+    >
+      <app-chat-avatar [name]="participant().name" size="md" />
     </div>
 
-    <div [class]="compact() ? 'min-w-0 flex-1' : 'mt-4 min-w-0 text-center'">
-      <div class="flex items-center gap-2" [class.justify-center]="!compact()">
-        <p class="truncate text-sm font-semibold text-white">{{ participant().name }}</p>
+    <!-- Participant details -->
+    <div class="min-w-0 flex-1">
+      <div class="flex min-w-0 items-center gap-1.5">
+        <p class="truncate text-[13px] font-medium text-[#f1f3f6]">
+          {{ participant().name }}
+        </p>
+
         @if (participant().isLocal) {
-          <span
-            class="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[9px] font-semibold tracking-[0.12em] text-[#c8bbff] uppercase"
-            >You</span
-          >
+          <span class="shrink-0 text-[10px] font-normal text-[#9aa4b2]"> You </span>
         }
       </div>
-      <p class="mt-1 text-[11px] text-[#7f8a9c]">
+
+      <p
+        [class]="
+          'mt-0.5 truncate text-[10px] ' +
+          (participant().isSpeaking ? 'text-emerald-300' : 'text-[#778293]')
+        "
+      >
         {{
           participant().isSpeaking
-            ? 'Speaking now'
+            ? 'Speaking'
             : participant().isMicMuted
-              ? 'Microphone muted'
-              : 'Listening'
+              ? 'Microphone off'
+              : 'In the call'
         }}
       </p>
     </div>
 
-    <div [class]="compact() ? 'ml-auto' : 'absolute top-3 right-3'">
-      <span
-        class="grid size-8 place-items-center rounded-full border border-white/8 bg-black/20 text-[#9aa5b7] backdrop-blur"
-        [attr.aria-label]="
-          participant().isMicMuted
-            ? participant().name + ' is muted'
-            : participant().name + ' is unmuted'
+    <!-- Microphone state -->
+    <span
+      [class]="
+        'grid size-8 shrink-0 place-items-center rounded-full ' +
+        (participant().isMicMuted
+          ? 'bg-rose-400/[0.12] text-rose-300'
+          : 'bg-black/25 text-[#a0a9b7]')
+      "
+      [attr.aria-label]="
+        participant().isMicMuted
+          ? participant().name + ' is muted'
+          : participant().name + ' microphone is active'
+      "
+      [attr.title]="participant().isMicMuted ? 'Microphone off' : 'Microphone active'"
+    >
+      <app-icon
+        [name]="participant().isMicMuted ? 'mic-off' : 'mic'"
+        aria-hidden="true"
+        class="size-3.5"
+      />
+    </span>
+  </div>
+} @else {
+  <!-- Standard meeting tile -->
+  <div
+    role="group"
+    [attr.aria-label]="participant().name + ' call participant'"
+    [class]="
+      'group relative aspect-video min-h-44 overflow-hidden rounded-xl bg-[#151a22] transition duration-200 ' +
+      (participant().isSpeaking ? 'ring-2 ring-inset ring-emerald-400/70' : 'hover:bg-[#181e27]')
+    "
+  >
+    <!-- Centered participant avatar -->
+    <div class="absolute inset-0 flex items-center justify-center pb-5">
+      <div
+        [class]="
+          'rounded-full transition-shadow duration-200 ' +
+          (participant().isSpeaking
+            ? 'ring-2 ring-emerald-400/75 ring-offset-3 ring-offset-[#151a22]'
+            : '')
         "
       >
-        <app-icon [name]="participant().isMicMuted ? 'mic-off' : 'mic'" [size]="16" />
-      </span>
+        <app-chat-avatar [name]="participant().name" size="lg" class="scale-110" />
+      </div>
     </div>
+
+    <!-- Bottom readability gradient -->
+    <div
+      aria-hidden="true"
+      class="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/65 via-black/20 to-transparent"
+    ></div>
+
+    <!-- Participant name -->
+    <div class="absolute right-14 bottom-3 left-3 min-w-0">
+      <div class="flex min-w-0 items-center gap-1.5">
+        <p class="truncate text-[13px] font-medium leading-5 text-white drop-shadow-sm">
+          {{ participant().name }}
+        </p>
+
+        @if (participant().isLocal) {
+          <span class="shrink-0 text-[11px] font-normal text-white/65"> You </span>
+        }
+      </div>
+    </div>
+
+    <!-- Microphone state -->
+    <span
+      [class]="
+        'absolute right-3 bottom-3 grid size-8 place-items-center rounded-full backdrop-blur-sm ' +
+        (participant().isMicMuted ? 'bg-rose-500/90 text-white' : 'bg-black/45 text-white/80')
+      "
+      [attr.aria-label]="
+        participant().isMicMuted
+          ? participant().name + ' is muted'
+          : participant().name + ' microphone is active'
+      "
+      [attr.title]="participant().isMicMuted ? 'Microphone off' : 'Microphone active'"
+    >
+      <app-icon
+        [name]="participant().isMicMuted ? 'mic-off' : 'mic'"
+        aria-hidden="true"
+        class="size-3.5"
+      />
+    </span>
+
+    <!-- Speaking indicator -->
+    @if (participant().isSpeaking) {
+      <span
+        class="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-medium text-emerald-200 backdrop-blur-sm"
+      >
+        <span aria-hidden="true" class="size-1.5 rounded-full bg-emerald-400"></span>
+
+        Speaking
+      </span>
+    }
   </div>
-</div>
+}
