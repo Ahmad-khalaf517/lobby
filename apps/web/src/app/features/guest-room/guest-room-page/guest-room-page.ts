@@ -41,6 +41,7 @@ import { GuestChannelStore } from '../services/guest-channel.store';
 
 type RoomStatus = 'needs-name' | 'loading' | 'ready' | 'not-found' | 'error';
 const CALL_STATUS_POLL_MS = 10_000;
+const CALL_SESSION_KEY_PREFIX = 'lobby:guest-call:';
 
 @Component({
   selector: 'app-guest-room-page',
@@ -74,7 +75,10 @@ export class GuestRoomPage {
   protected readonly errorMessage = signal('');
   protected readonly actionNotice = signal<string | null>(null);
   protected readonly callActive = signal(false);
+  protected readonly callStatusLoading = signal(true);
+  protected readonly callStatusParticipantCount = signal(0);
   protected readonly callJoining = signal(false);
+  protected readonly restoringCallSession = signal(false);
   protected readonly mobileChatOpen = signal(false);
   protected readonly membersPanelOpen = signal(false);
   protected readonly chatCollapsed = signal(false);
@@ -126,7 +130,9 @@ export class GuestRoomPage {
   });
 
   protected readonly roomMemberCount = computed(() => this.guest.members().length);
-  protected readonly callParticipantCount = computed(() => this.call.participants().length);
+  protected readonly callParticipantCount = computed(() =>
+    this.call.joined() ? this.call.participants().length : this.callStatusParticipantCount(),
+  );
   protected readonly callButtonLabel = computed(() =>
     this.callActive() ? 'Join live call' : 'Start audio call',
   );
@@ -143,8 +149,10 @@ export class GuestRoomPage {
   });
 
   private callStatusIntervalId: ReturnType<typeof setInterval> | null = null;
+  private callStatusPollInFlight = false;
   private clockIntervalId: ReturnType<typeof setInterval> | null = null;
   private inviteCopiedTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private destroyed = false;
 
   constructor() {
     if (!this.inviteCode) {
@@ -172,14 +180,16 @@ export class GuestRoomPage {
       if (storeError) this.actionNotice.set(storeError);
 
       if (this.guest.ended() && this.status() === 'ready') {
-        this.call.disconnect();
+        this.forgetCallSession();
+        void this.call.disconnect();
         this.errorMessage.set('This guest room has ended or expired.');
         this.status.set('error');
       }
 
       const member = this.guest.currentMember();
       if (this.status() === 'ready' && member && (member.left_at || member.removed_at)) {
-        this.call.disconnect();
+        this.forgetCallSession();
+        void this.call.disconnect();
         this.errorMessage.set(
           member.removed_at ? 'You were removed from this room.' : 'You have left this room.',
         );
@@ -192,11 +202,22 @@ export class GuestRoomPage {
       if (callError) this.actionNotice.set(callError);
     });
 
+    effect(() => {
+      const connectionState = this.call.connectionState();
+      if (
+        this.status() === 'ready' &&
+        (connectionState === 'disconnected' || connectionState === 'error')
+      ) {
+        void this.refreshCallStatus();
+      }
+    });
+
     this.destroyRef.onDestroy(() => {
+      this.destroyed = true;
       if (this.callStatusIntervalId) clearInterval(this.callStatusIntervalId);
       if (this.clockIntervalId) clearInterval(this.clockIntervalId);
       if (this.inviteCopiedTimeoutId) clearTimeout(this.inviteCopiedTimeoutId);
-      this.call.disconnect();
+      void this.call.disconnect();
       void this.guest.cleanup();
     });
 
@@ -231,11 +252,13 @@ export class GuestRoomPage {
     void this.enterRoom(name);
   }
 
-  protected async joinCall(): Promise<void> {
-    if (this.callJoining() || this.call.joined()) return;
+  protected async joinCall(restoringSession = false): Promise<void> {
+    if (this.callJoining() || this.call.joined() || this.destroyed) return;
 
     this.callJoining.set(true);
+    this.restoringCallSession.set(restoringSession);
     this.actionNotice.set(null);
+
     try {
       const channelId = this.guest.channel()?.id;
       if (!channelId) throw new Error('Active channel membership is required.');
@@ -246,23 +269,52 @@ export class GuestRoomPage {
       );
       const response = CallTokenResponseSchema.parse(raw);
 
+      // The component may have been destroyed while the token request was in flight.
+      if (this.destroyed) return;
+
       await this.call.connect({
         livekitUrl: response.livekitUrl,
         token: response.token,
         roomName: response.roomName,
       });
+
+      if (this.destroyed) {
+        await this.call.disconnect();
+        return;
+      }
+
+      // The user may cancel while LiveKit is still connecting.
+      if (!this.call.joined()) return;
+
+      this.rememberCallSession();
+      this.callStatusParticipantCount.set(this.call.participants().length);
       this.callActive.set(true);
+      this.callStatusLoading.set(false);
     } catch (error: unknown) {
-      this.actionNotice.set(describeError(error));
+      if (restoringSession) this.forgetCallSession();
+      const message = describeError(error);
+      this.actionNotice.set(
+        restoringSession ? `Could not restore your call automatically. ${message}` : message,
+      );
     } finally {
       this.callJoining.set(false);
+      this.restoringCallSession.set(false);
     }
   }
 
-  protected leaveCall(): void {
-    const otherParticipantsRemain = this.callParticipantCount() > 1;
-    this.call.disconnect();
-    this.callActive.set(otherParticipantsRemain);
+  protected async leaveCall(): Promise<void> {
+    this.forgetCallSession();
+
+    const remainingParticipantCount = Math.max(0, this.call.participants().length - 1);
+
+    // Keep the pre-join card accurate immediately, then confirm it against the
+    // server after LiveKit has completed the disconnect.
+    this.callStatusParticipantCount.set(remainingParticipantCount);
+    this.callActive.set(remainingParticipantCount > 0);
+    this.callStatusLoading.set(false);
+
+    await this.call.disconnect();
+    await this.refreshCallStatus();
   }
 
   protected toggleMic(): void {
@@ -303,8 +355,10 @@ export class GuestRoomPage {
   }
 
   protected async leaveChannel(): Promise<void> {
+    this.forgetCallSession();
+
     try {
-      this.call.disconnect();
+      await this.call.disconnect();
       await this.guest.leave();
       await this.router.navigate(['/guests']);
     } catch (error: unknown) {
@@ -320,8 +374,10 @@ export class GuestRoomPage {
       return;
     }
 
+    this.forgetCallSession();
+
     try {
-      this.call.disconnect();
+      await this.call.disconnect();
       await this.guest.close();
     } catch (error: unknown) {
       this.showActionError(error);
@@ -394,34 +450,99 @@ export class GuestRoomPage {
   }
 
   private roomReady(): void {
+    // The room itself is ready, but the call state is still unknown until the
+    // first server status request completes. Keeping this separate prevents
+    // the inactive purple card from flashing before a live call is detected.
+    this.callStatusLoading.set(true);
     this.status.set('ready');
     queueMicrotask(() => this.roomChat()?.scrollToNewest(false));
     this.startCallStatusPolling();
+
+    // sessionStorage survives a refresh in the same tab. If this member had
+    // joined the call before the refresh, request a fresh token and reconnect
+    // with the same LiveKit identity instead of leaving them on the join card.
+    if (this.hasRememberedCallSession()) {
+      queueMicrotask(() => void this.joinCall(true));
+    }
   }
 
   private startCallStatusPolling(): void {
     if (this.callStatusIntervalId) clearInterval(this.callStatusIntervalId);
 
-    const poll = async (): Promise<void> => {
-      if (this.call.joined()) {
-        this.callActive.set(true);
-        return;
-      }
+    void this.refreshCallStatus();
+    this.callStatusIntervalId = setInterval(
+      () => void this.refreshCallStatus(),
+      CALL_STATUS_POLL_MS,
+    );
+  }
 
-      const channelId = this.guest.channel()?.id;
-      if (!channelId) return;
-      try {
-        const raw = await firstValueFrom(
-          this.http.get<unknown>(`${this.apiUrl()}/channels/${channelId}/call-status`),
-        );
-        this.callActive.set(CallStatusResponseSchema.parse(raw).active);
-      } catch {
-        this.callActive.set(false);
-      }
-    };
+  private async refreshCallStatus(): Promise<void> {
+    if (this.call.joined()) {
+      const participantCount = this.call.participants().length;
+      this.callStatusParticipantCount.set(participantCount);
+      this.callActive.set(true);
+      this.callStatusLoading.set(false);
+      return;
+    }
 
-    void poll();
-    this.callStatusIntervalId = setInterval(() => void poll(), CALL_STATUS_POLL_MS);
+    const channelId = this.guest.channel()?.id;
+    if (!channelId || this.callStatusPollInFlight) return;
+
+    this.callStatusPollInFlight = true;
+    try {
+      const raw = await firstValueFrom(
+        this.http.get<unknown>(`${this.apiUrl()}/channels/${channelId}/call-status`),
+      );
+      const response = CallStatusResponseSchema.parse(raw);
+
+      this.callStatusParticipantCount.set(response.participants);
+      this.callActive.set(response.active || response.participants > 0);
+      this.callStatusLoading.set(false);
+    } catch {
+      // Keep the last known call state during a temporary API or LiveKit
+      // outage. Reporting a live call as empty is more misleading than
+      // briefly displaying the previous confirmed value.
+    } finally {
+      this.callStatusPollInFlight = false;
+    }
+  }
+
+  private hasRememberedCallSession(): boolean {
+    const key = this.callSessionStorageKey();
+    if (!key || typeof window === 'undefined') return false;
+
+    try {
+      return window.sessionStorage.getItem(key) === 'joined';
+    } catch {
+      return false;
+    }
+  }
+
+  private rememberCallSession(): void {
+    const key = this.callSessionStorageKey();
+    if (!key || typeof window === 'undefined') return;
+
+    try {
+      window.sessionStorage.setItem(key, 'joined');
+    } catch {
+      // Call restoration is a progressive enhancement; the active call still works.
+    }
+  }
+
+  private forgetCallSession(): void {
+    const key = this.callSessionStorageKey();
+    if (!key || typeof window === 'undefined') return;
+
+    try {
+      window.sessionStorage.removeItem(key);
+    } catch {
+      // Ignore storage restrictions while still allowing the user to leave.
+    }
+  }
+
+  private callSessionStorageKey(): string | null {
+    const channelId = this.guest.channel()?.id;
+    return channelId ? `${CALL_SESSION_KEY_PREFIX}${channelId}` : null;
   }
 
   private handleEntryError(error: unknown): void {

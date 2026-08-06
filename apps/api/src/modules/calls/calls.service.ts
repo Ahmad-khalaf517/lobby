@@ -1,4 +1,10 @@
-import { ForbiddenException, GoneException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  GoneException,
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AccessToken, RoomServiceClient, TrackSource } from 'livekit-server-sdk';
 import {
@@ -118,8 +124,29 @@ export class CallsService {
   private async listParticipants(roomName: string) {
     try {
       return await this.roomService.listParticipants(roomName);
-    } catch {
-      return [];
+    } catch (error: unknown) {
+      if (isLiveKitRoomNotFound(error)) return [];
+
+      // Do not silently report an active call as empty when LiveKit's server
+      // API is temporarily unavailable. The same false zero could also bypass
+      // the participant-limit check while issuing a new token.
+      throw new ServiceUnavailableException('Could not read the live call state');
     }
   }
+}
+
+function isLiveKitRoomNotFound(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+
+  const record = error as Record<string, unknown>;
+  const code = String(record['code'] ?? '').toLowerCase();
+  const status = Number(record['status'] ?? record['statusCode'] ?? 0);
+  const message = String(record['message'] ?? '').toLowerCase();
+
+  return (
+    status === 404 ||
+    code === 'not_found' ||
+    code === 'notfound' ||
+    /room.+not found|could not find room|room does not exist/.test(message)
+  );
 }

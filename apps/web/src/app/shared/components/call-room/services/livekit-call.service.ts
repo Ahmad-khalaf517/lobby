@@ -17,10 +17,26 @@ export type LiveKitConnectionDetails = {
   roomName: string;
 };
 
+type AttachedRoomListeners = {
+  connectionStateChanged: (state: ConnectionState) => void;
+  participantsChanged: () => void;
+  trackSubscribed: (
+    track: Track,
+    publication: TrackPublication,
+    participant: RemoteParticipant,
+  ) => void;
+  trackUnsubscribed: (
+    track: Track,
+    publication: TrackPublication,
+    participant: RemoteParticipant,
+  ) => void;
+};
+
 @Injectable({ providedIn: 'root' })
 export class LiveKitCallService {
   private readonly platformId = inject(PLATFORM_ID);
   private room: Room | null = null;
+  private readonly roomListeners = new WeakMap<Room, AttachedRoomListeners>();
   private readonly audioElements = new Map<string, HTMLAudioElement>();
 
   private readonly _roomName = signal('Live room');
@@ -37,7 +53,10 @@ export class LiveKitCallService {
   readonly screenSharePending = this._screenSharePending.asReadonly();
   readonly error = this._error.asReadonly();
 
-  readonly joined = computed(() => this._connectionState() !== 'idle');
+  readonly joined = computed(() => {
+    const state = this._connectionState();
+    return state === 'connecting' || state === 'connected' || state === 'reconnecting';
+  });
   readonly connected = computed(() => this._connectionState() === 'connected');
   readonly localParticipant = computed(
     () => this._participants().find((participant) => participant.isLocal) ?? null,
@@ -77,7 +96,7 @@ export class LiveKitCallService {
   async connect(details: LiveKitConnectionDetails): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) return;
 
-    this.disconnect();
+    await this.disconnect();
     this._error.set(null);
     this._roomName.set(details.roomName);
     this._connectionState.set('connecting');
@@ -85,14 +104,21 @@ export class LiveKitCallService {
     const room = new Room({
       adaptiveStream: true,
       dynacast: true,
-      disconnectOnPageLeave: false,
+      disconnectOnPageLeave: true,
     });
     this.room = room;
     this.attachRoomListeners(room);
 
     try {
       await room.connect(details.livekitUrl, details.token);
-      this.refreshParticipants();
+
+      if (this.room !== room) {
+        await Promise.resolve(room.disconnect());
+        return;
+      }
+
+      this._connectionState.set('connected');
+      this.refreshParticipants(room);
 
       try {
         await room.localParticipant.setMicrophoneEnabled(true);
@@ -100,9 +126,16 @@ export class LiveKitCallService {
         this._error.set('Microphone access was blocked. You can still listen to the call.');
       }
 
-      this.refreshParticipants();
+      this.refreshParticipants(room);
     } catch (error: unknown) {
-      this.disconnect();
+      if (this.room === room) {
+        await this.disconnect();
+        this._connectionState.set('error');
+      } else {
+        this.detachRoomListeners(room);
+        await Promise.resolve(room.disconnect()).catch(() => undefined);
+      }
+
       const message = describeLiveKitError(error);
       this._error.set(message);
       throw new Error(message);
@@ -110,13 +143,14 @@ export class LiveKitCallService {
   }
 
   async toggleMic(): Promise<void> {
-    if (!this.room || !this.connected()) return;
+    const room = this.room;
+    if (!room || !this.connected()) return;
 
     this._micPending.set(true);
     this._error.set(null);
     try {
-      await this.room.localParticipant.setMicrophoneEnabled(!this.micEnabled());
-      this.refreshParticipants();
+      await room.localParticipant.setMicrophoneEnabled(!this.micEnabled());
+      this.refreshParticipants(room);
     } catch {
       this._error.set('Could not change your microphone. Check browser permissions.');
     } finally {
@@ -125,7 +159,8 @@ export class LiveKitCallService {
   }
 
   async toggleScreenShare(): Promise<void> {
-    if (!this.room || !this.connected()) return;
+    const room = this.room;
+    if (!room || !this.connected()) return;
 
     if (!this.screenShareActive() && this.anotherParticipantSharing()) {
       this._error.set(this.screenShareDisabledReason());
@@ -135,8 +170,8 @@ export class LiveKitCallService {
     this._screenSharePending.set(true);
     this._error.set(null);
     try {
-      await this.room.localParticipant.setScreenShareEnabled(!this.screenShareActive());
-      this.refreshParticipants();
+      await room.localParticipant.setScreenShareEnabled(!this.screenShareActive());
+      this.refreshParticipants(room);
     } catch {
       this._error.set('Screen sharing could not start. Check your browser permissions.');
     } finally {
@@ -148,55 +183,95 @@ export class LiveKitCallService {
     this._error.set(null);
   }
 
-  disconnect(): void {
+  async disconnect(): Promise<void> {
     const room = this.room;
+
+    // Detach this instance immediately so late events from the old room cannot
+    // put the UI back into a joined state while disconnect() is still settling.
     this.room = null;
-
-    if (room) {
-      try {
-        room.localParticipant.trackPublications.forEach((publication) => {
-          if (publication.track) {
-            room.localParticipant.unpublishTrack(publication.track, true);
-          }
-        });
-      } catch {
-        // Best-effort cleanup while leaving the call.
-      }
-      room.disconnect();
-    }
-
-    for (const element of this.audioElements.values()) {
-      element.pause();
-      element.srcObject = null;
-      element.remove();
-    }
-    this.audioElements.clear();
-
-    this._participants.set([]);
     this._connectionState.set('idle');
+    this._participants.set([]);
     this._micPending.set(false);
     this._screenSharePending.set(false);
+    this.cleanupAudioElements();
+
+    if (!room) return;
+
+    this.detachRoomListeners(room);
+
+    try {
+      const unpublishTasks = [...room.localParticipant.trackPublications.values()]
+        .filter((publication) => publication.track !== undefined)
+        .map((publication) => room.localParticipant.unpublishTrack(publication.track!, true));
+
+      await Promise.allSettled(unpublishTasks);
+    } catch {
+      // Best-effort media cleanup while leaving the call.
+    }
+
+    try {
+      await Promise.resolve(room.disconnect());
+    } catch {
+      // The local state is already reset; a transport cleanup failure should
+      // not force the user to click Leave again.
+    }
   }
 
   private attachRoomListeners(room: Room): void {
+    const listeners: AttachedRoomListeners = {
+      connectionStateChanged: (state) => this.handleConnectionStateChanged(room, state),
+      participantsChanged: () => this.refreshParticipants(room),
+      trackSubscribed: (track, publication, participant) =>
+        this.handleTrackSubscribed(room, track, publication, participant),
+      trackUnsubscribed: (track, publication, participant) =>
+        this.handleTrackUnsubscribed(room, track, publication, participant),
+    };
+
+    this.roomListeners.set(room, listeners);
+
     room
-      .on(RoomEvent.ConnectionStateChanged, this.onConnectionStateChanged)
-      .on(RoomEvent.ParticipantConnected, this.refreshParticipants)
-      .on(RoomEvent.ParticipantDisconnected, this.refreshParticipants)
-      .on(RoomEvent.TrackSubscribed, this.onTrackSubscribed)
-      .on(RoomEvent.TrackUnsubscribed, this.onTrackUnsubscribed)
-      .on(RoomEvent.TrackMuted, this.refreshParticipants)
-      .on(RoomEvent.TrackUnmuted, this.refreshParticipants)
-      .on(RoomEvent.LocalTrackPublished, this.refreshParticipants)
-      .on(RoomEvent.LocalTrackUnpublished, this.refreshParticipants)
-      .on(RoomEvent.ActiveSpeakersChanged, this.refreshParticipants);
+      .on(RoomEvent.ConnectionStateChanged, listeners.connectionStateChanged)
+      .on(RoomEvent.ParticipantConnected, listeners.participantsChanged)
+      .on(RoomEvent.ParticipantDisconnected, listeners.participantsChanged)
+      .on(RoomEvent.TrackSubscribed, listeners.trackSubscribed)
+      .on(RoomEvent.TrackUnsubscribed, listeners.trackUnsubscribed)
+      .on(RoomEvent.TrackMuted, listeners.participantsChanged)
+      .on(RoomEvent.TrackUnmuted, listeners.participantsChanged)
+      .on(RoomEvent.LocalTrackPublished, listeners.participantsChanged)
+      .on(RoomEvent.LocalTrackUnpublished, listeners.participantsChanged)
+      .on(RoomEvent.ActiveSpeakersChanged, listeners.participantsChanged);
   }
 
-  private readonly onTrackSubscribed = (
+  private detachRoomListeners(room: Room): void {
+    const listeners = this.roomListeners.get(room);
+    if (!listeners) return;
+
+    room
+      .off(RoomEvent.ConnectionStateChanged, listeners.connectionStateChanged)
+      .off(RoomEvent.ParticipantConnected, listeners.participantsChanged)
+      .off(RoomEvent.ParticipantDisconnected, listeners.participantsChanged)
+      .off(RoomEvent.TrackSubscribed, listeners.trackSubscribed)
+      .off(RoomEvent.TrackUnsubscribed, listeners.trackUnsubscribed)
+      .off(RoomEvent.TrackMuted, listeners.participantsChanged)
+      .off(RoomEvent.TrackUnmuted, listeners.participantsChanged)
+      .off(RoomEvent.LocalTrackPublished, listeners.participantsChanged)
+      .off(RoomEvent.LocalTrackUnpublished, listeners.participantsChanged)
+      .off(RoomEvent.ActiveSpeakersChanged, listeners.participantsChanged);
+
+    this.roomListeners.delete(room);
+  }
+
+  private handleTrackSubscribed(
+    room: Room,
     track: Track,
     publication: TrackPublication,
     participant: RemoteParticipant,
-  ): void => {
+  ): void {
+    if (this.room !== room) {
+      track.detach();
+      return;
+    }
+
     const audioKey = `${participant.identity}:${publication.trackSid}`;
     if (track.kind === Track.Kind.Audio && !this.audioElements.has(audioKey)) {
       const element = track.attach();
@@ -204,18 +279,22 @@ export class LiveKitCallService {
         element.setAttribute('aria-hidden', 'true');
         this.audioElements.set(audioKey, element);
         void element.play().catch(() => {
-          this._error.set('Your browser blocked remote audio. Click the page, then try again.');
+          if (this.room === room) {
+            this._error.set('Your browser blocked remote audio. Click the page, then try again.');
+          }
         });
       }
     }
-    this.refreshParticipants();
-  };
 
-  private readonly onTrackUnsubscribed = (
+    this.refreshParticipants(room);
+  }
+
+  private handleTrackUnsubscribed(
+    room: Room,
     track: Track,
     publication: TrackPublication,
     participant: RemoteParticipant,
-  ): void => {
+  ): void {
     const audioKey = `${participant.identity}:${publication.trackSid}`;
     const element = this.audioElements.get(audioKey);
     if (element) {
@@ -224,33 +303,39 @@ export class LiveKitCallService {
       element.remove();
       this.audioElements.delete(audioKey);
     }
-    track.detach();
-    this.refreshParticipants();
-  };
 
-  private readonly onConnectionStateChanged = (state: ConnectionState): void => {
+    track.detach();
+    this.refreshParticipants(room);
+  }
+
+  private handleConnectionStateChanged(room: Room, state: ConnectionState): void {
+    if (this.room !== room) return;
+
     switch (state) {
       case ConnectionState.Connected:
         this._connectionState.set('connected');
+        this.refreshParticipants(room);
         break;
       case ConnectionState.Reconnecting:
         this._connectionState.set('reconnecting');
         break;
       case ConnectionState.Disconnected:
+        this.detachRoomListeners(room);
+        this.room = null;
+        this.cleanupAudioElements();
+        this._participants.set([]);
+        this._micPending.set(false);
+        this._screenSharePending.set(false);
         this._connectionState.set('disconnected');
         break;
       case ConnectionState.Connecting:
         this._connectionState.set('connecting');
         break;
     }
-  };
+  }
 
-  private readonly refreshParticipants = (): void => {
-    const room = this.room;
-    if (!room) {
-      this._participants.set([]);
-      return;
-    }
+  private refreshParticipants(room: Room): void {
+    if (this.room !== room) return;
 
     const participants: CallParticipant[] = [];
     for (const participant of [room.localParticipant, ...room.remoteParticipants.values()]) {
@@ -277,7 +362,16 @@ export class LiveKitCallService {
       left.isLocal ? -1 : right.isLocal ? 1 : left.name.localeCompare(right.name),
     );
     this._participants.set(participants);
-  };
+  }
+
+  private cleanupAudioElements(): void {
+    for (const element of this.audioElements.values()) {
+      element.pause();
+      element.srcObject = null;
+      element.remove();
+    }
+    this.audioElements.clear();
+  }
 }
 
 function describeLiveKitError(error: unknown): string {
