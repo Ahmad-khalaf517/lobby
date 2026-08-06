@@ -80,7 +80,7 @@ export type LobbyIconName = keyof typeof LOBBY_ICONS;
 })
 export class LobbyIconComponent {
   name = input.required<LobbyIconName>();
-  size = input<number>(18);
+  size = input<number>(10);
   strokeWidth = input<number>(1.8);
 
   protected readonly icon = computed(() => LOBBY_ICONS[this.name()]);

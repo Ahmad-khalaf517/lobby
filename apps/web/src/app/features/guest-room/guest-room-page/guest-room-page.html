@@ -229,106 +229,156 @@
       ></div>
 
       <header
-        class="relative z-20 flex min-h-[4.75rem] shrink-0 items-center gap-3 border-b border-white/7 bg-[#0c1018]/88 px-3 py-2.5 backdrop-blur-2xl sm:px-5"
+        class="relative z-20 flex h-16 shrink-0 items-center gap-3 border-b border-white/[0.07] bg-[#0c1018]/90 px-3 backdrop-blur-xl sm:px-5"
       >
+        <!-- Brand -->
         <a
           routerLink="/"
-          class="inline-flex shrink-0 items-center gap-2.5"
           aria-label="Return to Lobby home"
+          class="inline-flex shrink-0 items-center gap-2 rounded-lg outline-none transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-violet-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1018]"
         >
-          <app-logo [size]="24" />
-          <span class="hidden text-sm font-semibold tracking-tight text-white sm:inline"
-            >Lobby</span
-          >
-        </a>
-        <span class="hidden h-7 w-px bg-white/8 sm:block"></span>
+          <app-logo [size]="22" />
 
+          <span
+            class="hidden text-sm font-semibold leading-none tracking-tight text-white sm:inline"
+          >
+            Lobby
+          </span>
+        </a>
+
+        <!-- Brand separator -->
+        <span aria-hidden="true" class="hidden h-7 w-px shrink-0 bg-white/[0.08] sm:block"></span>
+
+        <!-- Room information -->
         <div class="min-w-0 flex-1">
-          <div class="flex min-w-0 items-center gap-2">
-            <h1 class="truncate text-sm font-semibold text-white sm:text-[15px]">
-              {{ channel()?.name ?? 'Guest room' }}
-            </h1>
+          <h1 class="truncate text-sm font-semibold leading-5 text-white sm:text-[15px]">
+            {{ channel()?.name ?? 'Guest room' }}
+          </h1>
+
+          <div
+            class="mt-0.5 flex min-w-0 items-center gap-1.5 text-[10px] font-medium leading-none text-[#7f8a9d]"
+          >
+            <span class="truncate">
+              {{ expiresInLabel() }}
+            </span>
+
+            <span aria-hidden="true" class="hidden text-white/20 sm:inline"> · </span>
+
             <span
-              class="hidden rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[9px] font-semibold tracking-[0.12em] text-[#b7a8ff] uppercase sm:inline"
-              >Guest</span
+              role="status"
+              aria-live="polite"
+              class="hidden items-center gap-1.5 sm:inline-flex"
             >
-          </div>
-          <div class="mt-1 flex items-center gap-2 text-[10px] text-[#748095]">
-            <span class="font-mono tracking-[0.08em]">{{ inviteCode }}</span>
-            <span>·</span>
-            <span>{{ expiresInLabel() }}</span>
-            <span class="hidden sm:inline">·</span>
-            <span class="hidden items-center gap-1 sm:inline-flex">
               <span
-                [class]="
-                  'size-1.5 rounded-full ' + (connected() ? 'bg-emerald-400' : 'bg-amber-400')
-                "
+                aria-hidden="true"
+                class="size-1.5 shrink-0 rounded-full"
+                [class.bg-emerald-400]="connected()"
+                [class.bg-amber-400]="!connected()"
               ></span>
-              {{ connected() ? 'Realtime connected' : 'Reconnecting' }}
+
+              {{ connected() ? 'Connected' : 'Reconnecting' }}
             </span>
           </div>
         </div>
 
-        <div
-          class="hidden h-9 min-w-0 w-[min(34vw,360px)] items-center overflow-hidden rounded-xl border border-white/9 bg-[#090d14]/75 md:flex"
-        >
-          <app-icon name="link" [size]="15" class="ml-3 text-[#7d8899]" />
-          <input
-            type="text"
-            readonly
-            [value]="guestInviteLink()"
-            aria-label="Guest invite link"
-            class="min-w-0 flex-1 bg-transparent px-2 text-[10px] text-[#aab4c3] outline-none"
-          />
-          <button
-            type="button"
-            (click)="copyInviteLink()"
-            class="mr-1 inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-white/8 bg-white/[0.05] px-2.5 text-[10px] font-semibold text-[#d9dfea] transition hover:bg-white/[0.09]"
-            [attr.aria-label]="inviteCopied() ? 'Invite link copied' : 'Copy invite link'"
-          >
-            <app-icon [name]="inviteCopied() ? 'check' : 'copy'" [size]="14" />
-            <span class="hidden xl:inline">{{ inviteCopied() ? 'Copied' : 'Copy' }}</span>
-          </button>
-        </div>
+        <!-- Header actions -->
+        <nav aria-label="Room actions" class="flex shrink-0 items-center gap-2">
+          <!-- Invite control group -->
+          <div class="hidden min-w-0 items-center lg:flex">
+            <!-- Invite URL -->
+            <div
+              class="flex h-9 w-[min(28vw,20rem)] min-w-0 items-center rounded-l-lg border border-r-0 border-white/[0.08] bg-black/20"
+            >
+              <app-icon
+                name="link"
+                aria-hidden="true"
+                class="ml-3 size-3.5 shrink-0 text-[#778195]"
+              />
 
-        <div class="flex shrink-0 items-center gap-2">
+              <input
+                type="text"
+                readonly
+                [value]="guestInviteLink()"
+                aria-label="Guest invite link"
+                class="min-w-0 flex-1 truncate bg-transparent px-2.5 text-xs font-normal leading-none text-[#9da7b6] outline-none selection:bg-violet-400/25"
+              />
+            </div>
+
+            <!-- Copy -->
+            <button
+              type="button"
+              (click)="copyInviteLink()"
+              [attr.aria-label]="inviteCopied() ? 'Invite link copied' : 'Copy invite link'"
+              class="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-r-lg border border-white/[0.08] bg-white/[0.035] px-3 text-xs font-medium leading-none text-[#cbd3df] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-violet-400/60"
+            >
+              <app-icon
+                [name]="inviteCopied() ? 'check' : 'copy'"
+                aria-hidden="true"
+                class="size-3.5 shrink-0"
+              />
+
+              <span>
+                {{ inviteCopied() ? 'Copied' : 'Copy' }}
+              </span>
+            </button>
+          </div>
+
+          <!-- Members -->
           <button
             type="button"
             (click)="membersPanelOpen.set(true)"
-            class="inline-flex h-9 items-center gap-2 rounded-xl border border-white/8 bg-white/[0.035] px-2.5 text-[#c8d0dd] transition hover:bg-white/[0.075]"
-            aria-label="Show room members"
+            [attr.aria-label]="'Show room members, ' + roomMemberCount() + ' members'"
+            class="inline-flex h-9 min-w-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.035] px-2.5 text-xs font-medium leading-none text-[#b8c1ce] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60"
           >
-            <app-icon name="users" [size]="16" />
-            <span class="text-[10px] font-semibold">{{ roomMemberCount() }}</span>
+            <app-icon name="users" aria-hidden="true" class="size-3.5 shrink-0" />
+
+            <span class="tabular-nums">
+              {{ roomMemberCount() }}
+            </span>
           </button>
 
+          <!-- Mobile chat -->
           <button
             type="button"
             (click)="mobileChatOpen.set(true)"
-            class="grid size-9 place-items-center rounded-xl border border-white/8 bg-white/[0.035] text-[#c8d0dd] transition hover:bg-white/[0.075] lg:hidden"
             aria-label="Open chat"
+            class="grid size-9 shrink-0 place-items-center rounded-lg border border-white/[0.08] bg-white/[0.035] text-[#b8c1ce] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 lg:hidden"
           >
-            <app-icon name="chat" [size]="16" />
+            <app-icon name="chat" aria-hidden="true" class="size-3.5" />
           </button>
 
+          <!-- Desktop chat panel toggle -->
           <button
             type="button"
             (click)="toggleChatPanel()"
-            class="hidden size-9 place-items-center rounded-xl border border-white/8 bg-white/[0.035] text-[#c8d0dd] transition hover:bg-white/[0.075] lg:grid"
             [attr.aria-label]="chatCollapsed() ? 'Show chat panel' : 'Hide chat panel'"
+            [attr.aria-expanded]="!chatCollapsed()"
+            class="hidden size-9 shrink-0 place-items-center rounded-lg border border-white/[0.08] bg-white/[0.035] text-[#b8c1ce] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 lg:grid"
           >
-            <app-icon [name]="chatCollapsed() ? 'panel-open' : 'panel-close'" [size]="16" />
+            <app-icon
+              [name]="chatCollapsed() ? 'panel-open' : 'panel-close'"
+              aria-hidden="true"
+              class="size-3.5"
+            />
           </button>
 
+          <!-- Destructive action separator -->
+          <span aria-hidden="true" class="hidden h-6 w-px shrink-0 bg-white/[0.08] sm:block"></span>
+
+          <!-- Close or leave room -->
           <button
             type="button"
             (click)="isOwner() ? closeChannel() : leaveChannel()"
-            class="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-white/8 bg-white/[0.035] px-3 text-[11px] font-semibold text-[#cbd2de] transition hover:border-rose-400/25 hover:bg-rose-400/8 hover:text-rose-200"
+            [attr.aria-label]="isOwner() ? 'Close room' : 'Leave room'"
+            class="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-white/[0.08] bg-white/[0.035] px-2.5 text-xs font-medium leading-none text-[#b8c1ce] outline-none transition-colors hover:border-rose-400/25 hover:bg-rose-400/[0.08] hover:text-rose-200 focus-visible:ring-2 focus-visible:ring-rose-400/50 sm:px-3"
           >
-            <app-icon name="logout" [size]="15" />
-            <span class="hidden sm:inline">{{ isOwner() ? 'Close room' : 'Leave room' }}</span>
+            <app-icon name="logout" aria-hidden="true" class="size-3.5 shrink-0" />
+
+            <span class="hidden sm:inline">
+              {{ isOwner() ? 'Close room' : 'Leave room' }}
+            </span>
           </button>
-        </div>
+        </nav>
       </header>
 
       @if (actionNotice(); as notice) {
@@ -338,7 +388,7 @@
           <span
             class="grid size-7 shrink-0 place-items-center rounded-lg bg-amber-300/10 text-amber-300"
           >
-            <app-icon name="warning" [size]="16" />
+            <app-icon name="warning" class="size-4" />
           </span>
           <span class="min-w-0 flex-1">{{ notice }}</span>
           <button
@@ -347,7 +397,7 @@
             class="grid size-7 place-items-center rounded-lg text-amber-100/60 transition hover:bg-white/6 hover:text-amber-50"
             aria-label="Dismiss notice"
           >
-            <app-icon name="close" [size]="16" />
+            <app-icon name="close" class="size-4" />
           </button>
         </div>
       }
@@ -617,7 +667,7 @@
                 class="grid size-9 place-items-center rounded-xl border border-white/8 bg-white/[0.035] text-[#c5ccd8] transition hover:bg-white/[0.075]"
                 aria-label="Close members"
               >
-                <app-icon name="close" [size]="16" />
+                <app-icon name="close" class="size-4" />
               </button>
             </div>
 
