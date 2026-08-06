@@ -1,7 +1,8 @@
-import type { Friend, Friendship, FriendshipStatus } from '@lobby/shared';
+import type { Friend, FriendUser, Friendship, FriendshipStatus } from '@lobby/shared';
 import type { Database } from '../../database/database.types';
 
-type FriendshipRow = Database['public']['Tables']['friendships']['Row'];
+export type FriendshipRow = Database['public']['Tables']['friendships']['Row'];
+export type UserRow = Database['public']['Tables']['users']['Row'];
 
 export function toFriendship(row: FriendshipRow): Friendship {
   return {
@@ -15,12 +16,21 @@ export function toFriendship(row: FriendshipRow): Friendship {
   };
 }
 
+export function toFriendUser(row: UserRow): FriendUser {
+  return {
+    id: row.id,
+    name: row.name,
+    userName: row.user_name,
+    avatarUrl: row.avatar_url,
+  };
+}
+
 /**
  * Maps a raw row into the viewer-relative `Friend` shape: resolves which
- * side of the row is "the other person" and, for pending rows, whether
- * the request is incoming or outgoing from the viewer's point of view.
+ * side of the row is "the other person", attaches their profile, and for
+ * pending rows whether the request is incoming or outgoing.
  */
-export function toFriend(row: FriendshipRow, viewerId: string): Friend {
+export function toFriend(row: FriendshipRow, viewerId: string, user: UserRow): Friend {
   const isViewerRequester = row.requester_id === viewerId;
   const otherUserId = isViewerRequester ? row.addressee_id : row.requester_id;
 
@@ -30,12 +40,10 @@ export function toFriend(row: FriendshipRow, viewerId: string): Friend {
   return {
     friendshipId: row.id,
     userId: otherUserId,
+    user: toFriendUser(user),
     status: row.status as FriendshipStatus,
     direction,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
-
-export const toFriendList = (rows: FriendshipRow[], viewerId: string): Friend[] =>
-  rows.map((row) => toFriend(row, viewerId));

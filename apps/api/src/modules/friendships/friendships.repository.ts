@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { FriendshipStatus } from '@lobby/shared';
 import type { Database } from '../../database/database.types';
 import { SupabaseService } from '../database/supabase.service';
+import type { UserRow } from './friendships.mappers';
 
 type FriendshipRow = Database['public']['Tables']['friendships']['Row'];
 type FriendshipInsert = Database['public']['Tables']['friendships']['Insert'];
@@ -140,5 +141,18 @@ export class FriendshipsRepository {
 
     if (error) throw error;
     return data ?? [];
+  }
+
+  /** Batch profile lookup for the "other users" in a list — one query, no N+1. */
+  async findUsersByIds(ids: string[]): Promise<UserRow[]> {
+    if (ids.length === 0) return [];
+
+    const { data, error } = await this.db
+      .from('users')
+      .select('id, name, user_name, avatar_url')
+      .in('id', ids);
+
+    if (error) throw error;
+    return (data ?? []) as UserRow[];
   }
 }

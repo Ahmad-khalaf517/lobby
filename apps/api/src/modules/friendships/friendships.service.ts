@@ -6,12 +6,35 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { Friend, Friendship } from '@lobby/shared';
-import { toFriendList, toFriendship } from './friendships.mappers';
+import type { FriendshipRow } from './friendships.mappers';
+import { toFriend, toFriendship } from './friendships.mappers';
 import { FriendshipsRepository } from './friendships.repository';
 
 @Injectable()
 export class FriendshipsService {
   constructor(private readonly repo: FriendshipsRepository) {}
+
+  /** Joins the "other user" profile onto each relationship row. */
+  private async toFriendList(rows: FriendshipRow[], viewerId: string): Promise<Friend[]> {
+    const otherUserIds = [
+      ...new Set(
+        rows.map((row) => (row.requester_id === viewerId ? row.addressee_id : row.requester_id)),
+      ),
+    ];
+
+    const users = await this.repo.findUsersByIds(otherUserIds);
+    const usersById = new Map(users.map((user) => [user.id, user]));
+
+    return rows.map((row) => {
+      const otherUserId = row.requester_id === viewerId ? row.addressee_id : row.requester_id;
+      const user = usersById.get(otherUserId);
+      if (!user) {
+        // Can't happen while the FK cascades on user delete; guards a corrupted row.
+        throw new NotFoundException(`User ${otherUserId} not found`);
+      }
+      return toFriend(row, viewerId, user);
+    });
+  }
 
   // -------------------------------------------------------------------
   // Sending a request
@@ -149,22 +172,22 @@ export class FriendshipsService {
 
   async listFriends(userId: string): Promise<Friend[]> {
     const rows = await this.repo.listForUser(userId, 'accepted');
-    return toFriendList(rows, userId);
+    return this.toFriendList(rows, userId);
   }
 
   async listIncomingRequests(userId: string): Promise<Friend[]> {
     const rows = await this.repo.listIncomingRequests(userId);
-    return toFriendList(rows, userId);
+    return this.toFriendList(rows, userId);
   }
 
   async listOutgoingRequests(userId: string): Promise<Friend[]> {
     const rows = await this.repo.listOutgoingRequests(userId);
-    return toFriendList(rows, userId);
+    return this.toFriendList(rows, userId);
   }
 
   async listBlockedUsers(userId: string): Promise<Friend[]> {
     const rows = await this.repo.listBlockedByUser(userId);
-    return toFriendList(rows, userId);
+    return this.toFriendList(rows, userId);
   }
 
   /** True if either user has blocked the other — for DMs/invites to enforce. */
