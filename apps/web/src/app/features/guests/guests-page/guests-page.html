@@ -1,292 +1,374 @@
 <main
-  class="relative min-h-screen overflow-hidden bg-[#080b11] px-4 py-6 text-app-foreground sm:px-6 lg:px-8"
+  class="relative min-h-screen overflow-x-hidden bg-[#080b11] px-4 py-5 text-app-foreground sm:px-6 sm:py-6 lg:px-8"
 >
-  <div class="lobby-noise pointer-events-none absolute inset-0 opacity-30" aria-hidden="true"></div>
+  <!-- Global atmosphere -->
+  <div class="lobby-noise pointer-events-none absolute inset-0 opacity-25" aria-hidden="true"></div>
+
   <div
-    class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(124,92,252,0.2),transparent_31%),radial-gradient(circle_at_90%_88%,rgba(79,70,229,0.09),transparent_28%)]"
+    class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_8%,rgba(124,92,252,0.16),transparent_30%),radial-gradient(circle_at_86%_72%,rgba(99,102,241,0.08),transparent_28%)]"
     aria-hidden="true"
   ></div>
 
-  <div class="relative mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-7xl flex-col">
-    <header class="flex items-center justify-between gap-4 py-2">
-      <a routerLink="/" class="inline-flex items-center gap-3" aria-label="Return to Lobby home">
-        <app-logo [size]="27" />
-        <span class="text-base font-semibold tracking-tight text-white">Lobby</span>
-      </a>
+  <div
+    class="relative mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-7xl flex-col sm:min-h-[calc(100vh-3rem)]"
+  >
+    <!-- Header -->
+    <header class="flex shrink-0 items-center justify-between gap-4 py-2">
       <a
         routerLink="/"
-        class="inline-flex h-9 items-center rounded-xl border border-white/8 bg-white/[0.035] px-3.5 text-[11px] font-semibold text-[#b7c0cf] transition hover:border-white/15 hover:bg-white/[0.07] hover:text-white"
-        >Back home</a
+        class="inline-flex items-center gap-2.5 rounded-lg outline-none transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-violet-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#080b11]"
+        aria-label="Return to Lobby home"
       >
+        <app-logo [size]="26" />
+
+        <span class="text-sm font-semibold tracking-tight text-white sm:text-base"> Lobby </span>
+      </a>
+
+      <a
+        routerLink="/"
+        class="inline-flex h-9 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.025] px-3 text-xs font-medium text-[#aeb8c8] outline-none transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60"
+      >
+        Back home
+      </a>
     </header>
 
+    <!-- Main workspace -->
     <div
-      class="grid flex-1 items-center gap-10 py-10 lg:grid-cols-[0.92fr_1.08fr] lg:gap-16 lg:py-14"
+      class="grid flex-1 items-center gap-12 py-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20 lg:py-14"
     >
-      <section class="mx-auto max-w-xl lg:mx-0">
+      <!-- Intro -->
+      <section class="mx-auto w-full max-w-xl lg:mx-0">
         <span
-          class="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-[10px] font-semibold tracking-[0.15em] text-[#c5b9ff] uppercase"
+          class="inline-flex items-center gap-2 text-[10px] font-semibold tracking-[0.16em] text-[#b7a8ff] uppercase"
         >
           <span class="size-1.5 rounded-full bg-emerald-400"></span>
           Guest access
         </span>
+
         <h1
-          class="mt-6 text-4xl font-semibold leading-[1.04] tracking-[-0.05em] text-white sm:text-5xl lg:text-[3.65rem]"
+          class="mt-5 text-4xl font-semibold leading-[1.04] tracking-[-0.05em] text-white sm:text-5xl lg:text-[3.65rem]"
         >
           A temporary room that feels like a real workspace.
         </h1>
+
         <p class="mt-5 max-w-lg text-sm leading-7 text-[#8d99ac] sm:text-base">
           Create a private room, share one link, and move between realtime chat, audio, and screen
           sharing without accounts or setup friction.
         </p>
 
-        <div class="mt-8 grid gap-3 sm:grid-cols-3">
-          <div class="rounded-2xl border border-white/8 bg-white/[0.028] p-4">
+        <!-- Capabilities: open, divider-based structure -->
+        <div
+          class="mt-9 grid border-y border-white/[0.07] sm:grid-cols-3 sm:divide-x sm:divide-white/[0.07]"
+        >
+          <div
+            class="flex items-start gap-3 border-b border-white/[0.07] py-4 sm:block sm:border-b-0 sm:px-4 sm:first:pl-0"
+          >
             <span
-              class="grid size-9 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-[#b7a8ff]"
+              class="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/[0.09] text-[#b7a8ff]"
             >
-              <app-icon name="chat" [size]="16" />
+              <app-icon name="chat" class="size-3.5" aria-hidden="true" />
             </span>
-            <p class="mt-3 text-xs font-semibold text-white">Realtime chat</p>
-            <p class="mt-1 text-[10px] leading-5 text-[#6f7b8f]">
-              Replies, mentions, reactions, and live presence.
-            </p>
+
+            <div class="min-w-0 sm:mt-3">
+              <p class="text-xs font-semibold text-white">Realtime chat</p>
+              <p class="mt-1 text-[10px] leading-5 text-[#6f7b8f]">
+                Replies, mentions, reactions, and live presence.
+              </p>
+            </div>
           </div>
-          <div class="rounded-2xl border border-white/8 bg-white/[0.028] p-4">
+
+          <div
+            class="flex items-start gap-3 border-b border-white/[0.07] py-4 sm:block sm:border-b-0 sm:px-4"
+          >
             <span
-              class="grid size-9 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-[#b7a8ff]"
+              class="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/[0.09] text-[#b7a8ff]"
             >
-              <app-icon name="mic" [size]="16" />
+              <app-icon name="mic" class="size-3.5" aria-hidden="true" />
             </span>
-            <p class="mt-3 text-xs font-semibold text-white">Audio only</p>
-            <p class="mt-1 text-[10px] leading-5 text-[#6f7b8f]">
-              No camera permissions or distracting video tiles.
-            </p>
+
+            <div class="min-w-0 sm:mt-3">
+              <p class="text-xs font-semibold text-white">Audio only</p>
+              <p class="mt-1 text-[10px] leading-5 text-[#6f7b8f]">
+                No camera permissions or distracting video tiles.
+              </p>
+            </div>
           </div>
-          <div class="rounded-2xl border border-white/8 bg-white/[0.028] p-4">
+
+          <div class="flex items-start gap-3 py-4 sm:block sm:px-4 sm:last:pr-0">
             <span
-              class="grid size-9 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-[#b7a8ff]"
+              class="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/[0.09] text-[#b7a8ff]"
             >
-              <app-icon name="screen-share" [size]="16" />
+              <app-icon name="screen-share" class="size-3.5" aria-hidden="true" />
             </span>
-            <p class="mt-3 text-xs font-semibold text-white">Screen sharing</p>
-            <p class="mt-1 text-[10px] leading-5 text-[#6f7b8f]">
-              One clear presenter at a time for focused sessions.
-            </p>
+
+            <div class="min-w-0 sm:mt-3">
+              <p class="text-xs font-semibold text-white">Screen sharing</p>
+              <p class="mt-1 text-[10px] leading-5 text-[#6f7b8f]">
+                One clear presenter at a time for focused sessions.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      <section class="mx-auto w-full max-w-2xl lg:mx-0">
+      <!-- Entry workspace -->
+      <section
+        aria-labelledby="guest-entry-title"
+        class="relative mx-auto w-full max-w-2xl lg:mx-0"
+      >
+        <!-- Local ambient glow, not a card -->
         <div
-          class="relative overflow-hidden rounded-[2rem] border border-white/9 bg-[#10151f]/88 p-5 shadow-[0_40px_110px_rgba(0,0,0,0.48)] backdrop-blur-xl sm:p-7"
-        >
-          <div
-            class="pointer-events-none absolute -top-20 right-10 size-52 rounded-full bg-primary/12 blur-[75px]"
-            aria-hidden="true"
-          ></div>
-          <div class="relative">
-            <div class="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p class="text-[10px] font-semibold tracking-[0.16em] text-[#8e7cff] uppercase">
-                  Enter Lobby
-                </p>
-                <h2 class="mt-2 text-2xl font-semibold tracking-[-0.035em] text-white">
-                  Join a room or create your own
-                </h2>
-                <p class="mt-2 text-xs leading-5 text-[#7c889b]">
-                  Guest rooms expire automatically and keep the experience lightweight.
-                </p>
-              </div>
-              <span
-                class="rounded-full border border-white/8 bg-white/[0.035] px-3 py-1.5 text-[10px] font-medium text-[#8f9bad]"
-                >No signup required</span
+          class="pointer-events-none absolute -top-20 right-8 size-64 rounded-full bg-primary/[0.1] blur-[90px]"
+          aria-hidden="true"
+        ></div>
+
+        <div class="relative">
+          <!-- Workspace heading -->
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[10px] font-semibold tracking-[0.16em] text-[#8e7cff] uppercase">
+                Enter Lobby
+              </p>
+
+              <h2
+                id="guest-entry-title"
+                class="mt-2 text-2xl font-semibold tracking-[-0.035em] text-white sm:text-[1.75rem]"
               >
+                Join a room or create your own
+              </h2>
+
+              <p class="mt-2 max-w-xl text-xs leading-5 text-[#7c889b]">
+                Guest rooms expire automatically and keep the experience lightweight.
+              </p>
             </div>
 
-            <div class="mt-6 rounded-2xl border border-white/8 bg-[#0c1119]/70 p-4">
-              @switch (identityState()) {
-                @case ('loading') {
-                  <div
-                    class="flex min-h-12 items-center gap-3 text-xs text-[#93a0b3]"
-                    role="status"
-                    aria-label="Checking your profile"
-                  >
-                    <span
-                      class="size-4 animate-spin rounded-full border-2 border-white/15 border-t-[#9d85ff]"
-                      aria-hidden="true"
-                    ></span>
-                    Resolving your identity…
-                  </div>
-                }
-                @case ('guest') {
-                  <form [formGroup]="identityForm" novalidate>
-                    <div class="flex items-center justify-between gap-3">
-                      <label for="displayName" class="text-xs font-semibold text-[#d0d6e1]"
-                        >Your display name</label
-                      >
-                      <span class="text-[10px] text-[#5f6b7e]">Used in chat and call</span>
-                    </div>
-                    <input
-                      #displayNameInput
-                      id="displayName"
-                      formControlName="displayName"
-                      [maxlength]="maxNameLength"
-                      autocomplete="name"
-                      placeholder="e.g. Mohammad"
-                      class="mt-2.5 h-12 w-full rounded-2xl border border-white/9 bg-[#151b27] px-4 text-sm text-white outline-none transition placeholder:text-[#566276] hover:border-white/15 focus:border-primary/50 focus:ring-4 focus:ring-primary/9"
-                      [class.auth-input-error]="fieldError('displayName')"
-                      [attr.aria-invalid]="fieldError('displayName') ? 'true' : null"
-                      [attr.aria-describedby]="
-                        fieldError('displayName') ? 'display-name-error' : null
-                      "
-                      (blur)="validateField('displayName')"
-                      (input)="handleFieldInput('displayName')"
-                    />
-                    @if (fieldError('displayName'); as error) {
-                      <p id="display-name-error" class="auth-field-error">{{ error }}</p>
-                    }
-                  </form>
-                }
-                @case ('registered') {
-                  <div class="flex min-h-12 items-center gap-3">
-                    <span
-                      class="grid size-9 place-items-center rounded-xl border border-emerald-400/15 bg-emerald-400/8 text-emerald-300"
-                    >
-                      <app-icon name="check" [size]="16" />
-                    </span>
-                    <div>
-                      <p class="text-xs font-semibold text-[#e5e9f0]">Profile connected</p>
-                      <p class="mt-1 text-[10px] text-[#758195]">
-                        Your registered profile name will be used automatically.
-                      </p>
-                    </div>
-                  </div>
-                }
-              }
-            </div>
+            <span
+              class="inline-flex h-7 shrink-0 items-center rounded-lg bg-white/[0.035] px-2.5 text-[10px] font-medium text-[#8f9bad]"
+            >
+              No signup required
+            </span>
+          </div>
 
-            @if (errorMessage(); as error) {
-              <div
-                class="mt-4 flex items-start gap-3 rounded-2xl border border-rose-400/18 bg-rose-400/8 px-4 py-3 text-xs leading-5 text-rose-100"
-              >
-                <span class="mt-0.5 size-1.5 shrink-0 rounded-full bg-rose-400"></span>
-                {{ error }}
-              </div>
-            }
-
-            <div class="mt-5 grid gap-4 md:grid-cols-2">
-              <form
-                [formGroup]="joinForm"
-                (ngSubmit)="joinChannel()"
-                class="rounded-[1.4rem] border border-white/8 bg-white/[0.025] p-4"
-                novalidate
-              >
-                <div class="flex items-center gap-3">
+          <!-- Identity -->
+          <section aria-label="Guest identity" class="mt-7 border-y border-white/[0.07] py-5">
+            @switch (identityState()) {
+              @case ('loading') {
+                <div
+                  class="flex min-h-12 items-center gap-3 text-xs text-[#93a0b3]"
+                  role="status"
+                  aria-label="Checking your profile"
+                >
                   <span
-                    class="grid size-10 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-[#b7a8ff]"
-                  >
-                    <app-icon name="link" [size]="16" />
-                  </span>
+                    class="size-4 animate-spin rounded-full border-2 border-white/15 border-t-[#9d85ff]"
+                    aria-hidden="true"
+                  ></span>
+
                   <div>
-                    <h3 class="text-sm font-semibold text-white">Join with a code</h3>
-                    <p class="mt-0.5 text-[10px] text-[#6f7b8f]">
-                      Enter the invite from the owner.
+                    <p class="font-medium text-[#d3d9e3]">Resolving your identity…</p>
+                    <p class="mt-1 text-[10px] text-[#687488]">
+                      Checking whether a guest name is needed
                     </p>
                   </div>
                 </div>
+              }
 
-                <label
-                  for="inviteCode"
-                  class="mt-5 block text-[10px] font-semibold tracking-[0.12em] text-[#778295] uppercase"
-                  >Invite code</label
-                >
-                <input
-                  #inviteCodeInput
-                  id="inviteCode"
-                  formControlName="inviteCode"
-                  autocomplete="off"
-                  autocapitalize="characters"
-                  spellcheck="false"
-                  placeholder="ABC12345"
-                  class="mt-2 h-11 w-full rounded-xl border border-white/9 bg-[#151b27] px-3.5 font-mono text-sm tracking-[0.08em] text-white uppercase outline-none transition placeholder:text-[#536074] hover:border-white/15 focus:border-primary/50 focus:ring-4 focus:ring-primary/8"
-                  [class.auth-input-error]="fieldError('inviteCode')"
-                  [attr.aria-invalid]="fieldError('inviteCode') ? 'true' : null"
-                  [attr.aria-describedby]="fieldError('inviteCode') ? 'invite-code-error' : null"
-                  (blur)="validateField('inviteCode')"
-                  (input)="handleFieldInput('inviteCode')"
-                />
-                @if (fieldError('inviteCode'); as error) {
-                  <p id="invite-code-error" class="auth-field-error">{{ error }}</p>
-                }
+              @case ('guest') {
+                <form [formGroup]="identityForm" novalidate>
+                  <div class="flex items-center justify-between gap-3">
+                    <label for="displayName" class="text-xs font-semibold text-[#d0d6e1]">
+                      Your display name
+                    </label>
 
-                <button
-                  type="submit"
-                  [disabled]="submitting() || authLoading()"
-                  class="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-white shadow-[0_14px_34px_rgba(124,92,252,0.22)] transition hover:-translate-y-0.5 hover:bg-[#8b6dff] disabled:cursor-not-allowed disabled:opacity-45"
-                >
-                  @if (submittingOperation() === 'join') {
-                    <span class="auth-spinner" aria-hidden="true"></span>Joining…
-                  } @else {
-                    Join room
+                    <span class="text-[10px] text-[#5f6b7e]"> Used in chat and call </span>
+                  </div>
+
+                  <input
+                    #displayNameInput
+                    id="displayName"
+                    formControlName="displayName"
+                    [maxlength]="maxNameLength"
+                    autocomplete="name"
+                    placeholder="e.g. Mohammad"
+                    class="mt-2.5 h-11 w-full rounded-xl border border-white/[0.09] bg-[#111722] px-3.5 text-sm text-white outline-none transition placeholder:text-[#566276] hover:border-white/[0.15] focus:border-primary/50 focus:ring-4 focus:ring-primary/[0.08]"
+                    [class.auth-input-error]="fieldError('displayName')"
+                    [attr.aria-invalid]="fieldError('displayName') ? 'true' : null"
+                    [attr.aria-describedby]="
+                      fieldError('displayName') ? 'display-name-error' : null
+                    "
+                    (blur)="validateField('displayName')"
+                    (input)="handleFieldInput('displayName')"
+                  />
+
+                  @if (fieldError('displayName'); as error) {
+                    <p id="display-name-error" class="auth-field-error">
+                      {{ error }}
+                    </p>
                   }
-                </button>
-              </form>
+                </form>
+              }
 
-              <form
-                [formGroup]="createForm"
-                (ngSubmit)="createChannel()"
-                class="rounded-[1.4rem] border border-white/8 bg-white/[0.025] p-4"
-                novalidate
-              >
-                <div class="flex items-center gap-3">
+              @case ('registered') {
+                <div class="flex min-h-12 items-center gap-3">
                   <span
-                    class="grid size-10 place-items-center rounded-xl border border-emerald-400/15 bg-emerald-400/8 text-emerald-300"
+                    class="grid size-9 shrink-0 place-items-center rounded-lg bg-emerald-400/[0.08] text-emerald-300"
                   >
-                    <app-icon name="plus" [size]="16" />
+                    <app-icon name="check" class="size-3.5" aria-hidden="true" />
                   </span>
-                  <div>
-                    <h3 class="text-sm font-semibold text-white">Create a room</h3>
-                    <p class="mt-0.5 text-[10px] text-[#6f7b8f]">You become the room owner.</p>
+
+                  <div class="min-w-0">
+                    <p class="text-xs font-semibold text-[#e5e9f0]">Profile connected</p>
+
+                    <p class="mt-1 text-[10px] text-[#758195]">
+                      Your registered profile name will be used automatically.
+                    </p>
                   </div>
                 </div>
+              }
+            }
+          </section>
 
-                <label
-                  for="channelName"
-                  class="mt-5 block text-[10px] font-semibold tracking-[0.12em] text-[#778295] uppercase"
-                  >Room name</label
-                >
-                <input
-                  #channelNameInput
-                  id="channelName"
-                  formControlName="channelName"
-                  [maxlength]="maxChannelNameLength"
-                  autocomplete="off"
-                  placeholder="Project review"
-                  class="mt-2 h-11 w-full rounded-xl border border-white/9 bg-[#151b27] px-3.5 text-sm text-white outline-none transition placeholder:text-[#536074] hover:border-white/15 focus:border-primary/50 focus:ring-4 focus:ring-primary/8"
-                  [class.auth-input-error]="fieldError('channelName')"
-                  [attr.aria-invalid]="fieldError('channelName') ? 'true' : null"
-                  [attr.aria-describedby]="fieldError('channelName') ? 'channel-name-error' : null"
-                  (blur)="validateField('channelName')"
-                  (input)="handleFieldInput('channelName')"
-                />
-                @if (fieldError('channelName'); as error) {
-                  <p id="channel-name-error" class="auth-field-error">{{ error }}</p>
-                }
+          <!-- Error -->
+          @if (errorMessage(); as error) {
+            <div
+              class="mt-4 flex items-start gap-3 border-l-2 border-rose-400/60 bg-rose-400/[0.055] px-3.5 py-3 text-xs leading-5 text-rose-100"
+              role="alert"
+            >
+              <span class="mt-1.5 size-1.5 shrink-0 rounded-full bg-rose-400"></span>
 
-                <button
-                  type="submit"
-                  [disabled]="submitting() || authLoading()"
-                  class="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-primary/35 bg-primary/8 text-sm font-semibold text-[#ded7ff] transition hover:-translate-y-0.5 hover:border-primary/55 hover:bg-primary/15 disabled:cursor-not-allowed disabled:opacity-45"
-                >
-                  @if (submittingOperation() === 'create') {
-                    <span class="auth-spinner" aria-hidden="true"></span>Creating…
-                  } @else {
-                    Create temporary room
-                  }
-                </button>
-              </form>
+              {{ error }}
             </div>
+          }
+
+          <!-- Join / Create workspace -->
+          <div
+            class="mt-7 grid divide-y divide-white/[0.07] md:grid-cols-2 md:divide-x md:divide-y-0"
+          >
+            <!-- Join -->
+            <form
+              [formGroup]="joinForm"
+              (ngSubmit)="joinChannel()"
+              class="pb-7 md:pr-6 md:pb-0"
+              novalidate
+            >
+              <div class="flex items-center gap-3">
+                <span
+                  class="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/[0.09] text-[#b7a8ff]"
+                >
+                  <app-icon name="link" class="size-3.5" aria-hidden="true" />
+                </span>
+
+                <div class="min-w-0">
+                  <h3 class="text-sm font-semibold text-white">Join with a code</h3>
+
+                  <p class="mt-0.5 text-[10px] text-[#6f7b8f]">Enter the invite from the owner.</p>
+                </div>
+              </div>
+
+              <label
+                for="inviteCode"
+                class="mt-5 block text-[10px] font-semibold tracking-[0.12em] text-[#778295] uppercase"
+              >
+                Invite code
+              </label>
+
+              <input
+                #inviteCodeInput
+                id="inviteCode"
+                formControlName="inviteCode"
+                autocomplete="off"
+                autocapitalize="characters"
+                spellcheck="false"
+                placeholder="ABC12345"
+                class="mt-2 h-11 w-full rounded-xl border border-white/[0.09] bg-[#111722] px-3.5 font-mono text-sm tracking-[0.08em] text-white uppercase outline-none transition placeholder:text-[#536074] hover:border-white/[0.15] focus:border-primary/50 focus:ring-4 focus:ring-primary/[0.08]"
+                [class.auth-input-error]="fieldError('inviteCode')"
+                [attr.aria-invalid]="fieldError('inviteCode') ? 'true' : null"
+                [attr.aria-describedby]="fieldError('inviteCode') ? 'invite-code-error' : null"
+                (blur)="validateField('inviteCode')"
+                (input)="handleFieldInput('inviteCode')"
+              />
+
+              @if (fieldError('inviteCode'); as error) {
+                <p id="invite-code-error" class="auth-field-error">
+                  {{ error }}
+                </p>
+              }
+
+              <button
+                type="submit"
+                [disabled]="submitting() || authLoading()"
+                class="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(124,92,252,0.2)] outline-none transition hover:-translate-y-0.5 hover:bg-[#8b6dff] focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#080b11] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
+              >
+                @if (submittingOperation() === 'join') {
+                  <span class="auth-spinner" aria-hidden="true"></span>
+                  Joining…
+                } @else {
+                  Join room
+                }
+              </button>
+            </form>
+
+            <!-- Create -->
+            <form
+              [formGroup]="createForm"
+              (ngSubmit)="createChannel()"
+              class="pt-7 md:pt-0 md:pl-6"
+              novalidate
+            >
+              <div class="flex items-center gap-3">
+                <span
+                  class="grid size-9 shrink-0 place-items-center rounded-lg bg-emerald-400/[0.08] text-emerald-300"
+                >
+                  <app-icon name="plus" class="size-3.5" aria-hidden="true" />
+                </span>
+
+                <div class="min-w-0">
+                  <h3 class="text-sm font-semibold text-white">Create a room</h3>
+
+                  <p class="mt-0.5 text-[10px] text-[#6f7b8f]">You become the room owner.</p>
+                </div>
+              </div>
+
+              <label
+                for="channelName"
+                class="mt-5 block text-[10px] font-semibold tracking-[0.12em] text-[#778295] uppercase"
+              >
+                Room name
+              </label>
+
+              <input
+                #channelNameInput
+                id="channelName"
+                formControlName="channelName"
+                [maxlength]="maxChannelNameLength"
+                autocomplete="off"
+                placeholder="Project review"
+                class="mt-2 h-11 w-full rounded-xl border border-white/[0.09] bg-[#111722] px-3.5 text-sm text-white outline-none transition placeholder:text-[#536074] hover:border-white/[0.15] focus:border-primary/50 focus:ring-4 focus:ring-primary/[0.08]"
+                [class.auth-input-error]="fieldError('channelName')"
+                [attr.aria-invalid]="fieldError('channelName') ? 'true' : null"
+                [attr.aria-describedby]="fieldError('channelName') ? 'channel-name-error' : null"
+                (blur)="validateField('channelName')"
+                (input)="handleFieldInput('channelName')"
+              />
+
+              @if (fieldError('channelName'); as error) {
+                <p id="channel-name-error" class="auth-field-error">
+                  {{ error }}
+                </p>
+              }
+
+              <button
+                type="submit"
+                [disabled]="submitting() || authLoading()"
+                class="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/[0.07] px-4 text-sm font-semibold text-[#ded7ff] outline-none transition hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/[0.14] focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#080b11] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
+              >
+                @if (submittingOperation() === 'create') {
+                  <span class="auth-spinner" aria-hidden="true"></span>
+                  Creating…
+                } @else {
+                  Create temporary room
+                }
+              </button>
+            </form>
           </div>
         </div>
       </section>
