@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import type { ChatUserStatus } from '../models/chat-user.model';
 
 export type ChatAvatarSize = 'xs' | 'sm' | 'md' | 'lg';
+export type ChatAvatarShape = 'circle' | 'rounded';
 
 /**
  * Reusable initials avatar: a colored circle whose hue is derived from the
@@ -37,6 +38,9 @@ export class ChatAvatarComponent {
   /** Visual size. `md` matches the guest-room message rows. */
   size = input<ChatAvatarSize>('md');
 
+  /** `circle` (default) is a full circle; `rounded` matches the friends/DM squarish tiles. */
+  shape = input<ChatAvatarShape>('circle');
+
   /** Optional presence dot. Omit for no dot. */
   status = input<ChatUserStatus | null>(null);
 
@@ -64,7 +68,7 @@ export class ChatAvatarComponent {
 
   protected readonly classes = computed(
     () =>
-      `relative grid shrink-0 place-items-center rounded-full border font-semibold ${this.sizeClasses[this.size()]}`,
+      `relative grid shrink-0 place-items-center border font-semibold ${this.sizeClasses[this.size()]} ${this.shape() === 'rounded' ? 'rounded-[11px]' : 'rounded-full'}`,
   );
 
   protected readonly initials = computed(

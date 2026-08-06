@@ -104,6 +104,33 @@ export const routes: Routes = [
       import('./features/lobby/lobby-page/lobby-page').then((component) => component.LobbyPage),
   },
   {
+    path: 'friends',
+    title: 'Friends | Lobby',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/friends/friends-page/friends-page').then(
+        (component) => component.FriendsPage,
+      ),
+  },
+  {
+    path: 'messages',
+    title: 'Messages | Lobby',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/messages/messages-page/messages-page').then(
+        (component) => component.MessagesPage,
+      ),
+  },
+  {
+    path: 'messages/:friendId',
+    title: 'Messages | Lobby',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/messages/messages-page/messages-page').then(
+        (component) => component.MessagesPage,
+      ),
+  },
+  {
     path: 'unauthorized',
     title: 'Unauthorized | Lobby',
     loadComponent: () =>
