@@ -1,13 +1,14 @@
 <app-chat-avatar [name]="message().author.name" [elevated]="true" />
 
-<div class="relative min-w-0 max-w-[75%] sm:max-w-[65%]">
+<div class="relative min-w-0 max-w-[82%] sm:max-w-[76%]">
   <div
-    class="absolute -top-3 right-0 z-20 flex items-center gap-1 rounded-full border border-white/10 bg-[#141821]/95 p-1 shadow-[0_16px_28px_rgba(0,0,0,0.28)] opacity-100 transition md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100"
+    [class]="
+      'absolute -top-3 z-20 flex items-center gap-1 rounded-full border border-white/10 bg-[#121822]/96 p-1 shadow-[0_16px_32px_rgba(0,0,0,0.35)] opacity-100 backdrop-blur-xl transition md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100 ' +
+      (isOwn() ? 'left-0' : 'right-0')
+    "
   >
     @if (!message().deleted) {
       <app-chat-reply [message]="message()" (reply)="onReply()" />
-    }
-    @if (!message().deleted) {
       <app-chat-react
         [message]="message()"
         [menuOpen]="reactionMenuOpen()"
@@ -22,61 +23,51 @@
         class="grid size-7 place-items-center rounded-full text-[#8f98a8] transition hover:bg-white/8 hover:text-white"
         aria-label="Edit message"
       >
-        <svg viewBox="0 0 20 20" class="size-3.5" fill="none" aria-hidden="true">
-          <path
-            d="m4 13.5-.5 3 3-.5L15 7.5 12.5 5 4 13.5Z"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linejoin="round"
-          />
-        </svg>
+        <app-icon name="edit" [size]="14" />
       </button>
       <app-chat-delete [messageId]="message().id" (delete)="onDelete($event)" />
     }
   </div>
 
-  <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-    <p class="text-xs font-semibold text-[#edf0f4]">{{ message().author.name }}</p>
+  <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5" [class.justify-end]="isOwn()">
+    <p class="text-[11px] font-semibold text-[#e9edf4]">{{ message().author.name }}</p>
     @if (isOwn()) {
-      <span class="text-[10px] font-medium text-[#8f74ff]">You</span>
+      <span class="text-[9px] font-semibold tracking-[0.08em] text-[#9d89ff] uppercase">You</span>
     }
     @if (message().edited) {
-      <span class="text-[10px] text-[#687282]">edited</span>
+      <span class="text-[9px] text-[#657186]">edited</span>
     }
     @if (message().pending) {
-      <span class="text-[10px] text-[#687282]">sending…</span>
+      <span class="text-[9px] text-[#657186]">sending…</span>
     }
     @if (message().failed) {
-      <span class="text-[10px] text-destructive">failed</span>
+      <span class="text-[9px] text-rose-300">failed</span>
     }
   </div>
 
   @if (parsedReply(); as replyMessage) {
     <div
       [class]="
-        'mt-1 rounded-2xl px-3.5 py-2 ' +
+        'mt-1.5 rounded-[1.25rem] border px-3.5 py-3 shadow-[0_10px_28px_rgba(0,0,0,0.14)] ' +
         (isOwn()
-          ? 'rounded-tl-sm bg-primary text-white'
-          : 'rounded-tl-sm bg-[#1f2531] text-[#c4cad4]')
+          ? 'rounded-tr-sm border-primary/30 bg-[linear-gradient(145deg,#7c5cfc,#6747df)] text-white'
+          : 'rounded-tl-sm border-white/8 bg-[#171e2a] text-[#cbd2de]')
       "
     >
       <div
         [class]="
           'mb-2 rounded-xl border-l-2 px-2.5 py-2 ' +
           (isOwn()
-            ? 'border-white/70 bg-white/16 text-white/90'
-            : 'border-[#8f74ff] bg-[#181e2a] text-[#b7c0cf]')
+            ? 'border-white/70 bg-white/12 text-white/90'
+            : 'border-primary bg-[#111722] text-[#aeb8c8]')
         "
       >
-        <p class="text-[10px] font-semibold tracking-[0.06em] uppercase">
+        <p class="text-[9px] font-semibold tracking-[0.08em] uppercase">
           Reply to {{ replyMessage.authorName }}
         </p>
-        <p class="mt-1 truncate text-xs opacity-90">
-          {{ replyMessage.previewText }}
-        </p>
+        <p class="mt-1 truncate text-[11px] opacity-90">{{ replyMessage.previewText }}</p>
       </div>
-
-      <p class="whitespace-pre-wrap text-sm leading-5">
+      <p class="whitespace-pre-wrap text-[13px] leading-5">
         @for (part of mentionParts(replyMessage.bodyText); track $index) {
           @if (part.kind === 'all') {
             <span [class]="chipClass(true)">@all</span>
@@ -87,22 +78,22 @@
           }
         }
       </p>
-      <div class="mt-1 flex justify-end">
-        <span [class]="'text-[10px] ' + (isOwn() ? 'text-white/90' : 'text-[#687282]')">
-          {{ messageTime(message()) }}
-        </span>
+      <div class="mt-1.5 flex" [class.justify-end]="true">
+        <span [class]="'text-[9px] ' + (isOwn() ? 'text-white/75' : 'text-[#667287]')">{{
+          messageTime(message())
+        }}</span>
       </div>
     </div>
   } @else {
-    <p
+    <div
       [class]="
-        'mt-1 inline-flex items-end gap-2 rounded-2xl px-3.5 py-2 text-sm leading-5 ' +
+        'mt-1.5 rounded-[1.25rem] border px-3.5 py-2.5 shadow-[0_10px_28px_rgba(0,0,0,0.14)] ' +
         (isOwn()
-          ? 'rounded-tl-sm bg-primary text-white'
-          : 'rounded-tl-sm bg-[#1f2531] text-[#c4cad4]')
+          ? 'rounded-tr-sm border-primary/30 bg-[linear-gradient(145deg,#7c5cfc,#6747df)] text-white'
+          : 'rounded-tl-sm border-white/8 bg-[#171e2a] text-[#cbd2de]')
       "
     >
-      <span class="wrap-break-word">
+      <p class="wrap-break-word whitespace-pre-wrap text-[13px] leading-5">
         @for (part of mentionParts(message().text); track $index) {
           @if (part.kind === 'all') {
             <span [class]="chipClass(true)">@all</span>
@@ -112,14 +103,18 @@
             {{ part.text }}
           }
         }
-      </span>
-      <span [class]="'text-[10px] ' + (isOwn() ? 'text-white' : 'text-[#687282]')">
-        {{ messageTime(message()) }}
-      </span>
-    </p>
+      </p>
+      <div class="mt-1 flex justify-end">
+        <span [class]="'text-[9px] ' + (isOwn() ? 'text-white/75' : 'text-[#667287]')">{{
+          messageTime(message())
+        }}</span>
+      </div>
+    </div>
   }
 
   @if (message().reactions.length > 0) {
-    <app-chat-react [message]="message()" mode="chips" (react)="onReact($event)" />
+    <div [class.flex]="true" [class.justify-end]="isOwn()">
+      <app-chat-react [message]="message()" mode="chips" (react)="onReact($event)" />
+    </div>
   }
 </div>

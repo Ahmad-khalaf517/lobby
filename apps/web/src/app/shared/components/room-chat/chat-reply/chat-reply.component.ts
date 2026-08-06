@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { LobbyIconComponent } from '../../../ui/icon/lobby-icon.component';
 import type { ChatMessage, ChatReplyPreview } from '../models/chat-message.model';
 
 /**
@@ -14,6 +15,7 @@ import type { ChatMessage, ChatReplyPreview } from '../models/chat-message.model
 @Component({
   selector: 'app-chat-reply',
   standalone: true,
+  imports: [LobbyIconComponent],
   templateUrl: './chat-reply.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {

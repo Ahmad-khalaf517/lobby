@@ -8,6 +8,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { LobbyIconComponent } from '../../ui/icon/lobby-icon.component';
 import { ChatSidebarComponent } from './chat-sidebar/chat-sidebar.component';
 import {
   DEFAULT_CHAT_EMOJIS,
@@ -28,20 +29,12 @@ import {
  * close). No socket / persistence logic lives here.
  *
  * ---------------------------------------------------------------------------
- * Reusing individual pieces OUTSIDE the full panel (e.g. the future call page)
+ * Reusing individual pieces
  * ---------------------------------------------------------------------------
  *
- * `app-chat-avatar` and `app-call-icon` are intentionally generic and can be
- * used standalone anywhere:
- *
- *   <!-- Call page: participants list -->
- *   <app-chat-avatar [name]="p.name" size="sm" [status]="'online'" />
- *
- *   <!-- Call page: control bar -->
- *   <app-call-icon type="mic" variant="solid" size="lg" shape="circle"
- *     label="Toggle microphone" [active]="micOn" (click)="toggleMic()" />
- *   <app-call-icon type="leave" variant="danger" size="lg" shape="circle"
- *     label="Leave call" (click)="leave()" />
+ * `app-chat-avatar` is intentionally generic and can be used in participant
+ * lists or call controls. Icons are provided through the shared Lucide-based
+ * `app-icon` component.
  *
  * `app-chat-message` renders one message bubble (avatar + hover actions +
  * reaction chips) given a `ChatMessage`; `app-chat-bar` is a standalone
@@ -61,13 +54,12 @@ import {
  *   (deleteMessage)="onDelete($event)"
  *   (close)="goBack()">
  *   <button chat-header-leading (click)="toggleSidebar()">…</button>
- *   <app-call-icon chat-header-extra type="call" label="Meet now" />
  * </app-room-chat>
  */
 @Component({
   selector: 'app-room-chat',
   standalone: true,
-  imports: [ChatSidebarComponent],
+  imports: [LobbyIconComponent, ChatSidebarComponent],
   templateUrl: './room-chat.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {

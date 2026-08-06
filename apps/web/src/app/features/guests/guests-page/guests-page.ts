@@ -12,6 +12,7 @@ import { Router, RouterLink } from '@angular/router';
 import { MAX_CHANNEL_NAME_LENGTH, MAX_NAME_LENGTH } from '@lobby/shared';
 import type { ZodType } from 'zod';
 
+import { LobbyIconComponent } from '../../../shared/ui/icon/lobby-icon.component';
 import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
 import {
   guestChannelNameSchema,
@@ -27,7 +28,7 @@ type GuestOperation = 'join' | 'create';
 
 @Component({
   selector: 'app-guests-page',
-  imports: [ReactiveFormsModule, RouterLink, LogoComponent],
+  imports: [ReactiveFormsModule, RouterLink, LogoComponent, LobbyIconComponent],
   templateUrl: './guests-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

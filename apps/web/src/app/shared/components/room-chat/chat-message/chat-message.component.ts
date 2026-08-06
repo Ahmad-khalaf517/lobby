@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { LobbyIconComponent } from '../../../ui/icon/lobby-icon.component';
 import { ChatAvatarComponent } from '../chat-avatar/chat-avatar.component';
 import { ChatDeleteComponent } from '../chat-delete/chat-delete.component';
 import { ChatReactComponent } from '../chat-react/chat-react.component';
@@ -18,11 +19,18 @@ export type ParsedReply = { authorName: string; previewText: string; bodyText: s
 @Component({
   selector: 'app-chat-message',
   standalone: true,
-  imports: [ChatAvatarComponent, ChatReplyComponent, ChatReactComponent, ChatDeleteComponent],
+  imports: [
+    LobbyIconComponent,
+    ChatAvatarComponent,
+    ChatReplyComponent,
+    ChatReactComponent,
+    ChatDeleteComponent,
+  ],
   templateUrl: './chat-message.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'group flex w-full items-start gap-2.5',
+    '[class.flex-row-reverse]': 'isOwn()',
   },
 })
 export class ChatMessageComponent {

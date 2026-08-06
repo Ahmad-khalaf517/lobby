@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { LobbyIconComponent } from '../../../ui/icon/lobby-icon.component';
 
 /**
  * Delete action: a small trash icon button on a message's hover pill.
@@ -10,6 +11,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 @Component({
   selector: 'app-chat-delete',
   standalone: true,
+  imports: [LobbyIconComponent],
   templateUrl: './chat-delete.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {

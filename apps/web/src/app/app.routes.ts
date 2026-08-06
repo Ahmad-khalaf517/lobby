@@ -89,14 +89,6 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'guest/:inviteCode/call',
-    title: 'Call | Lobby',
-    loadComponent: () =>
-      import('./features/call-room/call-room-page/call-room-page').then(
-        (component) => component.CallRoomPage,
-      ),
-  },
-  {
     path: 'app',
     title: 'Dashboard | Lobby',
     canActivate: [authGuard],

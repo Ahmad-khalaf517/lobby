@@ -2,10 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 
 export type CallIconType =
   | 'call'
-  | 'video'
   | 'mic'
   | 'mic-off'
-  | 'camera-off'
   | 'screen-share'
   | 'screen-share-off'
   | 'copy'
@@ -19,7 +17,7 @@ export type CallIconVariant = 'ghost' | 'solid' | 'danger';
 export type CallIconSize = 'sm' | 'md' | 'lg';
 
 /**
- * Reusable call-style icon button (phone / video / mic / leave / screen-share
+ * Reusable call-style icon button (phone / mic / leave / screen-share
  * / copy / close / lock / users / reconnecting). Renders a real <button> so
  * keyboard + screen-reader interaction works; the inner button's click bubbles
  * to the host, so parents can bind a plain `(click)`.
@@ -51,7 +49,7 @@ export class CallIconComponent {
   /** Ghost = subtle bordered (headers); solid = primary filled; danger = red (leave/end). */
   variant = input<CallIconVariant>('ghost');
 
-  /** Toggle state for mic/video (adds a highlight ring). */
+  /** Toggle state for microphone or screen sharing (adds a highlight ring). */
   active = input<boolean>(false);
 
   /** Disables the button (e.g. while the call isn't connected). */

@@ -1,21 +1,48 @@
-<div class="flex h-full w-full min-h-0 flex-col gap-3">
-  <div class="flex items-center justify-between gap-3">
-    <p class="flex items-center gap-2 text-xs font-medium text-[#8b95a6]">
-      <span class="size-1.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(239,68,68,0.9)]"></span>
-      {{ sharerName() }} is presenting{{ isLocalSharing() ? ' (you)' : '' }}
-    </p>
-    @if (isLocalSharing()) {
-      <span
-        class="rounded-full border border-[#7c5cfc]/40 bg-[#7c5cfc]/15 px-2.5 py-1 text-[10px] font-semibold text-[#cfc4ff]"
-      >
-        You are sharing
+<section #stage class="flex h-full min-h-0 w-full flex-col gap-3 bg-[#080b11] fullscreen:p-4">
+  <div class="flex flex-wrap items-center justify-between gap-3 px-1">
+    <div class="flex min-w-0 items-center gap-2.5">
+      <span class="relative flex size-2.5 shrink-0">
+        <span
+          class="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-50"
+        ></span>
+        <span class="relative inline-flex size-2.5 rounded-full bg-rose-400"></span>
       </span>
-    }
+      <div class="min-w-0">
+        <p class="truncate text-xs font-semibold text-[#eef1f6]">
+          {{ sharerName() }} is presenting
+        </p>
+        <p class="mt-0.5 text-[10px] text-[#748095]">
+          Screen sharing is locked to one presenter at a time
+        </p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      @if (isLocalSharing()) {
+        <span
+          class="rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[10px] font-semibold text-[#cfc6ff]"
+          >You are sharing</span
+        >
+      }
+      <button
+        type="button"
+        (click)="toggleExpanded()"
+        class="grid size-9 place-items-center rounded-xl border border-white/10 bg-white/[0.055] text-[#d3dae6] transition hover:border-white/18 hover:bg-white/10 hover:text-white"
+        [attr.aria-label]="expanded() ? 'Exit expanded screen share' : 'Expand screen share'"
+        [attr.title]="expanded() ? 'Exit expanded view' : 'Expand screen share'"
+      >
+        <app-icon [name]="expanded() ? 'minimize' : 'expand'" [size]="17" />
+      </button>
+    </div>
   </div>
 
   <div
-    class="min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_24px_70px_rgba(0,0,0,0.5)]"
+    class="relative min-h-0 flex-1 overflow-hidden rounded-[1.65rem] border border-white/10 bg-black shadow-[0_28px_90px_rgba(0,0,0,0.48)]"
   >
+    <div
+      class="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-inset ring-white/5"
+      aria-hidden="true"
+    ></div>
     <video #shareVideo class="h-full w-full object-contain" autoplay playsinline muted></video>
   </div>
-</div>
+</section>

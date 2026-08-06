@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { LobbyIconComponent } from '../../../ui/icon/lobby-icon.component';
 import { DEFAULT_CHAT_EMOJIS, type ChatMessage } from '../models/chat-message.model';
 
 export type ChatReactMode = 'action' | 'chips';
@@ -19,6 +20,7 @@ export type ChatReactMode = 'action' | 'chips';
 @Component({
   selector: 'app-chat-react',
   standalone: true,
+  imports: [LobbyIconComponent],
   templateUrl: './chat-react.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {

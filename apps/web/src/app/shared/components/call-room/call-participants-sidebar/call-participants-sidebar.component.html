@@ -1,52 +1,86 @@
-<div class="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#171d2a] p-3">
-  <div class="mb-2 flex items-center justify-between">
-    <p class="text-[11px] font-semibold tracking-[0.08em] text-[#8b95a6] uppercase">
-      {{ title() }}
-    </p>
+<section class="flex min-h-0 flex-1 flex-col">
+  <div class="mb-3 flex items-center justify-between gap-3 px-1">
+    <div>
+      <p class="text-[10px] font-semibold tracking-[0.16em] text-[#697589] uppercase">
+        {{ title() }}
+      </p>
+      <p class="mt-1 text-xs text-[#9aa5b7]">Present in this room</p>
+    </div>
     @if (showCount()) {
       <span
-        class="rounded-full border border-white/12 bg-white/[0.04] px-2 py-0.5 text-[10px] text-[#c8cfdb]"
+        class="grid min-w-7 place-items-center rounded-full border border-white/9 bg-white/[0.045] px-2 py-1 text-[10px] font-semibold text-[#d3d9e5]"
       >
         {{ participants().length }}
       </span>
     }
   </div>
 
-  <div
-    class="lobby-scrollbar max-h-52 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1 md:max-h-none"
-  >
+  <div class="lobby-scrollbar min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
     @if (participants().length === 0) {
-      <p class="rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2 text-xs text-[#7e8899]">
-        {{ emptyText() }}
-      </p>
+      <div
+        class="rounded-2xl border border-dashed border-white/10 bg-white/[0.025] px-4 py-5 text-center"
+      >
+        <p class="text-xs text-[#7f8a9c]">{{ emptyText() }}</p>
+      </div>
     }
 
     @for (participant of participants(); track participant.id) {
       <div
-        class="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.035] px-2.5 py-2 transition hover:border-white/18 hover:bg-white/[0.06]"
+        class="group flex items-center gap-3 rounded-2xl border border-transparent px-2.5 py-2.5 transition hover:border-white/8 hover:bg-white/[0.04]"
       >
         <div
           class="relative shrink-0"
           [class]="
             participant.isSpeaking
-              ? 'rounded-full ring-2 ring-[#7c5cfc] ring-offset-2 ring-offset-[#171d2a]'
+              ? 'rounded-full ring-2 ring-emerald-400/35 ring-offset-2 ring-offset-[#10151f]'
               : ''
           "
         >
           <app-chat-avatar [name]="participant.name" size="sm" status="online" />
-        </div>
-
-        <div class="min-w-0 flex-1">
-          <p class="truncate text-xs font-medium text-[#edf0f4]">{{ participant.name }}</p>
-          @if (participant.isLocal) {
-            <p class="text-[10px] text-[#a78bfa]">You</p>
+          @if (participant.isSpeaking) {
+            <span
+              class="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full border-2 border-[#10151f] bg-emerald-400"
+            ></span>
           }
         </div>
 
-        @if (participant.isMicMuted) {
-          <app-call-icon type="mic-off" size="sm" [label]="participant.name + ' is muted'" />
+        <div class="min-w-0 flex-1">
+          <div class="flex min-w-0 items-center gap-1.5">
+            <p class="truncate text-xs font-semibold text-[#eef1f6]">{{ participant.name }}</p>
+            @if (participant.isLocal) {
+              <span class="text-[9px] font-semibold text-[#a995ff]">YOU</span>
+            }
+          </div>
+          <p class="mt-0.5 truncate text-[10px] text-[#6f7b8f]">
+            @if (participant.isOwner) {
+              Room owner
+            } @else if (participant.isSpeaking) {
+              Speaking
+            } @else if (participant.inCall) {
+              In audio call
+            } @else {
+              In the room
+            }
+          </p>
+        </div>
+
+        @if (participant.inCall && participant.isMicMuted) {
+          <span class="text-[#707b8c]" [attr.aria-label]="participant.name + ' is muted'">
+            <app-icon name="mic-off" [size]="16" />
+          </span>
+        }
+
+        @if (canManage() && !participant.isLocal) {
+          <button
+            type="button"
+            (click)="removeParticipant.emit(participant)"
+            class="grid size-8 place-items-center rounded-lg text-[#778295] opacity-0 transition hover:bg-rose-500/10 hover:text-rose-300 group-hover:opacity-100 focus-visible:opacity-100"
+            [attr.aria-label]="'Remove ' + participant.name"
+          >
+            <app-icon name="user-minus" [size]="16" />
+          </button>
         }
       </div>
     }
   </div>
-</div>
+</section>

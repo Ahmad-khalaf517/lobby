@@ -59,7 +59,7 @@ export class ChatAvatarComponent {
     xs: 'size-6 text-[9px]',
     sm: 'size-7 text-[10px]',
     md: 'size-8 text-[10px] tracking-[0.08em]',
-    lg: 'size-10 text-xs tracking-[0.08em]',
+    lg: 'size-16 text-base tracking-[0.08em]',
   };
 
   protected readonly classes = computed(

@@ -8,6 +8,7 @@ import {
   viewChild,
   type ElementRef,
 } from '@angular/core';
+import { LobbyIconComponent } from '../../../ui/icon/lobby-icon.component';
 import { ChatBarComponent } from '../chat-bar/chat-bar.component';
 import { ChatMessageComponent } from '../chat-message/chat-message.component';
 import { ChatReplyComponent } from '../chat-reply/chat-reply.component';
@@ -30,7 +31,7 @@ import {
 @Component({
   selector: 'app-chat-sidebar',
   standalone: true,
-  imports: [ChatMessageComponent, ChatReplyComponent, ChatBarComponent],
+  imports: [LobbyIconComponent, ChatMessageComponent, ChatReplyComponent, ChatBarComponent],
   templateUrl: './chat-sidebar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {

@@ -1,16 +1,7 @@
 @if (infoBannerText(); as bannerText) {
-  <div class="shrink-0 border-b border-white/7 bg-[#161b28] px-4 py-2.5 sm:px-6">
-    <p class="flex items-start gap-2 text-xs leading-5 text-[#a0a9b7]">
-      <svg
-        viewBox="0 0 24 24"
-        class="mt-px size-3.5 shrink-0 text-[#8f74ff]"
-        fill="none"
-        aria-hidden="true"
-      >
-        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
-        <path d="M12 8h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-        <path d="M12 12v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-      </svg>
+  <div class="shrink-0 border-b border-white/7 bg-primary/5 px-4 py-2.5">
+    <p class="flex items-start gap-2 text-[11px] leading-5 text-[#929db0]">
+      <app-icon name="info" [size]="14" class="mt-px text-[#9c88ff]" />
       <span>{{ bannerText }}</span>
     </p>
   </div>
@@ -19,12 +10,22 @@
 <div
   #messagesContainer
   (scroll)="onMessagesScroll()"
-  class="lobby-scrollbar flex-1 space-y-4 overflow-y-auto p-4 sm:p-6"
+  class="lobby-scrollbar min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5"
 >
   @if (messages().length === 0) {
-    <p class="py-10 text-center text-sm text-[#687282]">
-      No messages yet — say hello to get the conversation started.
-    </p>
+    <div class="grid min-h-64 place-items-center py-10 text-center">
+      <div>
+        <span
+          class="mx-auto grid size-12 place-items-center rounded-2xl border border-white/8 bg-white/[0.035] text-[#8e7cff]"
+        >
+          <app-icon name="chat" [size]="20" />
+        </span>
+        <p class="mt-4 text-sm font-semibold text-[#dce2ec]">Start the conversation</p>
+        <p class="mt-1.5 max-w-52 text-[11px] leading-5 text-[#6f7b8f]">
+          Messages, replies, and reactions will appear here in realtime.
+        </p>
+      </div>
+    </div>
   }
 
   @for (message of messages(); track message.id) {
@@ -44,26 +45,18 @@
   <div #scrollAnchor></div>
 </div>
 
-<div class="relative">
+<div class="relative shrink-0">
   @if (showScrollToNewest()) {
     <button
       type="button"
       (click)="jumpToNewestMessage()"
-      class="absolute -top-14 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border border-[#7c5cfc]/40 bg-[#1c2230] px-3 py-2 text-[#d9deea] shadow-[0_14px_34px_rgba(0,0,0,0.5)] transition hover:border-[#7c5cfc]/70 hover:bg-[#242c3d] hover:text-white"
+      class="absolute -top-14 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border border-primary/30 bg-[#151b28]/95 px-3 py-2 text-[#d9deea] shadow-[0_14px_34px_rgba(0,0,0,0.5)] backdrop-blur-xl transition hover:border-primary/55 hover:bg-[#1b2332] hover:text-white"
     >
-      <svg viewBox="0 0 24 24" class="size-4 shrink-0" fill="none" aria-hidden="true">
-        <path
-          d="m7 10 5 5 5-5"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-      </svg>
+      <app-icon name="chevron-down" [size]="16" />
       @if (unreadCount() > 0) {
-        <span class="text-[11px] font-semibold">
-          {{ unreadCount() }} new message{{ unreadCount() === 1 ? '' : 's' }}
-        </span>
+        <span class="text-[11px] font-semibold"
+          >{{ unreadCount() }} new message{{ unreadCount() === 1 ? '' : 's' }}</span
+        >
       }
     </button>
   }
