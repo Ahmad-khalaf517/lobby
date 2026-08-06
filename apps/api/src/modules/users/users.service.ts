@@ -17,6 +17,7 @@ export class UsersService {
     // dedicated upload/delete endpoints, which own the storage object too.
     return this.usersRepository.updateProfile(userId, {
       displayName: changes.displayName,
+      userName: changes.userName,
       bio: changes.bio,
     });
   }
@@ -52,7 +53,8 @@ export class UsersService {
   async searchUsers(query: string): Promise<UserProfile[]> {
     const trimmed = query.trim();
     if (trimmed.length < 1) return [];
-    const rows = await this.usersRepository.searchByName(trimmed);
+    const rows = await this.usersRepository.searchByNameOrUserName(trimmed);
+
     return rows.map(toUserProfile);
   }
 }
