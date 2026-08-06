@@ -8,6 +8,7 @@ import { CallsModule } from './modules/calls/calls.module.js';
 import { ServersModule } from './modules/servers/server.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { APP_FILTER } from '@nestjs/core';
+import { FriendshipsModule } from './modules/friendships/friendships.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { APP_FILTER } from '@nestjs/core';
     TestModule,
     ServersModule,
     CallsModule,
+    FriendshipsModule,
   ],
   providers: [
     {
