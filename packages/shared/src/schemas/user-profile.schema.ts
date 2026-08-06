@@ -12,6 +12,7 @@ export const MAX_PROFILE_AVATAR_URL_LENGTH = 2048;
 export const UserProfileSchema = z.object({
   userId: z.string().min(1),
   displayName: z.string().min(1).max(MAX_NAME_LENGTH),
+  username: z.string().min(1).max(MAX_NAME_LENGTH),
   bio: z.string().max(MAX_PROFILE_BIO_LENGTH).nullable(),
   avatarUrl: z.string().url().max(MAX_PROFILE_AVATAR_URL_LENGTH).nullable(),
   createdAt: z.string().datetime({ offset: true }),
@@ -23,12 +24,14 @@ export type UserProfile = z.infer<typeof UserProfileSchema>;
 export const UpdateUserProfileRequestSchema = z
   .object({
     displayName: z.string().min(1).max(MAX_NAME_LENGTH).optional(),
+    userName: z.string().min(1).max(MAX_NAME_LENGTH).optional(),
     bio: z.string().max(MAX_PROFILE_BIO_LENGTH).nullable().optional(),
     avatarUrl: z.string().url().max(MAX_PROFILE_AVATAR_URL_LENGTH).nullable().optional(),
   })
   .refine(
     (payload) =>
       payload.displayName !== undefined ||
+      payload.userName !== undefined ||
       payload.bio !== undefined ||
       payload.avatarUrl !== undefined,
     {

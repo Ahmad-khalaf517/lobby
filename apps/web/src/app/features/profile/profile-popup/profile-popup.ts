@@ -46,10 +46,13 @@ export class ProfilePopupComponent {
 
   protected readonly displayNameInput = signal('');
   protected readonly bioInput = signal('');
+  protected readonly usernameInput = signal('');
 
   protected readonly maxNameLength = MAX_NAME_LENGTH;
   protected readonly maxBioLength = MAX_PROFILE_BIO_LENGTH;
+  protected readonly maxUserNameLength = MAX_NAME_LENGTH;
   protected readonly bioCharCount = computed(() => this.bioInput().length);
+  protected readonly userNameCharCount = computed(() => this.usernameInput().length);
 
   protected readonly initials = computed(() => this.initialsFor(this.profile()?.displayName ?? ''));
 
@@ -80,6 +83,7 @@ export class ProfilePopupComponent {
     const current = this.profile();
     if (!current) return;
     this.displayNameInput.set(current.displayName);
+    this.usernameInput.set(current.username);
     this.bioInput.set(current.bio ?? '');
     this.errorMessage.set(null);
     this.mode.set('edit');
@@ -140,8 +144,13 @@ export class ProfilePopupComponent {
     if (!id || this.saving()) return;
 
     const displayName = this.displayNameInput().trim();
+    const username = this.usernameInput().trim();
     if (!displayName) {
       this.errorMessage.set('Display name is required.');
+      return;
+    }
+    if (!username) {
+      this.errorMessage.set('Username is required.');
       return;
     }
 
@@ -150,6 +159,7 @@ export class ProfilePopupComponent {
     try {
       const updated = await this.profileService.updateProfile(id, {
         displayName,
+        userName: username,
         bio: this.bioInput().trim().length > 0 ? this.bioInput().trim() : null,
       });
       this.profile.set(updated);

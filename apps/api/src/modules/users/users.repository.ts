@@ -44,7 +44,7 @@ export class UsersRepository {
 
   async updateProfile(
     userId: string,
-    changes: { displayName?: string; bio?: string | null },
+    changes: { displayName?: string; bio?: string | null; userName?: string },
   ): Promise<UserProfile> {
     // Make sure the row exists before updating (first save for this account).
     await this.findOrCreateProfile(userId);
@@ -52,6 +52,7 @@ export class UsersRepository {
     const update: UserUpdate = {};
     if (changes.displayName !== undefined) update.name = changes.displayName;
     if (changes.bio !== undefined) update.bio = changes.bio;
+    if (changes.userName !== undefined) update.user_name = changes.userName;
 
     const { data, error } = await this.supabase.client
       .from('users')
@@ -116,11 +117,12 @@ export class UsersRepository {
     const { error } = await this.supabase.client.storage.from(AVATAR_BUCKET).remove(paths);
     if (error) throw error;
   }
-  async searchByName(query: string, limit = 20): Promise<UserRow[]> {
+  async searchByNameOrUserName(query: string, limit = 20): Promise<UserRow[]> {
+    const pattern = `%${query}%`;
     const { data, error } = await this.supabase.client
       .from('users')
       .select()
-      .or(`name.ilike.%${query}%,user_name.ilike.%${query}%`)
+      .or(`name.ilike.${pattern},user_name.ilike.${pattern}`)
       .limit(limit);
 
     if (error) throw error;

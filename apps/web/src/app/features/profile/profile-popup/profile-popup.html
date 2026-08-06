@@ -56,6 +56,7 @@
           <h2 class="text-lg font-semibold text-app-foreground">
             {{ profile()?.displayName }}
           </h2>
+          <p class="text-sm text-app-muted">@{{ profile()?.username }}</p>
           @if (profile()?.bio) {
             <p class="mt-1 text-sm text-app-muted whitespace-pre-wrap break-words">
               {{ profile()?.bio }}
@@ -112,7 +113,20 @@
             [ngModel]="displayNameInput()"
             (ngModelChange)="displayNameInput.set($event)"
           />
-
+          <label
+            class="block text-xs font-medium text-app-muted mt-4 mb-1.5"
+            for="profile-user-name"
+          >
+            Username
+          </label>
+          <input
+            id="profile-user-name"
+            type="text"
+            class="w-full rounded-lg border border-app-border bg-app-background px-3 py-2 text-sm text-app-foreground placeholder:text-app-muted focus:outline-none focus:ring-2 focus:ring-primary"
+            [maxlength]="maxUserNameLength"
+            [ngModel]="usernameInput()"
+            (ngModelChange)="usernameInput.set($event)"
+          />
           <label class="block text-xs font-medium text-app-muted mt-4 mb-1.5" for="profile-bio">
             Bio
           </label>
