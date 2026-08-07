@@ -12,6 +12,7 @@ export function toDmMessage(row: DmMessageRow): DmMessage {
     // DB column is `content` (matches the channel `messages` table); the API
     // field is `body`.
     body: row.content,
+    reactionEmoji: row.reaction_emoji,
     createdAt: row.created_at,
   };
 }

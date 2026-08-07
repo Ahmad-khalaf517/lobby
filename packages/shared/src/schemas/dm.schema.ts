@@ -23,6 +23,17 @@ export const ConversationIdParamSchema = z.object({
 });
 export type ConversationIdParam = z.infer<typeof ConversationIdParamSchema>;
 
+export const DmMessageIdParamSchema = z.object({
+  messageId: z.string().uuid(),
+});
+export type DmMessageIdParam = z.infer<typeof DmMessageIdParamSchema>;
+
+/** REST: PUT /dms/:conversationId/messages/:messageId/reaction — body */
+export const SetDmReactionRequestSchema = z.object({
+  emoji: z.string().min(1).max(16),
+});
+export type SetDmReactionRequest = z.infer<typeof SetDmReactionRequestSchema>;
+
 // ---------------------------------------------------------------------
 // Response shapes
 // ---------------------------------------------------------------------
@@ -33,6 +44,8 @@ export const DmMessageSchema = z.object({
   conversationId: z.string().uuid(),
   senderId: z.string().uuid(),
   body: z.string().min(1).max(MAX_MESSAGE_LENGTH),
+  /** One reaction slot per message — null until either participant reacts. */
+  reactionEmoji: z.string().min(1).max(16).nullable(),
   // { offset: true } — Supabase/PostgREST serializes timestamptz as
   // "...+00:00", not the "Z" suffix z.string().datetime() requires by default.
   createdAt: z.string().datetime({ offset: true }),

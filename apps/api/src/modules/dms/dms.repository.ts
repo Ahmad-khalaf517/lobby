@@ -93,6 +93,30 @@ export class DmsRepository {
     return data ?? [];
   }
 
+  async findMessageById(messageId: string): Promise<DmMessageRow | null> {
+    const { data, error } = await this.db
+      .from('dm_messages')
+      .select()
+      .eq('id', messageId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  }
+
+  /** Sets the message's single reaction slot; pass null to clear it. */
+  async setReaction(messageId: string, emoji: string | null): Promise<DmMessageRow> {
+    const { data, error } = await this.db
+      .from('dm_messages')
+      .update({ reaction_emoji: emoji })
+      .eq('id', messageId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
   /** Most recent message per conversation, for list previews. */
   async getLastMessages(conversationIds: string[]): Promise<Map<string, DmMessageRow>> {
     const lastByConversation = new Map<string, DmMessageRow>();
