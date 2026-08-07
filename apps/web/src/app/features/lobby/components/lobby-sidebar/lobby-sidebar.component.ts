@@ -1,15 +1,15 @@
-import { Component } from '@angular/core';
-import { LobbySidebarComponent } from '../components/lobby-sidebar/lobby-sidebar.component';
+import { Component, EventEmitter, Output } from '@angular/core';
 
 @Component({
-  selector: 'app-lobby-page',
+  selector: 'app-lobby-sidebar',
   standalone: true,
-  imports: [LobbySidebarComponent],
-  templateUrl: './lobby-page.html',
+  imports: [],
+  templateUrl: './lobby-sidebar.component.html',
 })
-export class LobbyPage {
+export class LobbySidebarComponent {
+  @Output() selectSpace = new EventEmitter<string>();
+
   selectedSpaceId = 'dh';
-  selectedChannelId = 'general';
 
   spaces = [
     { id: 'dh', name: 'Digital Hub', initials: 'DH', unread: 3, active: true },
@@ -39,29 +39,16 @@ export class LobbyPage {
     ],
   };
 
-  get channels() {
+  get selectedChannels() {
     return this.channelsBySpace[this.selectedSpaceId] ?? [];
   }
 
-  get selectedChannel() {
-    return this.channels.find((c) => c.id === this.selectedChannelId) ?? this.channels[0];
-  }
-
-  get selectedSpace() {
-    return this.spaces.find((s) => s.id === this.selectedSpaceId) ?? this.spaces[0];
-  }
-
-  selectSpace(id: string) {
+  onSelectSpace(id: string) {
     this.selectedSpaceId = id;
-    const channels = this.channelsBySpace[id] ?? [];
-    this.selectedChannelId = channels[0]?.id ?? this.selectedChannelId;
-  }
-
-  selectChannel(id: string) {
-    this.selectedChannelId = id;
-    this.channelsBySpace[this.selectedSpaceId] = this.channels.map((channel) => ({
-      ...channel,
-      active: channel.id === id,
+    this.spaces = this.spaces.map((space) => ({
+      ...space,
+      active: space.id === id,
     }));
+    this.selectSpace.emit(id);
   }
 }
