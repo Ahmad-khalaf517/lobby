@@ -15,7 +15,7 @@ import { environment } from '../../../environments/environment';
 import { AuthService } from '../auth/services/auth';
 import type { Person } from '../../shared/components/person-avatar/person.model';
 import { personFromProfile } from '../../shared/components/person-avatar/person.util';
-import type { ChatMessage, ChatReaction, ChatUser } from '../../shared/components/room-chat';
+import type { ChatMessage, ChatUser } from '../../shared/components/room-chat';
 import { initialsFromName } from '../../shared/components/room-chat';
 import type { Conversation } from './messages.models';
 
@@ -23,8 +23,9 @@ import type { Conversation } from './messages.models';
  * Direct messages feature state — backed by the DMs REST API.
  *
  * Conversations + message history load over REST (get-or-create per partner),
- * and sending persists via POST. Edit / delete / reactions / read-state have no
- * DM endpoint yet, so those stay optimistic/local until the backend ships them.
+ * sending persists via POST, and reactions persist via the PUT/DELETE reaction
+ * endpoints. Edit / delete / read-state have no DM endpoint yet, so those stay
+ * optimistic/local until the backend ships them.
  */
 @Injectable({ providedIn: 'root' })
 export class DirectMessagesService {
@@ -168,12 +169,43 @@ export class DirectMessagesService {
     }));
   }
 
-  /** Toggle the current user's reaction — local-only until the API ships. */
-  toggleReaction(userId: string, messageId: string, emoji: string): void {
+  /** Toggle the current user's reaction — persists via PUT/DELETE reaction APIs. */
+  async toggleReaction(userId: string, messageId: string, emoji: string): Promise<void> {
+    const conversation = this.conversationFor(userId);
+    const current = (this.messagesSignal()[userId] ?? []).find(
+      (message) => message.id === messageId,
+    );
+    if (!conversation || !current) {
+      return;
+    }
+
+    const next = current.ownReaction === emoji ? null : emoji;
+    const url = `${this.apiUrl}/dms/${conversation.conversationId}/messages/${messageId}/reaction`;
+
+    try {
+      if (next === null) {
+        await firstValueFrom(this.http.delete<unknown>(url));
+      } else {
+        await firstValueFrom(this.http.put<unknown>(url, { emoji: next }));
+      }
+    } catch {
+      return; // Keep the previous state on failure.
+    }
+
+    this.applyLocalReaction(userId, messageId, next);
+  }
+
+  private applyLocalReaction(userId: string, messageId: string, ownReaction: string | null): void {
     this.messagesSignal.update((store) => ({
       ...store,
       [userId]: (store[userId] ?? []).map((message) =>
-        message.id === messageId ? applyReaction(message, emoji) : message,
+        message.id === messageId
+          ? {
+              ...message,
+              ownReaction,
+              reactions: ownReaction ? [{ emoji: ownReaction, count: 1, reactedByMe: true }] : [],
+            }
+          : message,
       ),
     }));
   }
@@ -255,7 +287,9 @@ export class DirectMessagesService {
       author,
       text: message.body,
       createdAt: message.createdAt,
-      reactions: [],
+      reactions: message.reactionEmoji
+        ? [{ emoji: message.reactionEmoji, count: 1, reactedByMe: false }]
+        : [],
       ownReaction: null,
     };
   }
@@ -297,32 +331,4 @@ function authorFromPerson(person: Person): Promise<ChatUser> {
     name: person.name,
     initials: person.initials ?? initialsFromName(person.name),
   });
-}
-
-/** Recompute the reaction chips after toggling the current user's emoji. */
-function applyReaction(message: ChatMessage, emoji: string): ChatMessage {
-  const previous = message.ownReaction;
-  const nextOwn = previous === emoji ? null : emoji;
-
-  const counts = new Map<string, number>();
-  for (const reaction of message.reactions) {
-    counts.set(reaction.emoji, reaction.count);
-  }
-  if (previous !== null && previous !== nextOwn) {
-    counts.set(previous, Math.max((counts.get(previous) ?? 1) - 1, 0));
-  }
-  if (nextOwn !== null) {
-    counts.set(emoji, (counts.get(emoji) ?? 0) + 1);
-  }
-
-  const reactions: ChatReaction[] = Array.from(counts.entries())
-    .filter(([, count]) => count > 0)
-    .map(([reactionEmoji, count]) => ({
-      emoji: reactionEmoji,
-      count,
-      reactedByMe: reactionEmoji === nextOwn,
-    }))
-    .sort((a, b) => b.count - a.count);
-
-  return { ...message, ownReaction: nextOwn, reactions };
 }

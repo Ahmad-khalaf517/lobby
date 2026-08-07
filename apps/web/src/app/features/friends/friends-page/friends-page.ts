@@ -44,6 +44,7 @@ export class FriendsPage {
   protected readonly activeTab = signal<FriendsTab>('all');
   protected readonly addFriendQuery = signal('');
   protected readonly addFriendNotice = signal<string | null>(null);
+  protected readonly addFriendOpen = signal(true);
   protected readonly moreMenuFor = signal<string | null>(null);
   protected readonly searchResults = signal<UserProfile[]>([]);
   protected readonly searching = signal(false);
@@ -57,6 +58,14 @@ export class FriendsPage {
   protected setTab(tab: FriendsTab): void {
     this.activeTab.set(tab);
     this.moreMenuFor.set(null);
+  }
+
+  /** Toggle the Add friend side panel; focus its search when opening. */
+  protected toggleAddFriend(): void {
+    this.addFriendOpen.update((open) => {
+      if (!open) this.focusAddFriend();
+      return !open;
+    });
   }
 
   protected tabClass(tab: FriendsTab): string {
@@ -161,6 +170,13 @@ export class FriendsPage {
 
   protected openProfile(profile: UserProfile): void {
     this.profilePopup.open(profile.userId);
+  }
+
+  protected openMyProfile(): void {
+    const userId = this.auth.user()?.id;
+    if (userId) {
+      this.profilePopup.open(userId);
+    }
   }
 
   protected toPerson(profile: UserProfile): Person {

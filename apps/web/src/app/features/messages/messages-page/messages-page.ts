@@ -20,6 +20,7 @@ import { MessageRowComponent } from '../components/message-row/message-row.compo
 import { formatMessageTime } from '../messages.util';
 import { DirectMessagesService } from '../messages.service';
 import { FriendsService } from '../../friends/friends.service';
+import { ProfilePopupService } from '../../profile/services/profile-popup.service';
 
 /**
  * Direct messages page (routes `/messages`, `/messages/:friendId`). Renders the
@@ -41,6 +42,7 @@ import { FriendsService } from '../../friends/friends.service';
 export class MessagesPage {
   private readonly service = inject(DirectMessagesService);
   private readonly friendsService = inject(FriendsService);
+  private readonly profilePopup = inject(ProfilePopupService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -214,6 +216,13 @@ export class MessagesPage {
 
   protected goBackToList(): void {
     void this.router.navigate(['/messages']);
+  }
+
+  protected openMyProfile(): void {
+    const userId = this.currentUserId();
+    if (userId) {
+      this.profilePopup.open(userId);
+    }
   }
 
   /** Call button — UI only until the backend calling integration ships. */

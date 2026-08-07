@@ -1,26 +1,6 @@
 <app-route-progress />
 <router-outlet />
 <app-profile-popup />
-<button
-  type="button"
-  (click)="openMyProfile()"
-  style="
-    position: fixed;
-    bottom: 1.5rem;
-    left: 1.5rem;
-    z-index: 40;
-    background: var(--color-primary);
-    color: white;
-    border: none;
-    border-radius: 9999px;
-    padding: 0.75rem 1.25rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-  "
->
-  My Profile
-</button>
 <div
   class="lobby-boot-loader"
   [class.lobby-boot-loader--leaving]="loading.startup() === 'ready'"

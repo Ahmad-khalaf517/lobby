@@ -33,6 +33,21 @@
         </svg>
         Messages
       </a>
+      <button
+        type="button"
+        (click)="openMyProfile()"
+        class="inline-flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-[#c8cfdb] transition hover:bg-white/8 hover:text-white"
+      >
+        <svg viewBox="0 0 24 24" class="size-3.5" fill="none" aria-hidden="true">
+          <path
+            d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 0c-4.4 0-8 2.9-8 6.5V20a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 20 20v-1.5C20 14.9 16.4 12 12 12Z"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linejoin="round"
+          />
+        </svg>
+        My Profile
+      </button>
     </div>
   </header>
 
@@ -62,10 +77,24 @@
           </button>
           <button
             type="button"
-            (click)="focusAddFriend()"
-            class="ml-auto flex h-8 items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 text-xs font-medium text-emerald-300 transition hover:bg-emerald-500/16"
+            (click)="toggleAddFriend()"
+            class="ml-auto flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition"
+            [class.border-emerald-500/20]="!addFriendOpen()"
+            [class.bg-emerald-500/10]="!addFriendOpen()"
+            [class.text-emerald-300]="!addFriendOpen()"
+            [class.hover:bg-emerald-500/16]="!addFriendOpen()"
+            [class.border-[#8f74ff]/30]="addFriendOpen()"
+            [class.bg-[#8f74ff]/12]="addFriendOpen()"
+            [class.text-[#c9bbff]]="addFriendOpen()"
+            [class.hover:bg-[#8f74ff]/20]="addFriendOpen()"
           >
-            <svg viewBox="0 0 24 24" class="size-3.5" fill="none" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              class="size-3.5 transition"
+              fill="none"
+              aria-hidden="true"
+              [class.rotate-45]="addFriendOpen()"
+            >
               <path
                 d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
                 stroke="currentColor"
@@ -80,7 +109,7 @@
                 stroke-linecap="round"
               />
             </svg>
-            Add friend
+            {{ addFriendOpen() ? 'Hide' : 'Add friend' }}
           </button>
         </div>
 
@@ -94,7 +123,8 @@
               @case ('all') {
                 @for (friend of friends(); track friend.id) {
                   <div
-                    class="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-[#141821]"
+                    class="group flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-[#141821]"
+                    (click)="openConversation(friend.id)"
                   >
                     <app-user-popover-avatar [person]="friend" [shape]="'rounded'" size="lg" />
                     <div class="min-w-0">
@@ -103,6 +133,7 @@
                     </div>
                     <div
                       class="ml-auto flex items-center gap-1.5 transition md:opacity-0 md:group-hover:opacity-100"
+                      (click)="$event.stopPropagation()"
                     >
                       <button
                         type="button"
@@ -338,6 +369,7 @@
       <aside
         id="add-friend-panel"
         class="w-full shrink-0 space-y-4 border-t border-white/8 p-4 lg:w-72 lg:overflow-y-auto lg:border-l lg:border-t-0"
+        [class.hidden]="!addFriendOpen()"
       >
         <div class="space-y-2">
           <p class="text-[11px] tracking-wide text-[#687282]">ADD FRIEND</p>
