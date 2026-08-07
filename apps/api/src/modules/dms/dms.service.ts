@@ -108,6 +108,24 @@ export class DmsService {
     return toDmMessage(created);
   }
 
+  /** Sets or clears (emoji === null) the reaction on a message in this conversation. */
+  async setReaction(
+    currentUserId: string,
+    conversationId: string,
+    messageId: string,
+    emoji: string | null,
+  ): Promise<DmMessage> {
+    const conversation = await this.requireParticipant(currentUserId, conversationId);
+
+    const message = await this.repo.findMessageById(messageId);
+    if (!message || message.conversation_id !== conversation.id) {
+      throw new NotFoundException('Message not found.');
+    }
+
+    const updated = await this.repo.setReaction(messageId, emoji);
+    return toDmMessage(updated);
+  }
+
   private async requireParticipant(
     currentUserId: string,
     conversationId: string,

@@ -1,6 +1,10 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
-import type { CreateDmRequest, SendDmMessageRequest } from '@lobby/shared';
-import { CreateDmRequestSchema, SendDmMessageRequestSchema } from '@lobby/shared';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import type { CreateDmRequest, SendDmMessageRequest, SetDmReactionRequest } from '@lobby/shared';
+import {
+  CreateDmRequestSchema,
+  SendDmMessageRequestSchema,
+  SetDmReactionRequestSchema,
+} from '@lobby/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 import { ZodValidationPipe } from '../../zod-validation.pipe';
@@ -42,5 +46,25 @@ export class DmsController {
     @Body(new ZodValidationPipe(SendDmMessageRequestSchema)) body: SendDmMessageRequest,
   ) {
     return this.dmsService.sendMessage(userId, conversationId, body.body);
+  }
+
+  /** Either participant can set the message's reaction. */
+  @Put(':conversationId/messages/:messageId/reaction')
+  setReaction(
+    @CurrentUser('id') userId: string,
+    @Param('conversationId') conversationId: string,
+    @Param('messageId') messageId: string,
+    @Body(new ZodValidationPipe(SetDmReactionRequestSchema)) body: SetDmReactionRequest,
+  ) {
+    return this.dmsService.setReaction(userId, conversationId, messageId, body.emoji);
+  }
+
+  @Delete(':conversationId/messages/:messageId/reaction')
+  removeReaction(
+    @CurrentUser('id') userId: string,
+    @Param('conversationId') conversationId: string,
+    @Param('messageId') messageId: string,
+  ) {
+    return this.dmsService.setReaction(userId, conversationId, messageId, null);
   }
 }
