@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import type { Person } from '../../../shared/components/person-avatar/person.model';
-import { PersonAvatarComponent } from '../../../shared/components/person-avatar/person-avatar.component';
+import { UserPopoverAvatarComponent } from '../../../shared/components/user-popover/user-popover-avatar.component';
 import {
   ChatReplyComponent,
   type ChatMessage,
@@ -19,25 +19,28 @@ import {
 import { MessageRowComponent } from '../components/message-row/message-row.component';
 import { formatMessageTime } from '../messages.util';
 import { DirectMessagesService } from '../messages.service';
+import { FriendsService } from '../../friends/friends.service';
 
 /**
  * Direct messages page (routes `/messages`, `/messages/:friendId`). Renders the
  * mockup's DM layout: a conversation sidebar, the selected conversation (header
  * with Call button, message list, composer), unread badges and presence dots.
  *
- * The page is a thin composer over <app-direct-messages-service> — all data is
- * mock/local state, and message actions (reply / edit / delete / reactions) are
- * wired here.
+ * The page is a thin composer over <app-direct-messages-service> — conversations
+ * and message history load over the DMs REST API, and message actions (reply /
+ * edit / delete / reactions) are wired here (edit/delete/reactions are local-only
+ * until the backend ships those endpoints).
  */
 @Component({
   selector: 'app-messages-page',
   standalone: true,
-  imports: [RouterLink, PersonAvatarComponent, MessageRowComponent, ChatReplyComponent],
+  imports: [RouterLink, MessageRowComponent, ChatReplyComponent, UserPopoverAvatarComponent],
   templateUrl: './messages-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MessagesPage {
   private readonly service = inject(DirectMessagesService);
+  private readonly friendsService = inject(FriendsService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -50,6 +53,8 @@ export class MessagesPage {
   protected readonly pendingReply = signal<ChatReplyPreview | null>(null);
   protected readonly editingMessageId = signal<string | null>(null);
   protected readonly openReactionMenuId = signal<string | null>(null);
+  protected readonly openError = signal<string | null>(null);
+  protected readonly headerMenuOpen = signal(false);
 
   protected readonly selectedPartner = computed<Person | null>(() => {
     const friendId = this.selectedFriendId();
@@ -65,18 +70,29 @@ export class MessagesPage {
   private readonly composerInput = viewChild<ElementRef<HTMLInputElement>>('composerInput');
 
   constructor() {
+    void this.service.loadConversations();
     this.route.paramMap.subscribe((params) => {
       const friendId = params.get('friendId');
-      const conversation = friendId ? this.service.conversationFor(friendId) : undefined;
-      this.selectedFriendId.set(conversation ? friendId : null);
-      if (friendId && conversation) {
-        this.service.markRead(friendId);
-        this.openReactionMenuId.set(null);
-        this.editingMessageId.set(null);
-        this.pendingReply.set(null);
-        this.scrollToBottom();
+      if (!friendId) {
+        this.selectedFriendId.set(null);
+        return;
       }
+      this.selectedFriendId.set(friendId);
+      void this.openConversation(friendId);
     });
+  }
+
+  private async openConversation(friendId: string): Promise<void> {
+    this.openError.set(null);
+    try {
+      await this.service.openConversation(friendId);
+      this.openReactionMenuId.set(null);
+      this.editingMessageId.set(null);
+      this.pendingReply.set(null);
+      this.scrollToBottom();
+    } catch {
+      this.openError.set('Could not open this conversation.');
+    }
   }
 
   protected conversationRowClass(friendId: string): string {
@@ -91,6 +107,7 @@ export class MessagesPage {
     if (friendId === this.selectedFriendId()) {
       return;
     }
+    this.headerMenuOpen.set(false);
     void this.router.navigate(['/messages', friendId]);
   }
 
@@ -108,16 +125,17 @@ export class MessagesPage {
       return;
     }
     const reply = this.pendingReply();
-    this.service.send(
-      friendId,
-      text,
-      reply
-        ? { messageId: reply.messageId, authorName: reply.authorName, text: reply.text }
-        : undefined,
-    );
+    void this.service
+      .send(
+        friendId,
+        text,
+        reply
+          ? { messageId: reply.messageId, authorName: reply.authorName, text: reply.text }
+          : undefined,
+      )
+      .then(() => this.scrollToBottom());
     this.draft.set('');
     this.pendingReply.set(null);
-    this.scrollToBottom();
   }
 
   protected onReply(message: ChatMessage): void {
@@ -203,18 +221,63 @@ export class MessagesPage {
     return;
   }
 
+  protected toggleHeaderMenu(): void {
+    this.headerMenuOpen.update((open) => !open);
+  }
+
+  /** Remove the current friend — leaves the chat closed. */
+  protected removeCurrentFriend(): void {
+    const friendId = this.selectedFriendId();
+    this.headerMenuOpen.set(false);
+    if (!friendId) {
+      return;
+    }
+    const friendshipId = this.friendsService
+      .friends()
+      .find((friend) => friend.id === friendId)?.friendshipId;
+    if (friendshipId) {
+      void this.friendsService.removeFriend(friendshipId);
+    }
+    void this.router.navigate(['/messages']);
+  }
+
+  /** Delete all messages in the current chat (keeps the conversation + friend). */
+  protected deleteCurrentChat(): void {
+    const friendId = this.selectedFriendId();
+    this.headerMenuOpen.set(false);
+    if (friendId) {
+      void this.service.clearChatHistory(friendId);
+    }
+  }
+
+  /** Block the current user and leave the chat. */
+  protected blockCurrentUser(): void {
+    const friendId = this.selectedFriendId();
+    this.headerMenuOpen.set(false);
+    if (!friendId) {
+      return;
+    }
+    void this.friendsService.block(friendId);
+    void this.router.navigate(['/messages']);
+  }
+
   @HostListener('document:click', ['$event'])
   protected handleDocumentClick(event: MouseEvent): void {
-    if (!this.openReactionMenuId()) {
+    if (!this.openReactionMenuId() && !this.headerMenuOpen()) {
       return;
     }
     const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
     if (
-      target instanceof Element &&
       !target.closest('[data-message-reaction-menu]') &&
       !target.closest('[data-message-react-button]')
     ) {
       this.openReactionMenuId.set(null);
+    }
+    if (!target.closest('[data-message-header-menu]')) {
+      this.headerMenuOpen.set(false);
     }
   }
 

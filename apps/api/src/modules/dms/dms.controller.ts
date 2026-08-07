@@ -67,4 +67,22 @@ export class DmsController {
   ) {
     return this.dmsService.setReaction(userId, conversationId, messageId, null);
   }
+
+  /** Clear a conversation's message history, keeping the conversation row. */
+  @Delete(':conversationId/messages')
+  clearMessages(
+    @CurrentUser('id') userId: string,
+    @Param('conversationId') conversationId: string,
+  ) {
+    return this.dmsService.clearMessages(userId, conversationId);
+  }
+
+  /** Delete a conversation and all of its messages. */
+  @Delete(':conversationId')
+  deleteConversation(
+    @CurrentUser('id') userId: string,
+    @Param('conversationId') conversationId: string,
+  ) {
+    return this.dmsService.deleteConversation(userId, conversationId);
+  }
 }

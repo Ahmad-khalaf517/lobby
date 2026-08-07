@@ -1,7 +1,13 @@
 import { ChangeDetectionStrategy, Component, HostListener, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import type { UserProfile } from '@lobby/shared';
+import { AuthService } from '../../auth/services/auth';
+import { DirectMessagesService } from '../../messages/messages.service';
+import { ProfilePopupService } from '../../profile/services/profile-popup.service';
 import { PersonAvatarComponent } from '../../../shared/components/person-avatar/person-avatar.component';
 import type { Person } from '../../../shared/components/person-avatar/person.model';
+import { personFromProfile } from '../../../shared/components/person-avatar/person.util';
+import { UserPopoverAvatarComponent } from '../../../shared/components/user-popover/user-popover-avatar.component';
 import type { Friend } from '../friends.models';
 import { FriendsService } from '../friends.service';
 
@@ -10,18 +16,21 @@ export type FriendsTab = 'all' | 'pending' | 'blocked';
 /**
  * Friends page (route `/friends`). Renders the mockup's friends panel: tabs for
  * All friends / Pending / Blocked, the friend list with hover actions, and the
- * Add Friend + Blocked side panel. All state is local mock state owned by
+ * Add Friend + Blocked side panel. State comes from the friendships REST API via
  * <app-friends-service>; the Message button navigates to the DMs page.
  */
 @Component({
   selector: 'app-friends-page',
   standalone: true,
-  imports: [RouterLink, PersonAvatarComponent],
+  imports: [RouterLink, PersonAvatarComponent, UserPopoverAvatarComponent],
   templateUrl: './friends-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FriendsPage {
   private readonly friendsService = inject(FriendsService);
+  private readonly directMessages = inject(DirectMessagesService);
+  private readonly profilePopup = inject(ProfilePopupService);
+  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
   protected readonly friends = this.friendsService.friends;
@@ -29,11 +38,21 @@ export class FriendsPage {
   protected readonly pendingOutgoing = this.friendsService.pendingOutgoing;
   protected readonly blocked = this.friendsService.blocked;
   protected readonly pendingCount = this.friendsService.pendingCount;
+  protected readonly loading = this.friendsService.loading;
+  protected readonly loadError = this.friendsService.error;
 
   protected readonly activeTab = signal<FriendsTab>('all');
   protected readonly addFriendQuery = signal('');
   protected readonly addFriendNotice = signal<string | null>(null);
   protected readonly moreMenuFor = signal<string | null>(null);
+  protected readonly searchResults = signal<UserProfile[]>([]);
+  protected readonly searching = signal(false);
+
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    void this.friendsService.load();
+  }
 
   protected setTab(tab: FriendsTab): void {
     this.activeTab.set(tab);
@@ -55,23 +74,33 @@ export class FriendsPage {
   }
 
   protected accept(requestId: string): void {
-    this.friendsService.accept(requestId);
+    void this.friendsService.accept(requestId);
   }
 
   protected reject(requestId: string): void {
-    this.friendsService.reject(requestId);
+    void this.friendsService.reject(requestId);
   }
 
   protected cancel(requestId: string): void {
-    this.friendsService.cancel(requestId);
+    void this.friendsService.cancel(requestId);
   }
 
   protected unblock(userId: string): void {
-    this.friendsService.unblock(userId);
+    void this.friendsService.unblock(userId);
   }
 
   protected removeFriend(friend: Friend): void {
-    this.friendsService.removeFriend(friend.id);
+    void this.friendsService.removeFriend(friend.friendshipId);
+    this.moreMenuFor.set(null);
+  }
+
+  protected blockFriend(friend: Friend): void {
+    void this.friendsService.block(friend.id);
+    this.moreMenuFor.set(null);
+  }
+
+  protected deleteChat(friend: Friend): void {
+    void this.directMessages.clearChatHistory(friend.id);
     this.moreMenuFor.set(null);
   }
 
@@ -84,17 +113,58 @@ export class FriendsPage {
   }
 
   protected onAddFriendInput(event: Event): void {
-    this.addFriendQuery.set((event.target as HTMLInputElement).value);
+    const value = (event.target as HTMLInputElement).value;
+    this.addFriendQuery.set(value);
+    if (this.searchTimer) {
+      clearTimeout(this.searchTimer);
+    }
+    this.searchTimer = setTimeout(() => this.runSearch(value), 300);
   }
 
-  protected sendRequest(): void {
-    const request = this.friendsService.sendFriendRequest(this.addFriendQuery());
-    this.addFriendQuery.set('');
-    if (request) {
-      this.addFriendNotice.set(`Friend request sent to ${request.name}`);
-    } else {
-      this.addFriendNotice.set(null);
+  protected async runSearch(query: string): Promise<void> {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      this.searchResults.set([]);
+      this.searching.set(false);
+      return;
     }
+    this.searching.set(true);
+    this.addFriendNotice.set(null);
+    try {
+      const results = await this.friendsService.searchUsers(trimmed);
+      const selfId = this.auth.user()?.id;
+      const knownIds = new Set([
+        ...this.friends().map((friend) => friend.id),
+        ...this.pendingIncoming().map((request) => request.id),
+        ...this.pendingOutgoing().map((request) => request.id),
+        ...this.blocked().map((user) => user.id),
+      ]);
+      this.searchResults.set(
+        results.filter((result) => result.userId !== selfId && !knownIds.has(result.userId)),
+      );
+    } catch {
+      this.searchResults.set([]);
+    } finally {
+      this.searching.set(false);
+    }
+  }
+
+  protected async addFriend(profile: UserProfile): Promise<void> {
+    try {
+      await this.friendsService.sendFriendRequest(profile.userId);
+      this.addFriendNotice.set(`Friend request sent to ${profile.displayName}`);
+      await this.runSearch(this.addFriendQuery());
+    } catch {
+      this.addFriendNotice.set('Could not send the friend request.');
+    }
+  }
+
+  protected openProfile(profile: UserProfile): void {
+    this.profilePopup.open(profile.userId);
+  }
+
+  protected toPerson(profile: UserProfile): Person {
+    return personFromProfile(profile);
   }
 
   protected focusAddFriend(): void {

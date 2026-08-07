@@ -1,99 +1,158 @@
-import { computed, Injectable, signal } from '@angular/core';
-import type { Person } from '../../shared/components/person-avatar/person.model';
-import type { ChatMessage, ChatReaction, ChatUser } from '../../shared/components/room-chat';
-import type { Conversation, ConversationRow } from './messages.models';
+import { HttpClient } from '@angular/common/http';
+import { computed, inject, Injectable, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import {
-  CURRENT_USER,
-  mockConversations,
-  mockMessages,
-  mockPartners,
-} from './mock-data/messages.mock';
+  DmConversationSchema,
+  DmListResponseSchema,
+  DmMessageHistorySchema,
+  DmMessageSchema,
+  UserProfileSchema,
+  type DmConversation,
+  type DmMessage,
+  type UserProfile,
+} from '@lobby/shared';
+import { environment } from '../../../environments/environment';
+import { AuthService } from '../auth/services/auth';
+import type { Person } from '../../shared/components/person-avatar/person.model';
+import { personFromProfile } from '../../shared/components/person-avatar/person.util';
+import type { ChatMessage, ChatReaction, ChatUser } from '../../shared/components/room-chat';
+import { initialsFromName } from '../../shared/components/room-chat';
+import type { Conversation } from './messages.models';
 
 /**
- * Direct messages feature state — local, in-memory mock store.
+ * Direct messages feature state — backed by the DMs REST API.
  *
- * Conversations are keyed by `friendId`; messages are shared `ChatMessage`
- * objects. Every method mutates signals only (no network I/O). When the
- * backend ships, swap the method bodies for HTTP calls and keep this exact
- * public surface so the Messages page / MessageRow don't change.
+ * Conversations + message history load over REST (get-or-create per partner),
+ * and sending persists via POST. Edit / delete / reactions / read-state have no
+ * DM endpoint yet, so those stay optimistic/local until the backend ships them.
  */
 @Injectable({ providedIn: 'root' })
 export class DirectMessagesService {
-  private readonly conversationsSignal = signal<Conversation[]>(mockConversations);
-  private readonly messagesSignal = signal<Record<string, ChatMessage[]>>(mockMessages);
-  private readonly partnersSignal = signal<Record<string, Person>>(mockPartners);
+  private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
+  private readonly apiUrl = environment.apiUrl.replace(/\/$/, '');
+
+  private readonly conversationsSignal = signal<Conversation[]>([]);
+  private readonly messagesSignal = signal<Record<string, ChatMessage[]>>({});
+  private readonly loadingSignal = signal(false);
+  private readonly errorSignal = signal<string | null>(null);
 
   /** The signed-in user's id — own messages / "You" styling. */
-  readonly currentUserId = CURRENT_USER.id;
+  readonly currentUserId = computed(() => this.auth.user()?.id ?? '');
 
-  private seq = 0;
+  readonly loading = this.loadingSignal.asReadonly();
+  readonly error = this.errorSignal.asReadonly();
 
   /** Sidebar rows, sorted most-recent-first, with partner + last-message preview. */
-  readonly conversationRows = computed<ConversationRow[]>(() => {
-    const messages = this.messagesSignal();
-    return this.conversationsSignal()
-      .map((conversation) => {
-        const conversationMessages = messages[conversation.friendId] ?? [];
-        const last = conversationMessages[conversationMessages.length - 1];
-        return {
-          friendId: conversation.friendId,
-          unread: conversation.unread,
-          lastMessageAt: last?.createdAt ?? conversation.lastMessageAt,
-          partner: this.partnersSignal()[conversation.friendId],
-          preview: last?.text ?? '',
-        };
-      })
-      .filter((row): row is ConversationRow => !!row.partner)
-      .sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt));
-  });
+  readonly conversationRows = computed<Conversation[]>(() =>
+    [...this.conversationsSignal()].sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt)),
+  );
 
   readonly totalUnread = computed(() =>
     this.conversationRows().reduce((sum, row) => sum + row.unread, 0),
   );
 
-  conversationFor(friendId: string): ConversationRow | undefined {
-    return this.conversationRows().find((row) => row.friendId === friendId);
+  private myProfile: UserProfile | null = null;
+  private myProfilePromise: Promise<UserProfile> | null = null;
+
+  /** Fetch the sidebar conversation list. */
+  async loadConversations(): Promise<void> {
+    this.loadingSignal.set(true);
+    this.errorSignal.set(null);
+    try {
+      const response = await firstValueFrom(this.http.get<unknown>(`${this.apiUrl}/dms`));
+      this.conversationsSignal.set(DmListResponseSchema.parse(response).map(toConversation));
+    } catch {
+      this.errorSignal.set('Could not load conversations.');
+    } finally {
+      this.loadingSignal.set(false);
+    }
   }
 
-  partnerFor(friendId: string): Person | undefined {
-    return this.partnersSignal()[friendId];
+  /** Get-or-create the conversation with a user, then load its message history. */
+  async openConversation(userId: string): Promise<void> {
+    const conversation = await this.ensureConversation(userId);
+
+    const response = await firstValueFrom(
+      this.http.get<unknown>(`${this.apiUrl}/dms/${conversation.conversationId}/messages`),
+    );
+    const history = DmMessageHistorySchema.parse(response);
+
+    const [selfAuthor, partnerAuthor] = await Promise.all([
+      this.selfAuthor(),
+      authorFromPerson(conversation.partner),
+    ]);
+    const mapped = history.map((message) =>
+      this.toChatMessage(
+        message,
+        message.senderId === this.currentUserId() ? selfAuthor : partnerAuthor,
+      ),
+    );
+
+    this.messagesSignal.update((store) => ({ ...store, [userId]: mapped }));
+    this.markRead(userId);
   }
 
-  messagesFor(friendId: string): ChatMessage[] {
-    return this.messagesSignal()[friendId] ?? [];
+  conversationFor(userId: string): Conversation | undefined {
+    return this.conversationsSignal().find((conversation) => conversation.friendId === userId);
   }
 
-  /** Send a message (optionally a reply quoting another message). Local only. */
-  send(friendId: string, text: string, replyTo?: ChatMessage['replyTo']): void {
+  partnerFor(userId: string): Person | undefined {
+    return this.conversationsSignal().find((conversation) => conversation.friendId === userId)
+      ?.partner;
+  }
+
+  messagesFor(userId: string): ChatMessage[] {
+    return this.messagesSignal()[userId] ?? [];
+  }
+
+  /** Send a message (optionally a reply quoting another message). Persists via POST. */
+  async send(userId: string, text: string, replyTo?: ChatMessage['replyTo']): Promise<void> {
     const content = text.trim();
     if (!content) {
       return;
     }
+
+    const conversation = await this.ensureConversation(userId);
+    const response = await firstValueFrom(
+      this.http.post<unknown>(`${this.apiUrl}/dms/${conversation.conversationId}/messages`, {
+        body: content,
+      }),
+    );
+    const created = DmMessageSchema.parse(response);
+
+    const author =
+      created.senderId === this.currentUserId()
+        ? await this.selfAuthor()
+        : await authorFromPerson(conversation.partner);
+
     const message: ChatMessage = {
-      id: `dm-${Date.now()}-${this.seq++}`,
-      author: this.currentAuthor(),
-      text: content,
-      createdAt: new Date().toISOString(),
+      id: created.id,
+      author,
+      text: created.body,
+      createdAt: created.createdAt,
       reactions: [],
       ownReaction: null,
       replyTo,
     };
+
     this.messagesSignal.update((store) => ({
       ...store,
-      [friendId]: [...(store[friendId] ?? []), message],
+      [userId]: [...(store[userId] ?? []), message],
     }));
-    this.markRead(friendId);
+    this.bumpConversation(conversation.friendId, created.body, created.createdAt);
+    this.markRead(userId);
   }
 
-  /** Update a message's text and flag it as edited (only when it actually changed). */
-  editMessage(friendId: string, messageId: string, newText: string): void {
+  /** Update a message's text and flag it as edited — local-only until the API ships. */
+  editMessage(userId: string, messageId: string, newText: string): void {
     const content = newText.trim();
     if (!content) {
       return;
     }
     this.messagesSignal.update((store) => ({
       ...store,
-      [friendId]: (store[friendId] ?? []).map((message) =>
+      [userId]: (store[userId] ?? []).map((message) =>
         message.id === messageId && message.text !== content
           ? { ...message, text: content, edited: true }
           : message,
@@ -101,41 +160,143 @@ export class DirectMessagesService {
     }));
   }
 
-  /** Remove a message from local state. */
-  deleteMessage(friendId: string, messageId: string): void {
+  /** Remove a message from local state — local-only until the API ships. */
+  deleteMessage(userId: string, messageId: string): void {
     this.messagesSignal.update((store) => ({
       ...store,
-      [friendId]: (store[friendId] ?? []).filter((message) => message.id !== messageId),
+      [userId]: (store[userId] ?? []).filter((message) => message.id !== messageId),
     }));
   }
 
-  /** Toggle the current user's reaction on a message (adds / removes the chip). */
-  toggleReaction(friendId: string, messageId: string, emoji: string): void {
+  /** Toggle the current user's reaction — local-only until the API ships. */
+  toggleReaction(userId: string, messageId: string, emoji: string): void {
     this.messagesSignal.update((store) => ({
       ...store,
-      [friendId]: (store[friendId] ?? []).map((message) =>
+      [userId]: (store[userId] ?? []).map((message) =>
         message.id === messageId ? applyReaction(message, emoji) : message,
       ),
     }));
   }
 
-  /** Clear the unread badge for a conversation. */
-  markRead(friendId: string): void {
+  /** Clear the unread badge for a conversation — local state only. */
+  markRead(userId: string): void {
     this.conversationsSignal.update((list) =>
       list.map((conversation) =>
-        conversation.friendId === friendId ? { ...conversation, unread: 0 } : conversation,
+        conversation.friendId === userId ? { ...conversation, unread: 0 } : conversation,
       ),
     );
   }
 
-  private currentAuthor(): ChatUser {
+  /**
+   * Clear a conversation's history (keeps the chat + friend) via
+   * `DELETE /dms/:conversationId/messages`, then empty the local message list.
+   */
+  async clearChatHistory(userId: string): Promise<void> {
+    const conversation = this.conversationFor(userId);
+    if (conversation) {
+      try {
+        await firstValueFrom(
+          this.http.delete<unknown>(`${this.apiUrl}/dms/${conversation.conversationId}/messages`),
+        );
+      } catch {
+        // The messages are cleared locally regardless.
+      }
+    }
+    this.messagesSignal.update((store) => ({ ...store, [userId]: [] }));
+    this.conversationsSignal.update((list) =>
+      list.map((entry) => (entry.friendId === userId ? { ...entry, preview: null } : entry)),
+    );
+  }
+
+  private async ensureConversation(userId: string): Promise<Conversation> {
+    const existing = this.conversationFor(userId);
+    if (existing) {
+      return existing;
+    }
+
+    const response = await firstValueFrom(
+      this.http.post<unknown>(`${this.apiUrl}/dms`, { userId }),
+    );
+    const apiConversation = DmConversationSchema.parse(response);
+    const conversation = toConversation(apiConversation);
+    this.upsertConversation(conversation);
+    return conversation;
+  }
+
+  private upsertConversation(conversation: Conversation): void {
+    this.conversationsSignal.update((list) => {
+      const next = list.filter((entry) => entry.friendId !== conversation.friendId);
+      return [conversation, ...next];
+    });
+  }
+
+  private bumpConversation(userId: string, preview: string, lastMessageAt: string): void {
+    this.conversationsSignal.update((list) =>
+      list.map((conversation) =>
+        conversation.friendId === userId
+          ? { ...conversation, preview, lastMessageAt }
+          : conversation,
+      ),
+    );
+  }
+
+  private async selfAuthor(): Promise<ChatUser> {
+    const profile = await this.ensureMyProfile();
     return {
-      id: CURRENT_USER.id,
-      name: CURRENT_USER.name,
-      initials: CURRENT_USER.initials,
-      avatarColor: CURRENT_USER.color,
+      id: this.currentUserId(),
+      name: profile.displayName,
+      initials: initialsFromName(profile.displayName),
     };
   }
+
+  private toChatMessage(message: DmMessage, author: ChatUser): ChatMessage {
+    return {
+      id: message.id,
+      author,
+      text: message.body,
+      createdAt: message.createdAt,
+      reactions: [],
+      ownReaction: null,
+    };
+  }
+
+  private async ensureMyProfile(): Promise<UserProfile> {
+    if (this.myProfile) {
+      return this.myProfile;
+    }
+    this.myProfilePromise ??= (async () => {
+      const response = await firstValueFrom(
+        this.http.get<unknown>(`${this.apiUrl}/users/${this.currentUserId()}/profile`),
+      );
+      return UserProfileSchema.parse(response);
+    })();
+    try {
+      this.myProfile = await this.myProfilePromise;
+      return this.myProfile;
+    } catch (error) {
+      this.myProfilePromise = null;
+      throw error;
+    }
+  }
+}
+
+function toConversation(api: DmConversation): Conversation {
+  return {
+    friendId: api.user.userId,
+    conversationId: api.conversationId,
+    unread: 0,
+    lastMessageAt: api.lastMessage?.createdAt ?? api.updatedAt,
+    preview: api.lastMessage?.body ?? null,
+    partner: personFromProfile(api.user),
+  };
+}
+
+function authorFromPerson(person: Person): Promise<ChatUser> {
+  return Promise.resolve({
+    id: person.id,
+    name: person.name,
+    initials: person.initials ?? initialsFromName(person.name),
+  });
 }
 
 /** Recompute the reaction chips after toggling the current user's emoji. */

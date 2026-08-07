@@ -60,28 +60,30 @@
         </div>
         <div class="lobby-scrollbar flex-1 space-y-0.5 overflow-y-auto p-2">
           @for (row of conversationRows(); track row.friendId) {
-            <button
-              type="button"
-              (click)="selectConversation(row.friendId)"
-              [class]="conversationRowClass(row.friendId)"
-            >
-              <app-person-avatar [person]="row.partner" [shape]="'rounded'" size="sm" />
-              <span class="min-w-0 flex-1 text-left">
-                <span class="block truncate text-[13px] text-[#f4f7fb]">{{
-                  row.partner.name
-                }}</span>
-                <span class="block truncate text-[11px] text-[#687282]">
-                  {{ row.preview || 'Start a conversation' }}
+            <div [class]="conversationRowClass(row.friendId)">
+              <app-user-popover-avatar [person]="row.partner" [shape]="'rounded'" size="sm" />
+              <button
+                type="button"
+                (click)="selectConversation(row.friendId)"
+                class="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+              >
+                <span class="min-w-0 flex-1 text-left">
+                  <span class="block truncate text-[13px] text-[#f4f7fb]">{{
+                    row.partner.name
+                  }}</span>
+                  <span class="block truncate text-[11px] text-[#687282]">
+                    {{ row.preview || 'Start a conversation' }}
+                  </span>
                 </span>
-              </span>
-              @if (row.unread > 0) {
-                <span
-                  class="min-w-4 h-4 shrink-0 rounded-full bg-primary px-1 text-[10px] font-medium text-[#0b0d13] grid place-items-center"
-                >
-                  {{ row.unread }}
-                </span>
-              }
-            </button>
+                @if (row.unread > 0) {
+                  <span
+                    class="min-w-4 h-4 shrink-0 rounded-full bg-primary px-1 text-[10px] font-medium text-[#0b0d13] grid place-items-center"
+                  >
+                    {{ row.unread }}
+                  </span>
+                }
+              </button>
+            </div>
           } @empty {
             <p class="px-3 py-6 text-center text-xs text-[#687282]">No conversations yet.</p>
           }
@@ -112,27 +114,122 @@
                   />
                 </svg>
               </button>
-              <app-person-avatar [person]="partner" [shape]="'rounded'" size="sm" />
+              <app-user-popover-avatar [person]="partner" [shape]="'rounded'" size="sm" />
               <div class="min-w-0">
                 <p class="truncate text-sm font-medium text-[#f4f7fb]">{{ partner.name }}</p>
                 <p class="truncate text-[11px] text-[#687282]">{{ statusLabel(partner) }}</p>
               </div>
             </div>
-            <button
-              type="button"
-              (click)="onCall()"
-              class="flex h-9 items-center gap-2 rounded-xl bg-primary px-4 text-[13px] font-medium text-white transition hover:bg-[#8b6dff]"
-            >
-              <svg viewBox="0 0 24 24" class="size-4" fill="none" aria-hidden="true">
-                <path
-                  d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.8.7a2 2 0 0 1 1.7 2Z"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linejoin="round"
-                />
-              </svg>
-              Call
-            </button>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                (click)="onCall()"
+                class="flex h-9 items-center gap-2 rounded-xl bg-primary px-4 text-[13px] font-medium text-white transition hover:bg-[#8b6dff]"
+              >
+                <svg viewBox="0 0 24 24" class="size-4" fill="none" aria-hidden="true">
+                  <path
+                    d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.8.7a2 2 0 0 1 1.7 2Z"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                Call
+              </button>
+
+              <div class="relative" data-message-header-menu>
+                <button
+                  type="button"
+                  (click)="toggleHeaderMenu()"
+                  [attr.aria-label]="'More options for ' + partner.name"
+                  aria-expanded="true"
+                  class="grid size-9 place-items-center rounded-xl text-[#9aa4b2] transition hover:bg-white/8 hover:text-[#f4f7fb]"
+                  [class.bg-white/8]="headerMenuOpen()"
+                >
+                  <svg viewBox="0 0 24 24" class="size-4" fill="none" aria-hidden="true">
+                    <circle cx="5" cy="12" r="1.6" fill="currentColor" />
+                    <circle cx="12" cy="12" r="1.6" fill="currentColor" />
+                    <circle cx="19" cy="12" r="1.6" fill="currentColor" />
+                  </svg>
+                </button>
+
+                @if (headerMenuOpen()) {
+                  <div
+                    class="absolute right-0 top-full z-50 mt-2 w-44 rounded-xl border border-white/10 bg-[#141821] p-1.5 shadow-[0_18px_40px_rgba(0,0,0,0.5)]"
+                    role="menu"
+                  >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      (click)="removeCurrentFriend()"
+                      class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-[#f0a6ad] transition hover:bg-destructive/12"
+                    >
+                      <svg viewBox="0 0 24 24" class="size-3.5" fill="none" aria-hidden="true">
+                        <path
+                          d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                        />
+                        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.8" />
+                        <path
+                          d="m16 3 5 5M21 3l-5 5"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                      Remove friend
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      (click)="deleteCurrentChat()"
+                      class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-[#9aa4b2] transition hover:bg-white/6 hover:text-[#f4f7fb]"
+                    >
+                      <svg viewBox="0 0 24 24" class="size-3.5" fill="none" aria-hidden="true">
+                        <path
+                          d="M3 6h18"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                        />
+                        <path
+                          d="M19 6v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                        />
+                        <path
+                          d="M9 10v6M15 10v6"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                      Delete messages
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      (click)="blockCurrentUser()"
+                      class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-[#f0a6ad] transition hover:bg-destructive/12"
+                    >
+                      <svg viewBox="0 0 24 24" class="size-3.5" fill="none" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
+                        <path
+                          d="m5.5 5.5 13 13"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                      Block
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
           </div>
 
           <!-- Message list -->
@@ -143,7 +240,7 @@
             @for (message of selectedMessages(); track message.id) {
               <app-message-row
                 [message]="message"
-                [currentUserId]="currentUserId"
+                [currentUserId]="currentUserId()"
                 [editing]="isEditing(message.id)"
                 [reactionMenuOpen]="isReactionOpen(message.id)"
                 (reply)="onReply($event)"
@@ -155,10 +252,16 @@
                 (toggleReactionMenu)="onToggleReactionMenu($event)"
               />
             } @empty {
-              <div class="flex h-full flex-col items-center justify-center gap-1 text-center">
-                <p class="text-sm text-[#c4cad4]">No messages yet</p>
-                <p class="text-xs text-[#687282]">Say hello to {{ partner.name }}!</p>
-              </div>
+              @if (openError()) {
+                <div class="flex h-full flex-col items-center justify-center gap-1 text-center">
+                  <p class="text-sm text-[#f0a6ad]">{{ openError() }}</p>
+                </div>
+              } @else {
+                <div class="flex h-full flex-col items-center justify-center gap-1 text-center">
+                  <p class="text-sm text-[#c4cad4]">No messages yet</p>
+                  <p class="text-xs text-[#687282]">Say hello to {{ partner.name }}!</p>
+                </div>
+              }
             }
           </div>
 

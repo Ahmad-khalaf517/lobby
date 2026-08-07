@@ -136,4 +136,29 @@ export class DmsRepository {
 
     return lastByConversation;
   }
+
+  /**
+   * Delete a conversation and all of its messages. Messages are removed first so
+   * this works regardless of whether the `dm_messages.conversation_id` FK
+   * cascades on delete.
+   */
+  async deleteConversation(conversationId: string): Promise<void> {
+    const { error: messagesError } = await this.db
+      .from('dm_messages')
+      .delete()
+      .eq('conversation_id', conversationId);
+    if (messagesError) throw messagesError;
+
+    const { error } = await this.db.from('dm_conversations').delete().eq('id', conversationId);
+    if (error) throw error;
+  }
+
+  /** Clear a conversation's history, keeping the conversation row intact. */
+  async clearMessages(conversationId: string): Promise<void> {
+    const { error } = await this.db
+      .from('dm_messages')
+      .delete()
+      .eq('conversation_id', conversationId);
+    if (error) throw error;
+  }
 }

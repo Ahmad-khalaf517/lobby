@@ -126,6 +126,18 @@ export class DmsService {
     return toDmMessage(updated);
   }
 
+  /** Delete a conversation and its history — the caller must be a participant. */
+  async deleteConversation(currentUserId: string, conversationId: string): Promise<void> {
+    const row = await this.requireParticipant(currentUserId, conversationId);
+    await this.repo.deleteConversation(row.id);
+  }
+
+  /** Clear a conversation's message history but keep the conversation row. */
+  async clearMessages(currentUserId: string, conversationId: string): Promise<void> {
+    const row = await this.requireParticipant(currentUserId, conversationId);
+    await this.repo.clearMessages(row.id);
+  }
+
   private async requireParticipant(
     currentUserId: string,
     conversationId: string,
