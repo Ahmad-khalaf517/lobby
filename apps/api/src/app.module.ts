@@ -9,6 +9,7 @@ import { ServersModule } from './modules/servers/server.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { APP_FILTER } from '@nestjs/core';
 import { UsersModule } from './modules/users/users.module';
+import { AccountSettingsModule } from './modules/account-settings/account-settings.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { UsersModule } from './modules/users/users.module';
     ServersModule,
     UsersModule,
     CallsModule,
+    AccountSettingsModule,
   ],
   providers: [
     {

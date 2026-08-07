@@ -65,6 +65,87 @@ export type Database = {
   };
   public: {
     Tables: {
+      account_setting_definitions: {
+        Row: {
+          setting_key: string;
+          label: string;
+          description: string | null;
+          value_type: string;
+          default_value: Json;
+          options: Json | null;
+          category: string;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          setting_key: string;
+          label: string;
+          description?: string | null;
+          value_type: string;
+          default_value: Json;
+          options?: Json | null;
+          category?: string;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          setting_key?: string;
+          label?: string;
+          description?: string | null;
+          value_type?: string;
+          default_value?: Json;
+          options?: Json | null;
+          category?: string;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      account_settings: {
+        Row: {
+          user_id: string;
+          setting_key: string;
+          value: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          setting_key: string;
+          value: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          setting_key?: string;
+          value?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'account_settings_setting_key_fkey';
+            columns: ['setting_key'];
+            isOneToOne: false;
+            referencedRelation: 'account_setting_definitions';
+            referencedColumns: ['setting_key'];
+          },
+          {
+            foreignKeyName: 'account_settings_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       channel_members: {
         Row: {
           channel_id: string;
