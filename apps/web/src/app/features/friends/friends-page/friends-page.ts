@@ -117,8 +117,8 @@ export class FriendsPage {
     this.moreMenuFor.update((current) => (current === friendId ? null : friendId));
   }
 
-  protected openConversation(friendId: string): void {
-    void this.router.navigate(['/messages', friendId]);
+  protected openConversation(friendId: string, person?: Person): void {
+    void this.router.navigate(['/messages', friendId], person ? { state: { person } } : undefined);
   }
 
   protected onAddFriendInput(event: Event): void {

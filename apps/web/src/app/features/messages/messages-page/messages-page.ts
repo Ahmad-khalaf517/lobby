@@ -40,6 +40,7 @@ import { ProfilePopupService } from '../../profile/services/profile-popup.servic
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MessagesPage {
+  protected readonly skeletonRows = [0, 1, 2, 3, 4];
   private readonly service = inject(DirectMessagesService);
   private readonly friendsService = inject(FriendsService);
   private readonly profilePopup = inject(ProfilePopupService);
@@ -49,8 +50,11 @@ export class MessagesPage {
   protected readonly conversationRows = this.service.conversationRows;
   protected readonly totalUnread = this.service.totalUnread;
   protected readonly currentUserId = this.service.currentUserId;
+  protected readonly conversationsLoading = this.service.loading;
+  protected readonly conversationsError = this.service.error;
 
   protected readonly selectedFriendId = signal<string | null>(null);
+  protected readonly seededPartner = signal<Person | null>(null);
   protected readonly draft = signal('');
   protected readonly pendingReply = signal<ChatReplyPreview | null>(null);
   protected readonly editingMessageId = signal<string | null>(null);
@@ -60,7 +64,13 @@ export class MessagesPage {
 
   protected readonly selectedPartner = computed<Person | null>(() => {
     const friendId = this.selectedFriendId();
-    return friendId ? (this.service.partnerFor(friendId) ?? null) : null;
+    if (!friendId) {
+      return null;
+    }
+    // Prefer the canonical partner from the conversation list; fall back to the
+    // person supplied via navigation state so the header renders instantly.
+    const seeded = this.seededPartner();
+    return this.service.partnerFor(friendId) ?? (seeded?.id === friendId ? seeded : null);
   });
 
   protected readonly selectedMessages = computed<ChatMessage[]>(() => {
@@ -68,11 +78,26 @@ export class MessagesPage {
     return friendId ? this.service.messagesFor(friendId) : [];
   });
 
+  /** Whether the current user has blocked the selected partner. */
+  protected readonly currentPartnerBlocked = computed<boolean>(() => {
+    const friendId = this.selectedFriendId();
+    return friendId ? this.friendsService.isBlocked(friendId) : false;
+  });
+
   private readonly messageListEl = viewChild<ElementRef<HTMLDivElement>>('messageList');
   private readonly composerInput = viewChild<ElementRef<HTMLInputElement>>('composerInput');
 
   constructor() {
     void this.service.loadConversations();
+    void this.friendsService.ensureLoaded();
+
+    // A navigation from the Friends page carries the friend so the chat header
+    // shows immediately instead of flashing the empty state while loading.
+    const state = this.router.getCurrentNavigation()?.extras.state;
+    if (state && typeof state['person']?.id === 'string') {
+      this.seededPartner.set(state['person'] as Person);
+    }
+
     this.route.paramMap.subscribe((params) => {
       const friendId = params.get('friendId');
       if (!friendId) {
@@ -119,7 +144,7 @@ export class MessagesPage {
 
   protected send(): void {
     const friendId = this.selectedFriendId();
-    if (!friendId) {
+    if (!friendId || this.currentPartnerBlocked()) {
       return;
     }
     const text = this.draft().trim();
@@ -203,6 +228,12 @@ export class MessagesPage {
     return this.openReactionMenuId() === messageId;
   }
 
+  /** Whether the selected conversation's history is still being fetched. */
+  protected historyLoading(): boolean {
+    const friendId = this.selectedFriendId();
+    return friendId ? (this.service.historyLoadingRecord()[friendId] ?? false) : false;
+  }
+
   protected statusLabel(person: Person): string {
     if (person.status === 'online') {
       return 'Online';
@@ -259,15 +290,23 @@ export class MessagesPage {
     }
   }
 
-  /** Block the current user and leave the chat. */
+  /** Block the current user and stay in the chat (composer disabled, menu shows Unblock). */
   protected blockCurrentUser(): void {
     const friendId = this.selectedFriendId();
     this.headerMenuOpen.set(false);
-    if (!friendId) {
-      return;
+    this.pendingReply.set(null);
+    if (friendId) {
+      void this.friendsService.block(friendId);
     }
-    void this.friendsService.block(friendId);
-    void this.router.navigate(['/messages']);
+  }
+
+  /** Unblock the current user — re-enables messaging. */
+  protected unblockCurrentUser(): void {
+    const friendId = this.selectedFriendId();
+    this.headerMenuOpen.set(false);
+    if (friendId) {
+      void this.friendsService.unblock(friendId);
+    }
   }
 
   @HostListener('document:click', ['$event'])

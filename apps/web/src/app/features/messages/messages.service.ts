@@ -56,6 +56,13 @@ export class DirectMessagesService {
   private myProfile: UserProfile | null = null;
   private myProfilePromise: Promise<UserProfile> | null = null;
 
+  /** User ids whose history was already fetched at least once (cache flag). */
+  private historyLoaded = new Set<string>();
+
+  /** Per-conversation flag while its history is being fetched over the wire. */
+  private readonly historyLoadingSignal = signal<Record<string, boolean>>({});
+  readonly historyLoadingRecord = this.historyLoadingSignal.asReadonly();
+
   /** Fetch the sidebar conversation list. */
   async loadConversations(): Promise<void> {
     this.loadingSignal.set(true);
@@ -70,10 +77,33 @@ export class DirectMessagesService {
     }
   }
 
-  /** Get-or-create the conversation with a user, then load its message history. */
+  /**
+   * Open / get-or-create the conversation and make its history available.
+   *
+   * When the history was already fetched during this session it's served
+   * instantly from the in-memory cache and re-fetched silently in the background,
+   * so navigating back to a chat is immediate.
+   */
   async openConversation(userId: string): Promise<void> {
     const conversation = await this.ensureConversation(userId);
+    const cached = this.messagesSignal()[userId];
 
+    if (cached && cached.length > 0 && this.historyLoaded.has(userId)) {
+      this.setHistoryLoading(userId, false);
+      void this.fetchHistory(userId, conversation).catch(() => undefined);
+      return;
+    }
+
+    this.setHistoryLoading(userId, true);
+    try {
+      await this.fetchHistory(userId, conversation);
+    } finally {
+      this.setHistoryLoading(userId, false);
+    }
+  }
+
+  /** Fetch + store a conversation's history, marking it as cached afterward. */
+  private async fetchHistory(userId: string, conversation: Conversation): Promise<void> {
     const response = await firstValueFrom(
       this.http.get<unknown>(`${this.apiUrl}/dms/${conversation.conversationId}/messages`),
     );
@@ -91,7 +121,12 @@ export class DirectMessagesService {
     );
 
     this.messagesSignal.update((store) => ({ ...store, [userId]: mapped }));
+    this.historyLoaded.add(userId);
     this.markRead(userId);
+  }
+
+  private setHistoryLoading(userId: string, value: boolean): void {
+    this.historyLoadingSignal.update((record) => ({ ...record, [userId]: value }));
   }
 
   conversationFor(userId: string): Conversation | undefined {

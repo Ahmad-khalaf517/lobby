@@ -78,6 +78,11 @@ export class FriendsService {
     return this.friends().some((friend) => friend.id === userId);
   }
 
+  /** Whether the current user has blocked this user. */
+  isBlocked(userId: string): boolean {
+    return this.blocked().some((user) => user.id === userId);
+  }
+
   /** Accept an incoming request by its friendship row id. */
   async accept(friendshipId: string): Promise<void> {
     await firstValueFrom(
