@@ -21,8 +21,8 @@ _Last verified: 2026-08-05._
 - ~~Register for an account~~
 - ~~Log in~~
 - ~~Forgot/reset password~~
-- View and edit user profile (one identity — same name across all servers, no per-server nicknames)
-- Manage account settings
+- ~~View and edit user profile (one identity — same name across all servers, no per-server nicknames)~~
+  \-~~Manage account settings~~
 - Adjust app settings (theme, notifications, etc.)
 
 ## Channels
@@ -68,12 +68,12 @@ _Last verified: 2026-08-05._
 
 - Dashboard (landing page after login) — shows the authenticated user's servers and permanent
   channels; guests don't have this, just their temporary channel(s)
-- Create server
+- ~~Create server~~
 - Switch server
 - Server icon / branding
 - Server welcome screen
 - Invite users to a server
-- Server members list
+- ~~Server members list~~
 
 ## Social
 
