@@ -88,19 +88,18 @@
             </button>
           </div>
         } @else {
-          <!-- EDIT MODE -->
-          <h2 class="text-base font-semibold text-app-foreground mb-4">Edit profile</h2>
-
           @if (profile()?.avatarUrl) {
             <button
               type="button"
-              class="mb-4 -mt-2 text-xs font-medium text-app-muted hover:text-destructive transition-colors disabled:opacity-50"
+              class="mb-4 -mt-1 text-xs font-medium text-app-muted hover:text-destructive transition-colors disabled:opacity-50"
               [disabled]="uploadingAvatar()"
               (click)="removeAvatar()"
             >
               Remove avatar
             </button>
           }
+          <!-- EDIT MODE -->
+          <h2 class="text-base font-semibold text-app-foreground mb-4">Edit profile</h2>
 
           <label class="block text-xs font-medium text-app-muted mb-1.5" for="profile-display-name">
             Display name

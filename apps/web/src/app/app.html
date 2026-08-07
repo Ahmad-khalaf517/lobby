@@ -1,6 +1,7 @@
 <app-route-progress />
 <router-outlet />
 <app-profile-popup />
+<app-settings-popup />
 <button
   type="button"
   (click)="openMyProfile()"
@@ -20,6 +21,26 @@
   "
 >
   My Profile
+</button>
+<button
+  type="button"
+  (click)="openSettings()"
+  style="
+    position: fixed;
+    bottom: 1.5rem;
+    right: 8.5rem;
+    z-index: 40;
+    background: var(--color-surface);
+    color: var(--color-app-foreground);
+    border: 1px solid var(--color-app-border);
+    border-radius: 9999px;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+  "
+>
+  Settings
 </button>
 <div
   class="lobby-boot-loader"

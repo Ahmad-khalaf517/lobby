@@ -1,0 +1,24 @@
+<h2 class="text-base font-semibold text-app-foreground mb-4">General</h2>
+
+@if (loading()) {
+  <p class="text-sm text-app-muted py-4">Loading settings…</p>
+} @else {
+  @if (errorMessage()) {
+    <p class="mb-4 text-sm text-destructive">{{ errorMessage() }}</p>
+  }
+
+  <div class="border-t border-app-border"></div>
+
+  <div class="flex items-start justify-between gap-4 py-3">
+    <div>
+      <p class="text-sm font-medium text-app-foreground">Push notifications</p>
+      <p class="text-xs text-app-muted">Browser push when you're away</p>
+    </div>
+    <app-toggle
+      [checked]="pushEnabled()"
+      [disabled]="savingPush()"
+      ariaLabel="Push notifications"
+      (checkedChange)="onPushToggle($event)"
+    />
+  </div>
+}
