@@ -1,37 +1,5 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
-/**
- * A channel membership — one row per join (guest or authenticated). Rows are
- * never deleted, only closed via `left_at`, so `messages.sender_id` always
- * resolves even after someone leaves. `livekit_identity` is required by the
- * live schema (NOT NULL, no default) — apps/api mints one per join so a
- * LiveKit token endpoint has a stable identity to bind to.
- */
-export type ChannelMemberRow = {
-  id: string;
-  channel_id: string;
-  user_id: string | null;
-  guest_name: string | null;
-  role: string;
-  livekit_identity: string;
-  joined_at: string;
-  left_at: string | null;
-};
 
-export type MessageReactionRow = {
-  id: string;
-  message_id: string;
-  channel_member_id: string;
-  emoji: string;
-  created_at: string;
-  updated_at: string;
-  channel_members: ChannelMemberRow;
-};
-
-export type MessageReactionInsert = {
-  message_id: string;
-  channel_member_id: string;
-  emoji: string;
-};
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -67,34 +35,40 @@ export type Database = {
     Tables: {
       channel_members: {
         Row: {
-          channel_id: string;
-          guest_name: string | null;
           id: string;
+          channel_id: string;
+          user_id: string;
+          role: Database['public']['Enums']['channel_role'];
           joined_at: string;
-          left_at: string | null;
-          livekit_identity: string;
-          role: string;
-          user_id: string | null;
+          left_at?: string | null;
+          removed_at?: string | null;
+          removed_reason?: string | null;
+          created_at: string;
+          updated_at: string;
         };
         Insert: {
-          channel_id: string;
-          guest_name?: string | null;
           id?: string;
+          channel_id: string;
+          user_id: string;
+          role: Database['public']['Enums']['channel_role'];
           joined_at?: string;
           left_at?: string | null;
-          livekit_identity: string;
-          role?: string;
-          user_id?: string | null;
+          removed_at?: string | null;
+          removed_reason?: string | null;
+          created_at: string;
+          updated_at?: string;
         };
         Update: {
-          channel_id?: string;
-          guest_name?: string | null;
           id?: string;
+          channel_id?: string;
+          user_id?: string;
+          role?: Database['public']['Enums']['channel_role'];
           joined_at?: string;
           left_at?: string | null;
-          livekit_identity?: string;
-          role?: string;
-          user_id?: string | null;
+          removed_at?: string | null;
+          removed_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [
           {
@@ -116,24 +90,27 @@ export type Database = {
       channels: {
         Row: {
           created_at: string;
-          expires_at: string | null;
           id: string;
           name: string;
-          server_id: string | null;
+          server_id: string;
+          created_by: string;
+          updated_at: string;
         };
         Insert: {
-          created_at?: string;
-          expires_at?: string | null;
-          id: string;
+          created_at: string;
+          id?: string;
           name: string;
-          server_id?: string | null;
+          server_id: string;
+          created_by: string | null;
+          updated_at?: string;
         };
         Update: {
           created_at?: string;
-          expires_at?: string | null;
           id?: string;
           name?: string;
           server_id?: string | null;
+          created_by?: string | null;
+          updated_at?: string;
         };
         Relationships: [
           {
@@ -141,6 +118,13 @@ export type Database = {
             columns: ['server_id'];
             isOneToOne: false;
             referencedRelation: 'servers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'channels_created_by_id_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'users';
             referencedColumns: ['id'];
           },
         ];
@@ -199,6 +183,7 @@ export type Database = {
       };
       message_reactions: {
         Row: {
+          channel_id: string | null;
           channel_member_id: string;
           created_at: string;
           emoji: string;
@@ -207,6 +192,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          channel_id: string | null;
           channel_member_id: string;
           created_at?: string;
           emoji: string;
@@ -215,6 +201,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          channel_id: string | null;
           channel_member_id?: string;
           created_at?: string;
           emoji?: string;
@@ -223,6 +210,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'message_reactions_channel_id_fkey';
+            columns: ['channel_id'];
+            isOneToOne: false;
+            referencedRelation: 'channels';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'message_reactions_channel_member_id_fkey';
             columns: ['channel_member_id'];
@@ -242,23 +236,35 @@ export type Database = {
       messages: {
         Row: {
           channel_id: string;
+          client_message_id: string | null;
           content: string;
           created_at: string;
+          deleted_at: string | null;
+          edited_at: string | null;
           id: string;
+          reply_to: string | null;
           sender_id: string;
         };
         Insert: {
           channel_id: string;
+          client_message_id?: string | null;
           content: string;
           created_at?: string;
+          deleted_at?: string | null;
+          edited_at?: string | null;
           id?: string;
+          reply_to?: string | null;
           sender_id: string;
         };
         Update: {
           channel_id?: string;
+          client_message_id?: string | null;
           content?: string;
           created_at?: string;
+          deleted_at?: string | null;
+          edited_at?: string | null;
           id?: string;
+          reply_to?: string | null;
           sender_id?: string;
         };
         Relationships: [
@@ -267,6 +273,13 @@ export type Database = {
             columns: ['channel_id'];
             isOneToOne: false;
             referencedRelation: 'channels';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'messages_reply_to_fkey';
+            columns: ['reply_to'];
+            isOneToOne: false;
+            referencedRelation: 'messages';
             referencedColumns: ['id'];
           },
           {
@@ -282,21 +295,21 @@ export type Database = {
         Row: {
           id: string;
           joined_at: string;
-          role: string;
+          role: Database['public']['Enums']['server_role'];
           server_id: string;
           user_id: string;
         };
         Insert: {
           id?: string;
           joined_at?: string;
-          role?: string;
+          role?: Database['public']['Enums']['server_role'];
           server_id: string;
           user_id: string;
         };
         Update: {
           id?: string;
           joined_at?: string;
-          role?: string;
+          role?: Database['public']['Enums']['server_role'];
           server_id?: string;
           user_id?: string;
         };
@@ -357,6 +370,7 @@ export type Database = {
           id: string;
           name: string;
           user_name: string;
+          updated_at: string;
         };
         Insert: {
           avatar_url?: string | null;
@@ -365,6 +379,7 @@ export type Database = {
           id: string;
           name: string;
           user_name: string;
+          updated_at?: string;
         };
         Update: {
           avatar_url?: string | null;
@@ -373,6 +388,7 @@ export type Database = {
           id?: string;
           name?: string;
           user_name?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -384,9 +400,12 @@ export type Database = {
       [_ in never]: never;
     };
     Enums: {
+      server_role: 'owner' | 'member';
       guest_room_end_reason: 'expired' | 'closed_by_owner' | 'empty' | 'moderation';
       guest_room_message_type: 'text' | 'system' | 'file' | 'image';
       guest_room_status: 'active' | 'expired' | 'ended';
+      message_type: 'text' | 'system' | 'file' | 'image';
+      channel_role: 'owner' | 'member';
     };
     CompositeTypes: {
       [_ in never]: never;
