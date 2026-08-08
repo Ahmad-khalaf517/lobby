@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_CALL_PARTICIPANTS, MIN_CALL_PARTICIPANTS } from '../constants/limits.js';
 
 /**
  * Calls now go through LiveKit (SFU), not a hand-rolled WebRTC signaling relay.
@@ -32,6 +33,7 @@ export type CallTokenResponse = z.infer<typeof CallTokenResponseSchema>;
 export const CallStatusResponseSchema = z.object({
   active: z.boolean(),
   participants: z.number().int().nonnegative(),
+  maxParticipants: z.number().int().min(MIN_CALL_PARTICIPANTS).max(MAX_CALL_PARTICIPANTS),
 });
 export type CallStatusResponse = z.infer<typeof CallStatusResponseSchema>;
 

@@ -9,7 +9,16 @@ import {
 } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { MAX_CHANNEL_NAME_LENGTH, MAX_NAME_LENGTH } from '@lobby/shared';
+import {
+  DEFAULT_CALL_PARTICIPANTS,
+  DEFAULT_GUEST_ROOM_LIFETIME_MINUTES,
+  GuestChannelCreateRequestSchema,
+  MAX_CALL_PARTICIPANTS,
+  MAX_CHANNEL_NAME_LENGTH,
+  MAX_NAME_LENGTH,
+  MIN_CALL_PARTICIPANTS,
+  type GuestChannelCreateRequest,
+} from '@lobby/shared';
 import type { ZodType } from 'zod';
 
 import { LobbyIconComponent } from '../../../shared/ui/icon/lobby-icon.component';
@@ -45,11 +54,20 @@ export class GuestsPage {
 
   protected readonly maxNameLength = MAX_NAME_LENGTH;
   protected readonly maxChannelNameLength = MAX_CHANNEL_NAME_LENGTH;
+  protected readonly minCallParticipants = MIN_CALL_PARTICIPANTS;
+  protected readonly maxCallParticipants = MAX_CALL_PARTICIPANTS;
+  protected readonly lifetimeOptions = [
+    { value: 30, label: '30 minutes' },
+    { value: 60, label: '1 hour' },
+    { value: 120, label: '2 hours' },
+    { value: 180, label: '3 hours' },
+  ] as const;
   protected readonly submittingOperation = signal<GuestOperation | null>(null);
   protected readonly submitting = computed(() => this.submittingOperation() !== null);
   protected readonly joinSubmitted = signal(false);
   protected readonly createSubmitted = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
+  protected readonly configurationError = signal<string | null>(null);
 
   protected readonly identityState = computed<GuestIdentityState>(() => {
     switch (this.auth.status()) {
@@ -74,6 +92,8 @@ export class GuestsPage {
 
   protected readonly createForm = new FormGroup({
     channelName: new FormControl('', { nonNullable: true }),
+    maxParticipants: new FormControl(DEFAULT_CALL_PARTICIPANTS, { nonNullable: true }),
+    lifetimeMinutes: new FormControl(DEFAULT_GUEST_ROOM_LIFETIME_MINUTES, { nonNullable: true }),
   });
 
   constructor() {
@@ -136,6 +156,7 @@ export class GuestsPage {
 
     this.createSubmitted.set(true);
     this.errorMessage.set(null);
+    this.configurationError.set(null);
 
     const displayName = this.validateDisplayName();
     const channelName = this.validateValue(
@@ -143,16 +164,29 @@ export class GuestsPage {
       this.createForm.controls.channelName.value,
       guestChannelNameSchema,
     );
+    const configuration =
+      this.identityState() === 'registered' && channelName !== null
+        ? this.validateConfiguration(channelName)
+        : undefined;
 
-    if (displayName === null || channelName === null) {
+    if (
+      displayName === null ||
+      channelName === null ||
+      (this.identityState() === 'registered' && !configuration)
+    ) {
       this.focusFirstInvalidField('create');
       return;
     }
 
     await this.run('create', async () => {
-      const result = await this.guest.create(channelName, displayName);
+      const result = await this.guest.create(channelName, displayName, configuration ?? undefined);
       await this.router.navigate(['/guest', result.code]);
     });
+  }
+
+  protected handleConfigurationInput(): void {
+    this.errorMessage.set(null);
+    this.configurationError.set(null);
   }
 
   private validateDisplayName(): string | undefined | null {
@@ -184,6 +218,21 @@ export class GuestsPage {
         );
         break;
     }
+  }
+
+  private validateConfiguration(name: string): GuestChannelCreateRequest | null {
+    const result = GuestChannelCreateRequestSchema.safeParse({
+      name,
+      maxParticipants: this.createForm.controls.maxParticipants.value,
+      lifetimeMinutes: this.createForm.controls.lifetimeMinutes.value,
+    });
+
+    if (result.success) return result.data;
+
+    this.configurationError.set(
+      result.error.issues[0]?.message ?? 'The room configuration is invalid.',
+    );
+    return null;
   }
 
   private validateValue<TOutput>(

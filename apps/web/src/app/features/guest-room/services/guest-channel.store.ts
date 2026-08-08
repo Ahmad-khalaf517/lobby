@@ -1,6 +1,16 @@
+import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import type { PostgrestError, RealtimeChannel } from '@supabase/supabase-js';
+import { firstValueFrom } from 'rxjs';
+import {
+  DEFAULT_CALL_PARTICIPANTS,
+  DEFAULT_GUEST_ROOM_LIFETIME_MINUTES,
+  GuestChannelCreateRequestSchema,
+  GuestChannelCreateResponseSchema,
+  type GuestChannelCreateRequest,
+} from '@lobby/shared';
 
+import { environment } from '../../../../environments/environment';
 import type { ChatMessage, ChatUser, SendChatMessage } from '../../../shared/components/room-chat';
 import { SupabaseSessionService } from '../../../core/supabase/supabase-session.service';
 import type {
@@ -21,6 +31,7 @@ export type GuestRestoreResult = 'restored' | 'needs-name';
 
 @Injectable({ providedIn: 'root' })
 export class GuestChannelStore {
+  private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   private readonly supabaseSession = inject(SupabaseSessionService);
   private readonly guest = this.supabaseSession.client.schema('guest');
@@ -129,12 +140,31 @@ export class GuestChannelStore {
     return result.channel_id;
   }
 
-  async create(name: string, displayName?: string): Promise<{ channelId: string; code: string }> {
+  async create(
+    name: string,
+    displayName?: string,
+    configuration?: Pick<GuestChannelCreateRequest, 'maxParticipants' | 'lifetimeMinutes'>,
+  ): Promise<{ channelId: string; code: string }> {
     await this.auth.ensureGuestSession();
+
+    if (this.auth.status() === 'authenticated') {
+      const request = GuestChannelCreateRequestSchema.parse({
+        name,
+        maxParticipants: configuration?.maxParticipants ?? DEFAULT_CALL_PARTICIPANTS,
+        lifetimeMinutes: configuration?.lifetimeMinutes ?? DEFAULT_GUEST_ROOM_LIFETIME_MINUTES,
+      });
+      const raw = await firstValueFrom(
+        this.http.post<unknown>(`${environment.apiUrl.replace(/\/$/, '')}/guest/channels`, request),
+      );
+      const result = GuestChannelCreateResponseSchema.parse(raw);
+      await this.load(result.channelId);
+      return result;
+    }
+
     const data = await this.rpc(() =>
       this.guest.rpc('create_channel', {
         p_name: name.trim(),
-        ...(this.auth.status() === 'anonymous' ? { p_display_name: displayName } : {}),
+        p_display_name: displayName,
       }),
     );
     const result = data[0];

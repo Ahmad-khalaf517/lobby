@@ -127,6 +127,7 @@ export type Database = {
           id: string;
           last_activity_at: string;
           livekit_room_name: string;
+          max_call_participants: number;
           max_members: number;
           name: string;
           owner_member_id: string | null;
@@ -143,6 +144,7 @@ export type Database = {
           id?: string;
           last_activity_at?: string;
           livekit_room_name: string;
+          max_call_participants?: number;
           max_members?: number;
           name: string;
           owner_member_id?: string | null;
@@ -159,6 +161,7 @@ export type Database = {
           id?: string;
           last_activity_at?: string;
           livekit_room_name?: string;
+          max_call_participants?: number;
           max_members?: number;
           name?: string;
           owner_member_id?: string | null;
@@ -325,7 +328,7 @@ export type Database = {
         Args: {
           p_display_name?: string;
           p_lifetime_minutes?: number;
-          p_max_members?: number;
+          p_max_call_participants?: number;
           p_name: string;
         };
         Returns: {

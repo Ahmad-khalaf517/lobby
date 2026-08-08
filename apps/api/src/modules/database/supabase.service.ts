@@ -51,4 +51,16 @@ export class SupabaseService implements OnModuleInit {
       },
     });
   }
+
+  /** Create a request-scoped client that preserves the caller's auth.uid() for RLS/RPCs. */
+  createUserClient(accessToken: string): SupabaseClient<Database> {
+    return createClient<Database>(this.supabaseUrl, this.publishableKey, {
+      accessToken: async () => accessToken,
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    });
+  }
 }

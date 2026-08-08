@@ -356,6 +356,68 @@
                 </p>
               }
 
+              @if (identityState() === 'registered') {
+                <div class="mt-4 grid gap-3 border-t border-white/[0.07] pt-4 sm:grid-cols-2">
+                  <div>
+                    <label
+                      for="maxParticipants"
+                      class="block text-[10px] font-semibold tracking-[0.12em] text-[#778295] uppercase"
+                    >
+                      Call capacity
+                    </label>
+
+                    <input
+                      id="maxParticipants"
+                      type="number"
+                      formControlName="maxParticipants"
+                      [min]="minCallParticipants"
+                      [max]="maxCallParticipants"
+                      inputmode="numeric"
+                      [attr.aria-invalid]="configurationError() ? 'true' : null"
+                      [attr.aria-describedby]="
+                        configurationError() ? 'room-configuration-error' : 'call-capacity-help'
+                      "
+                      (input)="handleConfigurationInput()"
+                      class="mt-2 h-10 w-full rounded-lg border border-white/[0.09] bg-[#111722] px-3 text-xs text-white outline-none transition hover:border-white/[0.15] focus:border-primary/50 focus:ring-3 focus:ring-primary/[0.08]"
+                    />
+
+                    <p id="call-capacity-help" class="mt-1.5 text-[9px] text-[#667286]">
+                      {{ minCallParticipants }}–{{ maxCallParticipants }} people in the call
+                    </p>
+                  </div>
+
+                  <div>
+                    <label
+                      for="lifetimeMinutes"
+                      class="block text-[10px] font-semibold tracking-[0.12em] text-[#778295] uppercase"
+                    >
+                      Room lifetime
+                    </label>
+
+                    <select
+                      id="lifetimeMinutes"
+                      formControlName="lifetimeMinutes"
+                      [attr.aria-invalid]="configurationError() ? 'true' : null"
+                      [attr.aria-describedby]="
+                        configurationError() ? 'room-configuration-error' : null
+                      "
+                      (change)="handleConfigurationInput()"
+                      class="mt-2 h-10 w-full rounded-lg border border-white/[0.09] bg-[#111722] px-3 text-xs text-white outline-none transition hover:border-white/[0.15] focus:border-primary/50 focus:ring-3 focus:ring-primary/[0.08]"
+                    >
+                      @for (option of lifetimeOptions; track option.value) {
+                        <option [ngValue]="option.value">{{ option.label }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                @if (configurationError(); as error) {
+                  <p id="room-configuration-error" class="auth-field-error">
+                    {{ error }}
+                  </p>
+                }
+              }
+
               <button
                 type="submit"
                 [disabled]="submitting() || authLoading()"

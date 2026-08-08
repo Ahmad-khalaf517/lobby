@@ -19,7 +19,7 @@ NestJS creates a Supabase anonymous user, returns the short-lived access token i
 
 ## 2. Create or join
 
-Channel creation and joining are security-definer RPCs:
+Anonymous channel creation and all joining use security-definer RPCs:
 
 ```typescript
 await supabase.schema('guest').rpc('create_channel', {
@@ -28,10 +28,21 @@ await supabase.schema('guest').rpc('create_channel', {
 });
 
 await supabase.schema('guest').rpc('join_channel', {
-  p_invite_code: 'ABC12345',
+  p_code: 'ABC12345',
   p_display_name: 'Bob', // omitted for registered users
 });
 ```
+
+Registered creators use the guarded NestJS endpoint so Zod and database validation both protect the advanced settings:
+
+```http
+POST /guest/channels
+Content-Type: application/json
+
+{ "name": "Project review", "maxParticipants": 20, "lifetimeMinutes": 120 }
+```
+
+Anonymous creators do not submit these settings and retain the 8-participant, 60-minute defaults.
 
 The database derives the authenticated user from `auth.uid()`. Registered-user display names come from the authoritative profile; anonymous users provide a validated guest display name. Each active membership receives a stable LiveKit identity.
 
@@ -71,7 +82,7 @@ Content-Type: application/json
 { "channelId": "<guest-channel-uuid>" }
 ```
 
-NestJS verifies the caller's active membership and the active, unexpired channel with its server-only Supabase client. It derives the display name, LiveKit identity, and room name from authoritative rows before minting a short-lived, least-privilege token. Media then flows directly between the browser and LiveKit.
+NestJS verifies the caller's active membership and the active, unexpired channel with its server-only Supabase client. It derives the display name, LiveKit identity, room name, and call capacity from authoritative rows, explicitly creates the LiveKit room with that `maxParticipants`, and then mints a short-lived, least-privilege token. Media flows directly between the browser and LiveKit.
 
 ## 6. Leave and close
 

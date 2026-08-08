@@ -20,6 +20,7 @@ import {
   CallStatusResponseSchema,
   CallTokenRequestSchema,
   CallTokenResponseSchema,
+  DEFAULT_CALL_PARTICIPANTS,
   MAX_NAME_LENGTH,
 } from '@lobby/shared';
 
@@ -49,7 +50,7 @@ type ModerationConfirmation = {
   participant: CallParticipant;
 };
 type RoomConfirmation = { kind: 'leave' | 'close'; participant?: never } | ModerationConfirmation;
-const CALL_STATUS_POLL_MS = 10_000;
+const CALL_STATUS_POLL_MS = 3_000;
 const CALL_SESSION_KEY_PREFIX = 'lobby:guest-call:';
 const MAX_MODERATION_REASON_LENGTH = 240;
 
@@ -153,6 +154,10 @@ export class GuestRoomPage {
   protected readonly callParticipantCount = computed(() =>
     this.call.joined() ? this.call.participants().length : this.callStatusParticipantCount(),
   );
+  protected readonly callCapacity = computed(
+    () => this.channel()?.max_call_participants ?? DEFAULT_CALL_PARTICIPANTS,
+  );
+  protected readonly callFull = computed(() => this.callParticipantCount() >= this.callCapacity());
   protected readonly chatOpen = computed(() =>
     this.desktopLayout() ? !this.chatCollapsed() : this.mobileChatOpen(),
   );
@@ -297,6 +302,10 @@ export class GuestRoomPage {
 
   protected async joinCall(restoringSession = false): Promise<void> {
     if (this.callJoining() || this.call.joined() || this.destroyed) return;
+    if (this.callFull() && !restoringSession) {
+      this.actionNotice.set(this.callFullMessage(false));
+      return;
+    }
 
     this.callJoining.set(true);
     this.restoringCallSession.set(restoringSession);
@@ -335,7 +344,11 @@ export class GuestRoomPage {
       this.callStatusLoading.set(false);
     } catch (error: unknown) {
       if (restoringSession) this.forgetCallSession();
-      const message = describeError(error);
+      let message = describeError(error);
+      if (isCallFullError(message)) {
+        await this.refreshCallStatus();
+        message = this.callFullMessage(true);
+      }
       this.actionNotice.set(
         restoringSession ? `Could not restore your call automatically. ${message}` : message,
       );
@@ -774,19 +787,38 @@ export class GuestRoomPage {
     this.actionNotice.set(describeError(error));
   }
 
+  private callFullMessage(race: boolean): string {
+    const prefix = race ? 'The call just became full.' : 'Call full.';
+    return `${prefix} ${this.callParticipantCount()} of ${this.callCapacity()} participants are currently in the call. You can stay in the room and join when a spot becomes available.`;
+  }
+
   private apiUrl(): string {
     return environment.apiUrl.replace(/\/$/, '');
   }
 }
 
 function describeError(error: unknown): string {
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof error.message === 'string'
-  ) {
-    return error.message;
+  if (typeof error === 'object' && error !== null) {
+    const nestedMessage = readMessage(Reflect.get(error, 'error'));
+    if (nestedMessage) return nestedMessage;
   }
-  return error instanceof Error ? error.message : 'The room request failed.';
+
+  return readMessage(error) || 'The room request failed.';
+}
+
+function readMessage(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (typeof value !== 'object' || value === null) return '';
+
+  const message = Reflect.get(value, 'message');
+  if (Array.isArray(message)) {
+    return message.filter((item): item is string => typeof item === 'string').join(' ');
+  }
+  return typeof message === 'string' ? message : '';
+}
+
+function isCallFullError(message: string): boolean {
+  return /call.+full|room.+full|max(?:imum)? participants|participant limit|resource exhausted/i.test(
+    message,
+  );
 }

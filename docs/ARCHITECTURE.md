@@ -24,6 +24,7 @@ Registered and anonymous users share the same Supabase Auth session model. Angul
 Angular GuestChannelStore
   |-- RLS SELECT ------------> guest tables
   |-- authenticated RPC -----> guest mutation functions
+  |-- registered create -----> NestJS -> user-scoped guest.create_channel RPC
   `-- Realtime subscription < guest Postgres changes
 ```
 
@@ -44,6 +45,8 @@ Angular <---------------- audio/screen share ----------------> LiveKit Cloud
 ```
 
 NestJS reads the authoritative `livekit_identity`, `display_name`, and `livekit_room_name`. Ordinary members receive join, subscribe, microphone, and screen-share grants only. Camera publishing and room-administrator privileges are not granted.
+
+`guest.channels.max_call_participants` is independent of the guest-channel membership limit. NestJS explicitly creates each LiveKit room with this stored value before issuing a token. LiveKit is the final capacity enforcement layer; the token endpoint's participant check and Angular's status display are user-experience safeguards only. Registered creators may configure a capacity up to 50 and a lifetime up to three hours through the guarded NestJS creation endpoint. Anonymous creators keep the database defaults.
 
 Remote audio tracks are attached in Angular. Active-speaker, mute, screen-share, reconnection, and participant connection state come from LiveKit events and are never written continuously to Supabase.
 

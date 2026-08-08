@@ -542,10 +542,8 @@
                     <p class="truncate text-xs font-semibold text-white">Audio room connected</p>
                   </div>
                   <p class="mt-1 text-[10px] text-[#707c90]">
-                    {{ callParticipantCount() }} participant{{
-                      callParticipantCount() === 1 ? '' : 's'
-                    }}
-                    · {{ call.roomName() }}
+                    {{ callParticipantCount() }} / {{ callCapacity() }} participants ·
+                    {{ call.roomName() }}
                   </p>
                 </div>
                 <span
@@ -761,6 +759,9 @@
                         role="status"
                         aria-live="polite"
                         class="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/[0.08] px-3 py-1.5 text-[10px] font-semibold tracking-[0.05em] text-emerald-200"
+                        [class.border-amber-300/25]="callFull()"
+                        [class.bg-amber-300/8]="callFull()"
+                        [class.text-amber-100]="callFull()"
                       >
                         <span class="relative flex size-2 shrink-0">
                           <span
@@ -771,20 +772,30 @@
                           ></span>
                         </span>
 
-                        LIVE CALL IN PROGRESS
+                        {{ callFull() ? 'CALL FULL' : 'CALL ACTIVE' }} ·
+                        {{ callParticipantCount() }}/{{ callCapacity() }}
                       </div>
 
                       <h2
                         class="mt-5 max-w-2xl text-2xl font-semibold leading-[1.08] tracking-[-0.035em] text-white sm:text-3xl lg:text-4xl"
                       >
-                        People are already talking in this room.
+                        {{
+                          callFull()
+                            ? 'The audio call is full right now.'
+                            : 'People are already talking in this room.'
+                        }}
                       </h2>
 
                       <p
                         class="mt-3 max-w-xl text-xs leading-6 text-[#929daf] sm:mt-4 sm:text-sm sm:leading-7"
                       >
-                        Join the live audio conversation now. Your chat remains available while you
-                        listen, speak, or share your screen.
+                        @if (callFull()) {
+                          Stay in the room and keep using chat while you wait. Joining becomes
+                          available automatically when someone leaves the call.
+                        } @else {
+                          Join the live audio conversation now. Your chat remains available while
+                          you listen, speak, or share your screen.
+                        }
                       </p>
 
                       <div class="mt-6 flex items-center gap-3">
@@ -796,12 +807,11 @@
 
                         <div class="min-w-0">
                           <p class="text-xs font-semibold text-white sm:text-sm">
-                            Audio room is live
+                            {{ callFull() ? 'Call full' : 'Audio room is live' }}
                           </p>
                           <p class="mt-0.5 text-[10px] text-[#82918b] sm:text-[11px]">
-                            {{ callParticipantCount() }}
-                            participant{{ callParticipantCount() === 1 ? '' : 's' }} currently
-                            connected
+                            {{ callParticipantCount() }} of {{ callCapacity() }} participants
+                            currently connected
                           </p>
                         </div>
                       </div>
@@ -810,7 +820,17 @@
                         <button
                           type="button"
                           (click)="joinCall()"
-                          [disabled]="callJoining()"
+                          [disabled]="callJoining() || callFull()"
+                          [attr.aria-describedby]="callFull() ? 'call-full-reason' : null"
+                          [attr.title]="
+                            callFull()
+                              ? 'Call full — ' +
+                                callParticipantCount() +
+                                ' of ' +
+                                callCapacity() +
+                                ' participants are currently in the call.'
+                              : null
+                          "
                           class="group relative isolate inline-flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-emerald-300 px-5 text-sm font-semibold text-[#07130d] shadow-[0_18px_45px_rgba(52,211,153,0.22)] outline-none transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-200 hover:shadow-[0_22px_55px_rgba(52,211,153,0.3)] focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0f17] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 sm:w-auto sm:min-w-44"
                         >
                           <span
@@ -818,7 +838,10 @@
                             class="absolute inset-y-0 -left-20 w-16 -skew-x-12 bg-white/25 blur-md transition-transform duration-700 group-hover:translate-x-72"
                           ></span>
 
-                          @if (callJoining()) {
+                          @if (callFull()) {
+                            <app-icon name="users" aria-hidden="true" class="size-4" />
+                            <span>Call full</span>
+                          } @else if (callJoining()) {
                             <span
                               aria-hidden="true"
                               class="size-4 animate-spin rounded-full border-2 border-[#07130d]/25 border-t-[#07130d]"
@@ -848,6 +871,13 @@
                           {{ chatOpen() ? 'Hide chat' : 'Open chat' }}
                         </button>
                       </div>
+
+                      @if (callFull()) {
+                        <p id="call-full-reason" class="mt-3 text-xs leading-5 text-amber-100/80">
+                          Call full — {{ callParticipantCount() }} of {{ callCapacity() }}
+                          participants are currently in the call.
+                        </p>
+                      }
                     </div>
 
                     <div
@@ -882,12 +912,12 @@
                         class="absolute top-1/2 left-1/2 flex size-20 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-[1.5rem] bg-[#121827]/90 shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
                       >
                         <span class="text-xl font-semibold tabular-nums text-white">
-                          {{ callParticipantCount() }}
+                          {{ callParticipantCount() }}/{{ callCapacity() }}
                         </span>
                         <span
                           class="mt-0.5 text-[8px] font-semibold tracking-[0.1em] text-emerald-300 uppercase"
                         >
-                          Live
+                          {{ callFull() ? 'Full' : 'Live' }}
                         </span>
                       </div>
                     </div>
@@ -902,7 +932,7 @@
                         class="inline-flex items-center gap-2 rounded-full border border-white/[0.09] bg-white/[0.045] px-3 py-1.5 text-[10px] font-semibold text-[#c3cad6]"
                       >
                         <span class="size-1.5 rounded-full bg-primary"></span>
-                        Ready when your team is
+                        Ready · 0/{{ callCapacity() }}
                       </span>
 
                       <h2

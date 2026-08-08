@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   GoneException,
   Injectable,
@@ -8,7 +9,6 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { AccessToken, RoomServiceClient, TrackSource } from 'livekit-server-sdk';
 import {
-  MAX_CALL_PARTICIPANTS,
   type CallParticipantRemovalRequest,
   type CallParticipantRemovalResponse,
   type CallStatusResponse,
@@ -46,13 +46,16 @@ export class CallsService {
     { channelId }: CallTokenRequest,
   ): Promise<CallTokenResponse> {
     const { member, channel } = await this.authorizeMembership(userId, channelId);
+    await this.ensureLiveKitRoom(channel);
     const participants = await this.listParticipants(channel.livekit_room_name);
 
     if (
-      participants.length >= Math.min(channel.max_members, MAX_CALL_PARTICIPANTS) &&
+      participants.length >= channel.max_call_participants &&
       !participants.some((participant) => participant.identity === member.livekit_identity)
     ) {
-      throw new ForbiddenException('The call has reached its participant limit');
+      throw new ConflictException(
+        'The call just became full. You can stay in the room and join when a spot becomes available.',
+      );
     }
 
     const token = new AccessToken(this.apiKey, this.apiSecret, {
@@ -84,7 +87,11 @@ export class CallsService {
   async getCallStatus(userId: string, channelId: string): Promise<CallStatusResponse> {
     const { channel } = await this.authorizeMembership(userId, channelId);
     const participantCount = (await this.listParticipants(channel.livekit_room_name)).length;
-    return { active: participantCount > 0, participants: participantCount };
+    return {
+      active: participantCount > 0,
+      participants: participantCount,
+      maxParticipants: channel.max_call_participants,
+    };
   }
 
   async removeModeratedParticipant(
@@ -201,6 +208,17 @@ export class CallsService {
       // API is temporarily unavailable. The same false zero could also bypass
       // the participant-limit check while issuing a new token.
       throw new ServiceUnavailableException('Could not read the live call state');
+    }
+  }
+
+  private async ensureLiveKitRoom(channel: GuestChannel): Promise<void> {
+    try {
+      await this.roomService.createRoom({
+        name: channel.livekit_room_name,
+        maxParticipants: channel.max_call_participants,
+      });
+    } catch {
+      throw new ServiceUnavailableException('Could not prepare the live call');
     }
   }
 }

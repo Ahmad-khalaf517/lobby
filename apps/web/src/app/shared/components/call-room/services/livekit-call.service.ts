@@ -376,6 +376,13 @@ export class LiveKitCallService {
 
 function describeLiveKitError(error: unknown): string {
   if (error instanceof Error) {
+    if (
+      /room.+full|max(?:imum)? participants|participant limit|resource exhausted|capacity exceeded/i.test(
+        error.message,
+      )
+    ) {
+      return 'The call just became full. You can stay in the room and join when a spot becomes available.';
+    }
     if (/fetch|network|failed|ECONN|Unable to connect/i.test(error.message)) {
       return 'Could not reach the call server. Check your connection and try again.';
     }

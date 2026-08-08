@@ -5,6 +5,7 @@ import { SupabaseService } from '../../modules/database/supabase.service';
 
 export type AuthenticatedRequest = Request & {
   user: User;
+  accessToken: string;
 };
 
 @Injectable()
@@ -27,6 +28,7 @@ export class SupabaseAuthGuard implements CanActivate {
     }
 
     request.user = data.user;
+    request.accessToken = accessToken;
 
     return true;
   }
