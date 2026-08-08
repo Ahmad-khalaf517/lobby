@@ -1,0 +1,72 @@
+@if (open()) {
+  <div
+    class="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4"
+    (click)="close()"
+    (keydown.escape)="close()"
+  >
+    <div
+      class="w-full max-w-100 space-y-6 rounded-2xl border border-[#171d2a] bg-[#0d121b] p-6 shadow-2xl"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-start gap-3">
+        <div
+          class="grid size-10 shrink-0 place-items-center rounded-xl"
+          [class.bg-destructive/15]="destructive()"
+          [class.text-destructive]="destructive()"
+          [class.bg-primary/15]="!destructive()"
+          [class.text-primary]="!destructive()"
+        >
+          <app-icon [name]="icon()" [size]="17" />
+        </div>
+        <div class="min-w-0 flex-1 pt-0.5">
+          <h2 class="text-base font-medium text-app-foreground">{{ title() }}</h2>
+          @if (message()) {
+            <p class="mt-1.5 text-[13px] leading-5 text-app-muted">{{ message() }}</p>
+          }
+        </div>
+        <button
+          type="button"
+          class="grid size-7 shrink-0 place-items-center rounded-lg text-app-muted transition hover:bg-surface-hover"
+          (click)="close()"
+          aria-label="Close"
+        >
+          <app-icon name="close" [size]="16" />
+        </button>
+      </div>
+
+      @if (errorMessage(); as error) {
+        <p class="text-xs text-destructive">{{ error }}</p>
+      }
+
+      <div class="flex gap-2">
+        <button
+          type="button"
+          [disabled]="saving()"
+          (click)="close()"
+          class="h-11 flex-1 rounded-xl border border-[#171d2a] text-sm text-app-foreground transition hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {{ cancelLabel() }}
+        </button>
+        <button
+          type="button"
+          [disabled]="saving()"
+          (click)="submit()"
+          class="flex h-11 flex-2 items-center justify-center gap-2 rounded-xl text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
+          [class.bg-destructive/15]="destructive()"
+          [class.text-destructive]="destructive()"
+          [class.hover:bg-destructive/25]="destructive()"
+          [class.bg-primary]="!destructive()"
+          [class.text-white]="!destructive()"
+          [class.hover:bg-primary-hover]="!destructive()"
+        >
+          @if (saving()) {
+            <span
+              class="size-4 animate-spin rounded-full border-2 border-current/30 border-t-current"
+            ></span>
+          }
+          {{ saving() ? savingLabel() : confirmLabel() }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

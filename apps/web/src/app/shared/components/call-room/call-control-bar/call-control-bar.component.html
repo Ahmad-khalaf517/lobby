@@ -72,6 +72,23 @@
       {{ participantCount() }}
     </button>
 
+    @if (showChatToggle()) {
+      <button
+        type="button"
+        (click)="toggleChat.emit()"
+        class="grid size-12 place-items-center rounded-full border transition"
+        [class]="
+          chatVisible()
+            ? 'border-primary/35 bg-primary/20 text-[#e8e2ff] hover:bg-primary/28'
+            : 'border-white/9 bg-white/[0.055] text-[#d7ddea] hover:border-white/16 hover:bg-white/10'
+        "
+        [attr.aria-label]="chatVisible() ? 'Hide chat panel' : 'Show chat panel'"
+        [attr.title]="chatVisible() ? 'Hide chat panel' : 'Show chat panel'"
+      >
+        <app-icon name="chat" [size]="19" />
+      </button>
+    }
+
     <span class="mx-0.5 h-7 w-px bg-white/8"></span>
 
     <button

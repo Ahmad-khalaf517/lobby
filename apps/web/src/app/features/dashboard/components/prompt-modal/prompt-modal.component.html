@@ -1,0 +1,74 @@
+@if (open()) {
+  <div
+    class="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4"
+    (click)="close()"
+    (keydown.escape)="close()"
+  >
+    <div
+      class="w-full max-w-100 space-y-6 rounded-2xl border border-[#171d2a] bg-[#0d121b] p-6 shadow-2xl"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-start gap-3">
+        <div class="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
+          <app-icon [name]="icon()" [size]="17" />
+        </div>
+        <div class="min-w-0 flex-1 pt-0.5">
+          <h2 class="text-base font-medium text-app-foreground">{{ title() }}</h2>
+          @if (subtitle()) {
+            <p class="mt-1 truncate text-xs text-app-muted">{{ subtitle() }}</p>
+          }
+        </div>
+        <button
+          type="button"
+          class="grid size-7 shrink-0 place-items-center rounded-lg text-app-muted transition hover:bg-surface-hover"
+          (click)="close()"
+          aria-label="Close"
+        >
+          <app-icon name="close" [size]="16" />
+        </button>
+      </div>
+
+      <div class="space-y-2">
+        <label for="prompt-modal-input" class="block text-xs text-app-muted">{{ label() }}</label>
+        <input
+          #nameInput
+          id="prompt-modal-input"
+          type="text"
+          [placeholder]="placeholder()"
+          [maxLength]="maxLength()"
+          [(ngModel)]="value"
+          (keydown.enter)="submit()"
+          class="h-11 w-full rounded-xl border border-[#171d2a] bg-[#171d2a]/60 px-3.5 text-sm text-app-foreground outline-none transition placeholder:text-app-muted focus:border-primary/60"
+        />
+      </div>
+
+      @if (errorMessage(); as error) {
+        <p class="text-xs text-destructive">{{ error }}</p>
+      }
+
+      <div class="flex gap-2">
+        <button
+          type="button"
+          [disabled]="saving()"
+          (click)="close()"
+          class="h-11 flex-1 rounded-xl border border-[#171d2a] text-sm text-app-foreground transition hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          [disabled]="!value().trim() || saving()"
+          (click)="submit()"
+          class="flex h-11 flex-2 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-medium text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          @if (saving()) {
+            <span
+              class="size-4 animate-spin rounded-full border-2 border-white/25 border-t-white"
+            ></span>
+          }
+          {{ saving() ? savingLabel() : confirmLabel() }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

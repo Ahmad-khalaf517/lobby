@@ -1,0 +1,79 @@
+<div
+  class="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4"
+  (click)="close()"
+  (keydown.escape)="close()"
+>
+  <div
+    class="w-full max-w-100 space-y-6 rounded-2xl border border-[#171d2a] bg-[#0d121b] p-6 shadow-2xl"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="flex items-start justify-between">
+      <div>
+        <h2 class="text-base font-medium text-app-foreground">Create your server</h2>
+        <p class="mt-1 text-xs text-app-muted">Give it a name — you can invite people after.</p>
+      </div>
+      <button
+        type="button"
+        class="grid size-7 shrink-0 place-items-center rounded-lg text-app-muted transition hover:bg-surface-hover"
+        (click)="close()"
+        aria-label="Close"
+      >
+        <app-icon name="close" [size]="16" />
+      </button>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <div class="relative shrink-0 self-end">
+        @if (name().trim()) {
+          <app-server-icon [name]="name()" size="lg" />
+        } @else {
+          <div
+            class="grid size-11 place-items-center rounded-2xl border-2 border-dashed border-app-border text-app-muted"
+          >
+            <app-icon name="camera" [size]="18" />
+          </div>
+        }
+      </div>
+
+      <div class="min-w-0 flex-1 space-y-1.5">
+        <label for="server-name" class="block text-xs text-app-muted">Server name</label>
+        <input
+          id="server-name"
+          type="text"
+          placeholder="Frontend Team"
+          [maxLength]="maxNameLength"
+          [(ngModel)]="name"
+          (keydown.enter)="submit()"
+          class="h-11 w-full rounded-xl border border-[#171d2a] bg-[#171d2a]/60 px-3.5 text-sm text-app-foreground outline-none transition placeholder:text-app-muted focus:border-primary/60"
+        />
+      </div>
+    </div>
+
+    @if (error()) {
+      <p class="text-xs text-destructive">{{ error() }}</p>
+    }
+
+    <div class="flex gap-2">
+      <button
+        type="button"
+        (click)="close()"
+        class="h-11 flex-1 rounded-xl border border-[#171d2a] text-sm text-app-foreground transition hover:bg-surface-hover"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        [disabled]="!name().trim() || submitting()"
+        (click)="submit()"
+        class="flex h-11 flex-2 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-medium text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        @if (submitting()) {
+          <span
+            class="size-4 animate-spin rounded-full border-2 border-white/25 border-t-white"
+          ></span>
+        }
+        {{ submitting() ? 'Creating…' : 'Create server' }}
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,19 @@
+<div class="flex h-dvh flex-col bg-app-background">
+  <app-dashboard-header [activeServer]="activeServer()" (menuToggle)="toggleMobileSidebar()" />
+
+  <div class="flex min-h-0 flex-1 overflow-hidden">
+    <app-server-rail
+      [activeServerId]="activeServerId()"
+      [mobileOpen]="mobileSidebarOpen()"
+      (closeMobile)="mobileSidebarOpen.set(false)"
+    />
+    <router-outlet />
+  </div>
+</div>
+
+@if (store.createModalOpen()) {
+  <app-create-server-modal />
+}
+@if (store.joinModalOpen()) {
+  <app-join-server-modal />
+}

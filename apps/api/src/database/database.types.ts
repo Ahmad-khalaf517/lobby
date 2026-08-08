@@ -97,11 +97,11 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
-          created_at: string;
+          created_at?: string;
           id?: string;
           name: string;
           server_id: string;
-          created_by: string | null;
+          created_by: string;
           updated_at?: string;
         };
         Update: {

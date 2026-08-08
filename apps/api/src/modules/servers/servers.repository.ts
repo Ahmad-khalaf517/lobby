@@ -1,29 +1,27 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { customAlphabet, nanoid } from 'nanoid';
-import type { Channel, Server, ServerMember } from '@lobby/shared';
-import type { Database } from '../../database/database.types';
-import { toChannel, toChannels } from './channel.mappers';
+import { customAlphabet } from 'nanoid';
+import type { User } from '@supabase/supabase-js';
+import type { Server, ServerMember } from '@lobby/shared';
 import { SupabaseService } from '../database/supabase.service';
 import { toServer, toServerMembers, toServers } from './servers.mappers';
-
-type ServerInsert = Database['public']['Tables']['servers']['Insert'];
-type ServerUpdate = Database['public']['Tables']['servers']['Update'];
-type ServerMemberInsert = Database['public']['Tables']['server_members']['Insert'];
-type ChannelInsert = Database['public']['Tables']['channels']['Insert'];
-type UserInsert = Database['public']['Tables']['users']['Insert'];
+import { ChannelService } from '../channels/channel.service';
+import { ServerInsert, ServerMemberInsert, ServerUpdate, UserInsert } from '../../database/types';
 
 // Invite codes are separate from server ids: short, unambiguous, shareable.
 const generateInviteCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 8);
 
 @Injectable()
 export class ServersRepository {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly channelService: ChannelService,
+  ) {}
 
-  async createServer(ownerId: string, name: string): Promise<Server> {
-    await this.ensureUserExists(ownerId);
+  async createServer(owner: User, name: string): Promise<Server> {
+    await this.ensureUserExists(owner);
 
     const server: ServerInsert = {
-      owner_id: ownerId,
+      owner_id: owner.id,
       name,
       invite_code: generateInviteCode(),
     };
@@ -40,7 +38,7 @@ export class ServersRepository {
     // Creating a server makes the creator its first member, with owner role.
     const member: ServerMemberInsert = {
       server_id: created.id,
-      user_id: ownerId,
+      user_id: owner.id,
       role: 'owner',
     };
     const { error: memberError } = await this.supabase.client.from('server_members').insert(member);
@@ -102,10 +100,14 @@ export class ServersRepository {
     return toServers(rows);
   }
 
-  async addMember(serverId: string, userId: string, role = 'member'): Promise<ServerMember> {
-    await this.ensureUserExists(userId);
+  async addMember(
+    serverId: string,
+    user: User,
+    role: ServerMemberInsert['role'] = 'member',
+  ): Promise<ServerMember> {
+    await this.ensureUserExists(user);
 
-    const member: ServerMemberInsert = { server_id: serverId, user_id: userId, role };
+    const member: ServerMemberInsert = { server_id: serverId, user_id: user.id, role };
     const { data, error } = await this.supabase.client
       .from('server_members')
       .insert(member)
@@ -148,41 +150,23 @@ export class ServersRepository {
     if (error) throw error;
   }
 
-  /** Channels that belong to a server (channels.server_id), oldest first. */
-  async listChannelsForServer(serverId: string): Promise<Channel[]> {
-    const { data, error } = await this.supabase.client
-      .from('channels')
-      .select()
-      .eq('server_id', serverId)
-      .order('created_at', { ascending: true });
+  /**
+   * Upserts the users row backing this authenticated user. Prefers the real
+   * display name set at signup (user_metadata.name — see auth.service.ts's
+   * signUp call) so servers/members show real names instead of a
+   * fabricated placeholder for every user.
+   */
+  private async ensureUserExists(authUser: User): Promise<void> {
+    const metadataName =
+      typeof authUser.user_metadata?.['name'] === 'string'
+        ? (authUser.user_metadata['name'] as string).trim()
+        : '';
+    const name = metadataName || `User ${authUser.id.slice(0, 8)}`;
 
-    if (error) throw error;
-    return toChannels(data ?? []);
-  }
-
-  async createChannelForServer(serverId: string, name: string): Promise<Channel> {
-    const channel: ChannelInsert = {
-      id: nanoid(8),
-      name,
-      server_id: serverId,
-    };
-
-    const { data, error } = await this.supabase.client
-      .from('channels')
-      .insert(channel)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return toChannel(data);
-  }
-
-  private async ensureUserExists(userId: string): Promise<void> {
-    const userName = `User ${userId.slice(0, 8)}`;
     const user: UserInsert = {
-      id: userId,
-      name: userName,
-      user_name: userName.toLowerCase().replace(/\s+/g, '_'),
+      id: authUser.id,
+      name,
+      user_name: name.toLowerCase().replace(/\s+/g, '_'),
     };
 
     const { error } = await this.supabase.client.from('users').upsert(user, { onConflict: 'id' });
