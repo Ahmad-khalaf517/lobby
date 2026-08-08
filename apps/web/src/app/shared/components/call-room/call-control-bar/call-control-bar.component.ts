@@ -19,9 +19,11 @@ export class CallControlBarComponent {
   screenShareDisabled = input(false);
   screenShareDisabledReason = input<string | null>(null);
   participantCount = input(0);
+  chatOpen = input(false);
 
   readonly toggleMic = output<void>();
   readonly toggleScreenShare = output<void>();
   readonly toggleParticipants = output<void>();
+  readonly toggleChat = output<void>();
   readonly leave = output<void>();
 }

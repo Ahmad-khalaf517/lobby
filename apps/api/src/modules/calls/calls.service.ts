@@ -9,6 +9,8 @@ import { ConfigService } from '@nestjs/config';
 import { AccessToken, RoomServiceClient, TrackSource } from 'livekit-server-sdk';
 import {
   MAX_CALL_PARTICIPANTS,
+  type CallParticipantRemovalRequest,
+  type CallParticipantRemovalResponse,
   type CallStatusResponse,
   type CallTokenRequest,
   type CallTokenResponse,
@@ -83,6 +85,74 @@ export class CallsService {
     const { channel } = await this.authorizeMembership(userId, channelId);
     const participantCount = (await this.listParticipants(channel.livekit_room_name)).length;
     return { active: participantCount > 0, participants: participantCount };
+  }
+
+  async removeModeratedParticipant(
+    userId: string,
+    { channelId, memberId }: CallParticipantRemovalRequest,
+  ): Promise<CallParticipantRemovalResponse> {
+    const guest = this.supabase.client.schema('guest');
+    const channelResult = await guest.from('channels').select().eq('id', channelId).maybeSingle();
+
+    if (channelResult.error) throw channelResult.error;
+    if (!channelResult.data) throw new NotFoundException('Guest channel was not found');
+
+    const channel = channelResult.data;
+    if (channel.status !== 'active' || new Date(channel.expires_at).getTime() <= Date.now()) {
+      throw new GoneException('Guest channel is no longer active');
+    }
+    if (!channel.owner_member_id) {
+      throw new ForbiddenException('The channel does not have an active owner');
+    }
+
+    const [ownerResult, targetResult] = await Promise.all([
+      guest
+        .from('channel_members')
+        .select()
+        .eq('id', channel.owner_member_id)
+        .eq('channel_id', channelId)
+        .eq('user_id', userId)
+        .is('left_at', null)
+        .is('removed_at', null)
+        .maybeSingle(),
+      guest
+        .from('channel_members')
+        .select()
+        .eq('id', memberId)
+        .eq('channel_id', channelId)
+        .maybeSingle(),
+    ]);
+
+    if (ownerResult.error || targetResult.error) {
+      throw ownerResult.error ?? targetResult.error;
+    }
+    if (!ownerResult.data) {
+      throw new ForbiddenException('Only the active channel owner can remove call participants');
+    }
+    if (!targetResult.data) {
+      throw new NotFoundException('Channel member was not found');
+    }
+    if (
+      targetResult.data.id === ownerResult.data.id ||
+      !targetResult.data.removed_at ||
+      targetResult.data.removed_by_member_id !== ownerResult.data.id
+    ) {
+      throw new ForbiddenException('The member has not been removed by the active channel owner');
+    }
+
+    try {
+      await this.roomService.removeParticipant(
+        channel.livekit_room_name,
+        targetResult.data.livekit_identity,
+        { revokeTokenTs: BigInt(Math.floor(Date.now() / 1000)) },
+      );
+      return { removed: true };
+    } catch (error: unknown) {
+      if (isLiveKitRoomNotFound(error)) return { removed: false };
+      throw new ServiceUnavailableException(
+        'The member was removed, but the call could not be updated',
+      );
+    }
   }
 
   private async authorizeMembership(

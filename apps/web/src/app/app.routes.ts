@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { guestGuard } from './features/auth/guards/guest-guard';
 import { authGuard } from './features/auth/guards/auth-guard';
+import { pendingRoomExitGuard } from './features/guest-room/guards/pending-room-exit.guard';
 
 export const routes: Routes = [
   {
@@ -83,6 +84,7 @@ export const routes: Routes = [
   {
     path: 'guest/:inviteCode',
     title: 'Guest Room | Lobby',
+    canDeactivate: [pendingRoomExitGuard],
     loadComponent: () =>
       import('./features/guest-room/guest-room-page/guest-room-page').then(
         (component) => component.GuestRoomPage,

@@ -47,6 +47,8 @@ NestJS reads the authoritative `livekit_identity`, `display_name`, and `livekit_
 
 Remote audio tracks are attached in Angular. Active-speaker, mute, screen-share, reconnection, and participant connection state come from LiveKit events and are never written continuously to Supabase.
 
+Owner kick/block actions remain authenticated guest-schema RPCs. Their membership update is distributed through Supabase Realtime. After the database commits the removal, Angular asks the guarded NestJS LiveKit endpoint to disconnect that already-removed media identity and revoke its current token; NestJS independently verifies the owner and removal record first.
+
 ## Legacy isolation
 
 The public-schema channel repository remains in source for possible non-guest migration work, but `ChannelsModule` is not registered and cannot serve the guest dashboard. The Socket.IO guest gateway and duplicated Angular socket chat service were removed. Guest data has one realtime path: Supabase Realtime.

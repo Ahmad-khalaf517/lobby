@@ -248,6 +248,30 @@ export class GuestChannelStore {
     await this.rpcVoid(() => this.guest.rpc('close_channel', { p_channel_id: channel.id }));
   }
 
+  async kickMember(memberId: string, reason?: string): Promise<GuestChannelMember> {
+    const row = await this.rpc(() =>
+      this.guest.rpc('kick_channel_member', {
+        p_channel_id: this.requireChannel().id,
+        p_member_id: memberId,
+        ...(reason ? { p_reason: reason } : {}),
+      }),
+    );
+    this.upsertMember(row);
+    return row;
+  }
+
+  async blockMember(memberId: string, reason?: string): Promise<GuestChannelMember> {
+    const row = await this.rpc(() =>
+      this.guest.rpc('block_channel_member', {
+        p_channel_id: this.requireChannel().id,
+        p_member_id: memberId,
+        ...(reason ? { p_reason: reason } : {}),
+      }),
+    );
+    this.upsertMember(row);
+    return row;
+  }
+
   async cleanup(): Promise<void> {
     if (this.realtimeChannel) {
       await this.supabaseSession.client.removeChannel(this.realtimeChannel);

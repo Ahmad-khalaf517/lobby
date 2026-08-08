@@ -466,38 +466,13 @@
             </span>
           </button>
 
-          <!-- Mobile chat -->
-          <button
-            type="button"
-            (click)="mobileChatOpen.set(true)"
-            aria-label="Open chat"
-            class="grid size-9 shrink-0 place-items-center rounded-lg border border-white/[0.08] bg-white/[0.035] text-[#b8c1ce] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 lg:hidden"
-          >
-            <app-icon name="chat" aria-hidden="true" class="size-3.5" />
-          </button>
-
-          <!-- Desktop chat panel toggle -->
-          <button
-            type="button"
-            (click)="toggleChatPanel()"
-            [attr.aria-label]="chatCollapsed() ? 'Show chat panel' : 'Hide chat panel'"
-            [attr.aria-expanded]="!chatCollapsed()"
-            class="hidden size-9 shrink-0 place-items-center rounded-lg border border-white/[0.08] bg-white/[0.035] text-[#b8c1ce] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 lg:grid"
-          >
-            <app-icon
-              [name]="chatCollapsed() ? 'panel-open' : 'panel-close'"
-              aria-hidden="true"
-              class="size-3.5"
-            />
-          </button>
-
           <!-- Destructive action separator -->
           <span aria-hidden="true" class="hidden h-6 w-px shrink-0 bg-white/[0.08] sm:block"></span>
 
           <!-- Close or leave room -->
           <button
             type="button"
-            (click)="isOwner() ? closeChannel() : leaveChannel()"
+            (click)="requestRoomExit()"
             [attr.aria-label]="isOwner() ? 'Close room' : 'Leave room'"
             class="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-white/[0.08] bg-white/[0.035] px-2.5 text-xs font-medium leading-none text-[#b8c1ce] outline-none transition-colors hover:border-rose-400/25 hover:bg-rose-400/[0.08] hover:text-rose-200 focus-visible:ring-2 focus-visible:ring-rose-400/50 sm:px-3"
           >
@@ -580,19 +555,27 @@
               </div>
 
               @if (call.activeScreenShare().track !== null) {
-                <div class="min-h-0 flex-1 p-3 sm:p-4">
-                  <app-call-stage
-                    [isLocalSharing]="call.activeScreenShare().isLocal"
-                    [sharerName]="call.activeScreenShare().sharerName"
-                    [screenShareTrack]="call.activeScreenShare().track"
-                  />
-                </div>
                 <div
-                  class="lobby-scrollbar grid max-h-40 shrink-0 grid-cols-2 gap-2 overflow-y-auto border-t border-white/7 p-3 sm:grid-cols-3 xl:grid-cols-4"
+                  class="flex min-h-0 flex-1 flex-col gap-3 p-3 sm:p-4 lg:grid lg:grid-cols-[minmax(0,1fr)_clamp(13rem,20vw,17rem)] lg:gap-4"
                 >
-                  @for (participant of callParticipants(); track participant.id) {
-                    <app-voice-participant-tile [participant]="participant" [compact]="true" />
-                  }
+                  <div class="min-h-0 min-w-0 flex-1 lg:h-full">
+                    <app-call-stage
+                      [isLocalSharing]="call.activeScreenShare().isLocal"
+                      [sharerName]="call.activeScreenShare().sharerName"
+                      [screenShareTrack]="call.activeScreenShare().track"
+                    />
+                  </div>
+
+                  <aside
+                    aria-label="Call participants"
+                    class="lobby-scrollbar flex max-h-32 shrink-0 gap-2 overflow-x-auto border-t border-white/7 pt-3 lg:max-h-none lg:min-h-0 lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto lg:border-t-0 lg:border-l lg:pt-0 lg:pl-3"
+                  >
+                    @for (participant of callParticipants(); track participant.id) {
+                      <div class="min-w-52 shrink-0 lg:min-w-0 lg:w-full">
+                        <app-voice-participant-tile [participant]="participant" [compact]="true" />
+                      </div>
+                    }
+                  </aside>
                 </div>
               } @else {
                 <div class="lobby-scrollbar min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
@@ -616,8 +599,10 @@
                 [screenShareDisabled]="call.anotherParticipantSharing()"
                 [screenShareDisabledReason]="call.screenShareDisabledReason()"
                 [participantCount]="callParticipantCount()"
+                [chatOpen]="chatOpen()"
                 (toggleMic)="toggleMic()"
                 (toggleScreenShare)="toggleScreenShare()"
+                (toggleChat)="toggleRoomChatAccess()"
                 (toggleParticipants)="membersPanelOpen.set(true)"
                 (leave)="leaveCall()"
               />
@@ -724,11 +709,15 @@
 
                       <button
                         type="button"
-                        (click)="mobileChatOpen.set(true)"
-                        class="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/[0.09] bg-white/[0.035] px-4 text-xs font-medium text-[#c8d0dc] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:w-auto lg:hidden"
+                        (click)="toggleRoomChatAccess()"
+                        [attr.aria-label]="chatOpen() ? 'Hide room chat' : 'Open room chat'"
+                        [attr.aria-pressed]="chatOpen()"
+                        class="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/[0.09] bg-white/[0.035] px-4 text-xs font-medium text-[#c8d0dc] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:w-auto"
+                        [class.border-primary/35]="chatOpen()"
+                        [class.bg-primary/10]="chatOpen()"
                       >
                         <app-icon name="chat" aria-hidden="true" class="size-4" />
-                        Open chat while waiting
+                        {{ chatOpen() ? 'Hide chat' : 'Open chat while waiting' }}
                       </button>
                     </div>
 
@@ -848,11 +837,15 @@
 
                         <button
                           type="button"
-                          (click)="mobileChatOpen.set(true)"
-                          class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/[0.09] bg-white/[0.035] px-4 text-xs font-medium text-[#c8d0dc] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-12 sm:w-auto lg:hidden"
+                          (click)="toggleRoomChatAccess()"
+                          [attr.aria-label]="chatOpen() ? 'Hide room chat' : 'Open room chat'"
+                          [attr.aria-pressed]="chatOpen()"
+                          class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/[0.09] bg-white/[0.035] px-4 text-xs font-medium text-[#c8d0dc] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-12 sm:w-auto"
+                          [class.border-primary/35]="chatOpen()"
+                          [class.bg-primary/10]="chatOpen()"
                         >
                           <app-icon name="chat" aria-hidden="true" class="size-4" />
-                          Open chat
+                          {{ chatOpen() ? 'Hide chat' : 'Open chat' }}
                         </button>
                       </div>
                     </div>
@@ -946,11 +939,15 @@
 
                         <button
                           type="button"
-                          (click)="mobileChatOpen.set(true)"
-                          class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/[0.09] bg-white/[0.035] px-4 text-xs font-medium text-[#c8d0dc] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-12 sm:w-auto lg:hidden"
+                          (click)="toggleRoomChatAccess()"
+                          [attr.aria-label]="chatOpen() ? 'Hide room chat' : 'Open room chat'"
+                          [attr.aria-pressed]="chatOpen()"
+                          class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/[0.09] bg-white/[0.035] px-4 text-xs font-medium text-[#c8d0dc] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-12 sm:w-auto"
+                          [class.border-primary/35]="chatOpen()"
+                          [class.bg-primary/10]="chatOpen()"
                         >
                           <app-icon name="chat" aria-hidden="true" class="size-4" />
-                          Open chat
+                          {{ chatOpen() ? 'Hide chat' : 'Open chat' }}
                         </button>
                       </div>
                     </div>
@@ -1214,6 +1211,9 @@
                 [participants]="roomParticipants()"
                 [title]="'People'"
                 [emptyText]="'Waiting for someone to join…'"
+                [canManage]="isOwner()"
+                (kickParticipant)="requestModeration('kick', $event)"
+                (blockParticipant)="requestModeration('block', $event)"
               />
             </div>
           </aside>
@@ -1238,6 +1238,112 @@
             (editMessage)="onEdit($event)"
             (close)="mobileChatOpen.set(false)"
           ></app-room-chat>
+        </div>
+      }
+
+      @if (confirmation(); as dialog) {
+        <div class="fixed inset-0 z-[70] grid place-items-center px-4 py-6">
+          <button
+            type="button"
+            class="absolute inset-0 cursor-default bg-black/70 backdrop-blur-sm"
+            (click)="cancelConfirmation()"
+            aria-label="Cancel confirmation"
+          ></button>
+
+          <section
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="room-confirmation-title"
+            aria-describedby="room-confirmation-description"
+            class="relative w-full max-w-md rounded-2xl border border-white/[0.09] bg-[#0f141d] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.58)] sm:p-6"
+          >
+            <div class="flex items-start gap-3.5">
+              <span
+                [class]="
+                  'grid size-10 shrink-0 place-items-center rounded-xl ' +
+                  (confirmationIsDestructive()
+                    ? 'bg-rose-400/[0.1] text-rose-300'
+                    : 'bg-primary/[0.12] text-[#b9adff]')
+                "
+              >
+                <app-icon
+                  [name]="
+                    dialog.kind === 'block'
+                      ? 'ban'
+                      : dialog.kind === 'kick'
+                        ? 'user-minus'
+                        : 'logout'
+                  "
+                  aria-hidden="true"
+                  class="size-4.5"
+                />
+              </span>
+
+              <div class="min-w-0 flex-1">
+                <h2
+                  id="room-confirmation-title"
+                  class="text-base font-semibold tracking-[-0.015em] text-white"
+                >
+                  {{ confirmationTitle() }}
+                </h2>
+                <p id="room-confirmation-description" class="mt-2 text-xs leading-5 text-[#8e99aa]">
+                  {{ confirmationDescription() }}
+                </p>
+              </div>
+            </div>
+
+            @if (confirmationUsesReason()) {
+              <div class="mt-5">
+                <div class="flex items-center justify-between gap-3">
+                  <label for="moderationReason" class="text-xs font-medium text-[#cbd2dd]">
+                    Moderation reason <span class="font-normal text-[#677386]">(optional)</span>
+                  </label>
+                  <span class="text-[10px] tabular-nums text-[#667286]">
+                    {{ moderationReasonControl.value.length }}/{{ maxModerationReasonLength }}
+                  </span>
+                </div>
+                <input
+                  id="moderationReason"
+                  type="text"
+                  [formControl]="moderationReasonControl"
+                  [maxlength]="maxModerationReasonLength"
+                  placeholder="Briefly explain why"
+                  class="mt-2.5 h-10 w-full rounded-lg border border-white/[0.09] bg-[#090d14] px-3 text-xs text-white outline-none transition placeholder:text-[#536074] hover:border-white/[0.14] focus:border-primary/45 focus:ring-3 focus:ring-primary/[0.08]"
+                />
+              </div>
+            }
+
+            <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                (click)="cancelConfirmation()"
+                [disabled]="confirmationPending()"
+                class="inline-flex h-10 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 text-xs font-semibold text-[#c3ccd8] outline-none transition hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/55 disabled:cursor-not-allowed disabled:opacity-50"
+                autofocus
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                (click)="confirmAction()"
+                [disabled]="confirmationPending()"
+                [class]="
+                  'inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-xs font-semibold outline-none transition disabled:cursor-not-allowed disabled:opacity-55 ' +
+                  (confirmationIsDestructive()
+                    ? 'bg-rose-500 text-white hover:bg-rose-400 focus-visible:ring-2 focus-visible:ring-rose-400/70'
+                    : 'bg-primary text-white hover:bg-[#896aff] focus-visible:ring-2 focus-visible:ring-violet-400/70')
+                "
+              >
+                @if (confirmationPending()) {
+                  <span
+                    aria-hidden="true"
+                    class="size-3.5 animate-spin rounded-full border-2 border-white/25 border-t-white"
+                  ></span>
+                }
+                {{ confirmationActionLabel() }}
+              </button>
+            </div>
+          </section>
         </div>
       }
     </main>

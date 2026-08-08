@@ -1,6 +1,9 @@
 import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import {
+  CallParticipantRemovalRequestSchema,
   CallTokenRequestSchema,
+  type CallParticipantRemovalRequest,
+  type CallParticipantRemovalResponse,
   type CallStatusResponse,
   type CallTokenRequest,
   type CallTokenResponse,
@@ -32,5 +35,14 @@ export class CallsController {
     @Param('channelId') channelId: string,
   ): Promise<CallStatusResponse> {
     return this.callsService.getCallStatus(request.user.id, channelId);
+  }
+
+  @Post('livekit/remove-participant')
+  removeParticipant(
+    @Req() request: AuthenticatedRequest,
+    @Body(new ZodValidationPipe(CallParticipantRemovalRequestSchema))
+    body: CallParticipantRemovalRequest,
+  ): Promise<CallParticipantRemovalResponse> {
+    return this.callsService.removeModeratedParticipant(request.user.id, body);
   }
 }

@@ -6,6 +6,7 @@ export type CallConnectionState =
 /** Generic audio-room participant used by guest and authenticated dashboards. */
 export type CallParticipant = {
   id: string;
+  memberId?: string;
   name: string;
   isLocal: boolean;
   isSpeaking: boolean;

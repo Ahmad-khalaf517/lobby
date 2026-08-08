@@ -100,6 +100,8 @@
             >
               @if (participant.isSpeaking) {
                 Speaking
+              } @else if (participant.screenShareTrack) {
+                Sharing screen
               } @else if (participant.inCall && participant.isMicMuted) {
                 In call · Muted
               } @else if (participant.inCall) {
@@ -126,24 +128,45 @@
           }
 
           <!-- Management action -->
-          @if (canManage() && !participant.isLocal) {
-            <div class="group/remove relative">
+          @if (canManage() && !participant.isLocal && !participant.isOwner) {
+            <div class="relative">
               <button
                 type="button"
-                (click)="removeParticipant.emit(participant)"
-                class="grid size-8 translate-x-1 place-items-center rounded-lg text-[#707c90] opacity-0 outline-none transition duration-150 hover:bg-rose-400/[0.09] hover:text-rose-300 focus-visible:translate-x-0 focus-visible:bg-rose-400/[0.09] focus-visible:text-rose-300 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-rose-400/50 group-hover/participant:translate-x-0 group-hover/participant:opacity-100"
-                [attr.aria-label]="'Remove ' + participant.name"
+                (click)="toggleManagementMenu($event, participant.id)"
+                [attr.aria-expanded]="openMenuParticipantId() === participant.id"
+                aria-haspopup="menu"
+                class="grid size-8 translate-x-1 place-items-center rounded-lg text-[#707c90] opacity-0 outline-none transition duration-150 hover:bg-white/[0.07] hover:text-white focus-visible:translate-x-0 focus-visible:bg-white/[0.07] focus-visible:text-white focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-violet-400/50 group-hover/participant:translate-x-0 group-hover/participant:opacity-100"
+                [attr.aria-label]="'Moderate ' + participant.name"
               >
-                <app-icon name="user-minus" aria-hidden="true" class="size-3.5" />
+                <app-icon name="more" aria-hidden="true" class="size-3.5" />
               </button>
 
-              <!-- Hover tooltip -->
-              <span
-                role="tooltip"
-                class="pointer-events-none absolute right-0 top-[calc(100%+0.4rem)] z-40 hidden whitespace-nowrap rounded-md border border-white/[0.08] bg-[#171c27]/98 px-2 py-1.5 text-[10px] font-medium leading-none text-[#d4dae4] opacity-0 shadow-xl shadow-black/30 backdrop-blur-xl transition-opacity group-hover/remove:block group-hover/remove:opacity-100 group-focus-within/remove:block group-focus-within/remove:opacity-100"
-              >
-                Remove participant
-              </span>
+              @if (openMenuParticipantId() === participant.id) {
+                <div
+                  role="menu"
+                  class="absolute top-[calc(100%+0.35rem)] right-0 z-50 min-w-40 rounded-lg border border-white/[0.08] bg-[#151a24] p-1 shadow-[0_16px_38px_rgba(0,0,0,0.42)]"
+                  (click)="$event.stopPropagation()"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    (click)="requestKick($event, participant)"
+                    class="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[11px] font-medium whitespace-nowrap text-[#cbd3df] outline-none transition hover:bg-white/[0.06] hover:text-white focus-visible:bg-white/[0.06] focus-visible:text-white"
+                  >
+                    <app-icon name="user-minus" aria-hidden="true" class="size-3.5" />
+                    Kick member
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    (click)="requestBlock($event, participant)"
+                    class="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[11px] font-medium whitespace-nowrap text-rose-300 outline-none transition hover:bg-rose-400/[0.08] hover:text-rose-200 focus-visible:bg-rose-400/[0.08] focus-visible:text-rose-200"
+                  >
+                    <app-icon name="ban" aria-hidden="true" class="size-3.5" />
+                    Block from room
+                  </button>
+                </div>
+              }
             </div>
           }
         </div>

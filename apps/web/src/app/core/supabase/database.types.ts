@@ -4,6 +4,7 @@ import type { Database as GuestDatabase } from '../../../../../api/src/database/
 /** Generated public and guest schema types composed for the browser client. */
 export type Database = PublicDatabase & Pick<GuestDatabase, 'guest'>;
 
+export type GuestChannelBlock = GuestDatabase['guest']['Tables']['channel_blocks']['Row'];
 export type GuestChannel = GuestDatabase['guest']['Tables']['channels']['Row'];
 export type GuestChannelMember = GuestDatabase['guest']['Tables']['channel_members']['Row'];
 export type GuestMessage = GuestDatabase['guest']['Tables']['messages']['Row'];

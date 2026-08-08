@@ -8,6 +8,45 @@ export type Database = {
   };
   guest: {
     Tables: {
+      channel_blocks: {
+        Row: {
+          blocked_by_member_id: string | null;
+          channel_id: string;
+          created_at: string;
+          reason: string | null;
+          user_id: string;
+        };
+        Insert: {
+          blocked_by_member_id?: string | null;
+          channel_id: string;
+          created_at?: string;
+          reason?: string | null;
+          user_id: string;
+        };
+        Update: {
+          blocked_by_member_id?: string | null;
+          channel_id?: string;
+          created_at?: string;
+          reason?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'guest_channel_blocks_blocked_by_fk';
+            columns: ['channel_id', 'blocked_by_member_id'];
+            isOneToOne: false;
+            referencedRelation: 'channel_members';
+            referencedColumns: ['channel_id', 'id'];
+          },
+          {
+            foreignKeyName: 'guest_channel_blocks_channel_fk';
+            columns: ['channel_id'];
+            isOneToOne: false;
+            referencedRelation: 'channels';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       channel_members: {
         Row: {
           channel_id: string;
@@ -20,6 +59,8 @@ export type Database = {
           left_at: string | null;
           livekit_identity: string;
           removed_at: string | null;
+          removed_by_member_id: string | null;
+          removed_kind: Database['guest']['Enums']['member_removal_kind'] | null;
           removed_reason: string | null;
           updated_at: string;
           user_id: string;
@@ -35,6 +76,8 @@ export type Database = {
           left_at?: string | null;
           livekit_identity: string;
           removed_at?: string | null;
+          removed_by_member_id?: string | null;
+          removed_kind?: Database['guest']['Enums']['member_removal_kind'] | null;
           removed_reason?: string | null;
           updated_at?: string;
           user_id: string;
@@ -50,6 +93,8 @@ export type Database = {
           left_at?: string | null;
           livekit_identity?: string;
           removed_at?: string | null;
+          removed_by_member_id?: string | null;
+          removed_kind?: Database['guest']['Enums']['member_removal_kind'] | null;
           removed_reason?: string | null;
           updated_at?: string;
           user_id?: string;
@@ -61,6 +106,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'channels';
             referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'guest_channel_members_removed_by_fk';
+            columns: ['channel_id', 'removed_by_member_id'];
+            isOneToOne: false;
+            referencedRelation: 'channel_members';
+            referencedColumns: ['channel_id', 'id'];
           },
         ];
       };
@@ -238,6 +290,32 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      block_channel_member: {
+        Args: { p_channel_id: string; p_member_id: string; p_reason?: string };
+        Returns: {
+          channel_id: string;
+          created_at: string;
+          display_name: string;
+          id: string;
+          joined_at: string;
+          last_joined_at: string;
+          last_seen_at: string;
+          left_at: string | null;
+          livekit_identity: string;
+          removed_at: string | null;
+          removed_by_member_id: string | null;
+          removed_kind: Database['guest']['Enums']['member_removal_kind'] | null;
+          removed_reason: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'channel_members';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       cleanup_stale_anonymous_users: {
         Args: { p_batch_size?: number; p_retention?: string };
         Returns: number;
@@ -354,6 +432,32 @@ export type Database = {
           rejoined: boolean;
         }[];
       };
+      kick_channel_member: {
+        Args: { p_channel_id: string; p_member_id: string; p_reason?: string };
+        Returns: {
+          channel_id: string;
+          created_at: string;
+          display_name: string;
+          id: string;
+          joined_at: string;
+          last_joined_at: string;
+          last_seen_at: string;
+          left_at: string | null;
+          livekit_identity: string;
+          removed_at: string | null;
+          removed_by_member_id: string | null;
+          removed_kind: Database['guest']['Enums']['member_removal_kind'] | null;
+          removed_reason: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'channel_members';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       leave_channel: { Args: { p_channel_id: string }; Returns: undefined };
       purge_ended_channels: {
         Args: { p_retention_minutes?: number };
@@ -372,6 +476,7 @@ export type Database = {
     Enums: {
       channel_end_reason: 'expired' | 'closed_by_owner' | 'empty' | 'moderation';
       channel_status: 'active' | 'expired' | 'ended';
+      member_removal_kind: 'kicked' | 'blocked';
       message_type: 'text' | 'system' | 'file' | 'image';
     };
     CompositeTypes: {
@@ -496,6 +601,7 @@ export const Constants = {
     Enums: {
       channel_end_reason: ['expired', 'closed_by_owner', 'empty', 'moderation'],
       channel_status: ['active', 'expired', 'ended'],
+      member_removal_kind: ['kicked', 'blocked'],
       message_type: ['text', 'system', 'file', 'image'],
     },
   },
