@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Stop-Process -Id 29820 -Force -ErrorAction SilentlyContinue)",
+      "Bash(grep -Hm1 ^description: c:/Users/Administrator/Desktop/Work/discord-clone/.claude/skills/*/SKILL.md)",
+      "Bash(echo \"---check chromium-cli---\")",
+      "Bash(which chromium-cli *)",
+      "Bash(echo \"no chromium-cli in PATH\")",
+      "Bash(npx --no-install chromium-cli --version)",
+      "Bash(grep -iE \"^LucideSearch$\")",
+      "Bash(npx ng *)",
+      "Bash(grep -iE \"^LucideLayoutGrid$|^LucideGrid2x2$|^LucideBookmark$|^LucideLayoutDashboard$\")",
+      "Bash(pnpm lint *)",
+      "Bash(echo \"EXIT_CODE=$?\")",
+      "Bash(pnpm --filter web build)"
+    ]
+  }
+}
