@@ -52,6 +52,17 @@ select {
   font: inherit;
 }
 
+/* Browsers default <button> to `cursor: default`, not `pointer` — unlike
+   <a>, so every icon/button control in the app needs this to actually read
+   as clickable. Set once here instead of per-button so nothing gets missed. */
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
 app-root {
   display: block;
 }
