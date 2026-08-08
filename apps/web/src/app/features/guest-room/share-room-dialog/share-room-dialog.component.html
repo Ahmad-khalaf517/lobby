@@ -1,0 +1,123 @@
+<div class="fixed inset-0 z-[80] flex items-end justify-center sm:items-center sm:px-4 sm:py-6">
+  <button
+    type="button"
+    class="absolute inset-0 cursor-default bg-black/72 backdrop-blur-sm"
+    (click)="close.emit()"
+    aria-label="Close room sharing"
+  ></button>
+
+  <section
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="share-room-title"
+    aria-describedby="share-room-description"
+    class="lobby-scrollbar relative flex max-h-[min(92dvh,48rem)] w-full flex-col overflow-y-auto rounded-t-3xl border border-white/[0.09] bg-[#0f141d] px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_28px_90px_rgba(0,0,0,0.64)] sm:max-w-lg sm:rounded-2xl sm:p-6"
+  >
+    <div class="mx-auto mb-4 h-1 w-10 rounded-full bg-white/15 sm:hidden" aria-hidden="true"></div>
+
+    <header class="flex items-start justify-between gap-4">
+      <div class="min-w-0">
+        <p class="text-[10px] font-semibold tracking-[0.14em] text-[#9f8cff] uppercase">
+          Room invite
+        </p>
+        <h2 id="share-room-title" class="mt-1.5 truncate text-xl font-semibold text-white">
+          Share room
+        </h2>
+        <p id="share-room-description" class="mt-1 text-xs leading-5 text-[#8490a3]">
+          Scan this code or send the same temporary invite link.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        (click)="close.emit()"
+        aria-label="Close room sharing"
+        autofocus
+        class="grid size-10 shrink-0 place-items-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-[#a6b0bf] outline-none transition hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60"
+      >
+        <app-icon name="close" aria-hidden="true" class="size-4" />
+      </button>
+    </header>
+
+    <div class="mx-auto mt-5 w-full max-w-[17rem]">
+      <div
+        class="aspect-square w-full overflow-hidden rounded-2xl bg-white p-3 shadow-[0_18px_48px_rgba(0,0,0,0.3)] sm:p-4"
+      >
+        <img
+          [src]="qrImageUrl()"
+          [alt]="'QR code for the ' + roomName() + ' guest invite'"
+          class="size-full object-contain [image-rendering:pixelated]"
+          width="256"
+          height="256"
+        />
+      </div>
+      <p class="mt-2.5 text-center text-[10px] leading-4 text-[#6f7b8f]">
+        Opens the normal Lobby guest join flow. It expires with this room.
+      </p>
+    </div>
+
+    <div class="mt-5 min-w-0">
+      <label
+        for="shareRoomInviteUrl"
+        class="text-[10px] font-semibold tracking-[0.12em] text-[#8994a6] uppercase"
+      >
+        Invite link
+      </label>
+      <div
+        class="mt-2 flex min-w-0 items-stretch overflow-hidden rounded-xl border border-white/[0.09] bg-[#090d14] focus-within:border-violet-400/40 focus-within:ring-2 focus-within:ring-violet-400/15"
+      >
+        <input
+          id="shareRoomInviteUrl"
+          type="text"
+          readonly
+          [value]="inviteUrl()"
+          class="h-11 min-w-0 flex-1 truncate bg-transparent px-3 text-xs text-[#aab4c3] outline-none selection:bg-violet-400/30"
+        />
+        <button
+          type="button"
+          (click)="copyInviteLink()"
+          [attr.aria-label]="copied() ? 'Invite link copied' : 'Copy invite link'"
+          class="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 border-l border-white/[0.08] bg-white/[0.035] px-3 text-xs font-semibold text-[#d5dbe4] outline-none transition hover:bg-white/[0.08] hover:text-white focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-400/60"
+        >
+          <app-icon [name]="copied() ? 'check' : 'copy'" aria-hidden="true" class="size-3.5" />
+          {{ copied() ? 'Copied' : 'Copy' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="mt-4 grid gap-2 sm:grid-cols-2">
+      <button
+        type="button"
+        (click)="downloadQrCode()"
+        [disabled]="downloadPending()"
+        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.09] bg-white/[0.035] px-4 text-xs font-semibold text-[#d4dae4] outline-none transition hover:bg-white/[0.075] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 disabled:cursor-wait disabled:opacity-55"
+      >
+        @if (downloadPending()) {
+          <span
+            class="size-3.5 animate-spin rounded-full border-2 border-white/20 border-t-white"
+            aria-hidden="true"
+          ></span>
+          Preparing PNG…
+        } @else {
+          <app-icon name="download" aria-hidden="true" class="size-4" />
+          Download QR
+        }
+      </button>
+
+      @if (nativeShareSupported) {
+        <button
+          type="button"
+          (click)="shareRoom()"
+          class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-white shadow-[0_12px_30px_rgba(124,92,252,0.22)] outline-none transition hover:bg-[#8b6dff] focus-visible:ring-2 focus-visible:ring-violet-400/70"
+        >
+          <app-icon name="share" aria-hidden="true" class="size-4" />
+          Share
+        </button>
+      }
+    </div>
+
+    @if (errorMessage(); as error) {
+      <p role="alert" class="mt-3 text-xs leading-5 text-rose-200">{{ error }}</p>
+    }
+  </section>
+</div>

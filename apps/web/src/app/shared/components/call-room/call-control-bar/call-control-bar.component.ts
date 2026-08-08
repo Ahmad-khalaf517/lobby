@@ -16,6 +16,7 @@ export class CallControlBarComponent {
   micPending = input(false);
   screenShareActive = input(false);
   screenSharePending = input(false);
+  screenShareSupported = input(true);
   screenShareDisabled = input(false);
   screenShareDisabledReason = input<string | null>(null);
   participantCount = input(0);

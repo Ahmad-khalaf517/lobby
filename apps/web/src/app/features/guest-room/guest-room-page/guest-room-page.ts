@@ -42,6 +42,7 @@ import { LobbyIconComponent } from '../../../shared/ui/icon/lobby-icon.component
 import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
 import { guestDisplayNameSchema } from '../../../shared/validation/guest-channel.schema';
 import { GuestChannelStore } from '../services/guest-channel.store';
+import { ShareRoomDialogComponent } from '../share-room-dialog/share-room-dialog.component';
 
 type RoomStatus = 'needs-name' | 'loading' | 'ready' | 'not-found' | 'error';
 type ConfirmationKind = 'leave' | 'close' | 'kick' | 'block';
@@ -66,6 +67,7 @@ const MAX_MODERATION_REASON_LENGTH = 240;
     CallStageComponent,
     VoiceParticipantTileComponent,
     CallControlBarComponent,
+    ShareRoomDialogComponent,
   ],
 
   templateUrl: './guest-room-page.html',
@@ -94,7 +96,7 @@ export class GuestRoomPage {
   protected readonly mobileChatOpen = signal(false);
   protected readonly membersPanelOpen = signal(false);
   protected readonly chatCollapsed = signal(false);
-  protected readonly inviteCopied = signal(false);
+  protected readonly shareRoomOpen = signal(false);
   protected readonly now = signal(Date.now());
   protected readonly confirmation = signal<RoomConfirmation | null>(null);
   protected readonly confirmationPending = signal(false);
@@ -176,7 +178,8 @@ export class GuestRoomPage {
   private callStatusIntervalId: ReturnType<typeof setInterval> | null = null;
   private callStatusPollInFlight = false;
   private clockIntervalId: ReturnType<typeof setInterval> | null = null;
-  private inviteCopiedTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private readonly openShareAfterCreation =
+    this.router.getCurrentNavigation()?.extras.state?.['shareRoom'] === true;
   private pendingNavigationResolution: ((allow: boolean) => void) | null = null;
   private allowNavigation = false;
   private destroyed = false;
@@ -262,7 +265,6 @@ export class GuestRoomPage {
       this.destroyed = true;
       if (this.callStatusIntervalId) clearInterval(this.callStatusIntervalId);
       if (this.clockIntervalId) clearInterval(this.clockIntervalId);
-      if (this.inviteCopiedTimeoutId) clearTimeout(this.inviteCopiedTimeoutId);
       this.pendingNavigationResolution?.(false);
       this.pendingNavigationResolution = null;
       void this.call.disconnect();
@@ -526,19 +528,6 @@ export class GuestRoomPage {
     return kind === 'close' || kind === 'block';
   }
 
-  protected async copyInviteLink(): Promise<void> {
-    if (typeof navigator === 'undefined' || !navigator.clipboard) return;
-
-    try {
-      await navigator.clipboard.writeText(this.guestInviteLink());
-      this.inviteCopied.set(true);
-      if (this.inviteCopiedTimeoutId) clearTimeout(this.inviteCopiedTimeoutId);
-      this.inviteCopiedTimeoutId = setTimeout(() => this.inviteCopied.set(false), 1600);
-    } catch {
-      this.actionNotice.set('Could not copy the invite link.');
-    }
-  }
-
   protected dismissNotice(): void {
     this.actionNotice.set(null);
     this.call.dismissError();
@@ -687,6 +676,7 @@ export class GuestRoomPage {
     // the inactive purple card from flashing before a live call is detected.
     this.callStatusLoading.set(true);
     this.status.set('ready');
+    if (this.openShareAfterCreation) this.shareRoomOpen.set(true);
     queueMicrotask(() => this.roomChat()?.scrollToNewest(false));
     this.startCallStatusPolling();
 

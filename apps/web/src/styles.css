@@ -216,3 +216,17 @@ body:has(.lobby-navbar) app-route-progress {
 @utility lobby-fade-up {
   animation: lobby-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* Touchscreens do not expose hover, so message actions must remain discoverable. */
+@media (hover: none), (pointer: coarse) {
+  [data-message-actions] {
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+
+  [data-message-actions] button {
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+  }
+}

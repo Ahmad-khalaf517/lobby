@@ -346,7 +346,7 @@
 
   @case ('ready') {
     <main
-      class="relative flex h-dvh min-h-[620px] flex-col overflow-hidden bg-[#080b11] text-app-foreground"
+      class="relative flex h-dvh min-h-0 flex-col overflow-hidden bg-[#080b11] text-app-foreground sm:min-h-[620px]"
     >
       <div
         class="lobby-noise pointer-events-none absolute inset-0 opacity-25"
@@ -412,45 +412,16 @@
 
         <!-- Header actions -->
         <nav aria-label="Room actions" class="flex shrink-0 items-center gap-2">
-          <!-- Invite control group -->
-          <div class="hidden min-w-0 items-center lg:flex">
-            <!-- Invite URL -->
-            <div
-              class="flex h-9 w-[min(28vw,20rem)] min-w-0 items-center rounded-l-lg border border-r-0 border-white/[0.08] bg-black/20"
-            >
-              <app-icon
-                name="link"
-                aria-hidden="true"
-                class="ml-3 size-3.5 shrink-0 text-[#778195]"
-              />
-
-              <input
-                type="text"
-                readonly
-                [value]="guestInviteLink()"
-                aria-label="Guest invite link"
-                class="min-w-0 flex-1 truncate bg-transparent px-2.5 text-xs font-normal leading-none text-[#9da7b6] outline-none selection:bg-violet-400/25"
-              />
-            </div>
-
-            <!-- Copy -->
-            <button
-              type="button"
-              (click)="copyInviteLink()"
-              [attr.aria-label]="inviteCopied() ? 'Invite link copied' : 'Copy invite link'"
-              class="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-r-lg border border-white/[0.08] bg-white/[0.035] px-3 text-xs font-medium leading-none text-[#cbd3df] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-violet-400/60"
-            >
-              <app-icon
-                [name]="inviteCopied() ? 'check' : 'copy'"
-                aria-hidden="true"
-                class="size-3.5 shrink-0"
-              />
-
-              <span>
-                {{ inviteCopied() ? 'Copied' : 'Copy' }}
-              </span>
-            </button>
-          </div>
+          <!-- Sharing -->
+          <button
+            type="button"
+            (click)="shareRoomOpen.set(true)"
+            aria-label="Share room"
+            class="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-primary/25 bg-primary/[0.09] px-2.5 text-xs font-semibold leading-none text-[#d8d0ff] outline-none transition-colors hover:border-primary/40 hover:bg-primary/[0.16] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:px-3"
+          >
+            <app-icon name="qr" aria-hidden="true" class="size-3.5" />
+            <span class="hidden sm:inline">Share room</span>
+          </button>
 
           <!-- Members -->
           <button
@@ -541,13 +512,13 @@
                     ></span>
                     <p class="truncate text-xs font-semibold text-white">Audio room connected</p>
                   </div>
-                  <p class="mt-1 text-[10px] text-[#707c90]">
+                  <p class="mt-1 truncate text-[10px] text-[#707c90]">
                     {{ callParticipantCount() }} / {{ callCapacity() }} participants ·
                     {{ call.roomName() }}
                   </p>
                 </div>
                 <span
-                  class="rounded-full border border-white/8 bg-white/[0.035] px-3 py-1 text-[10px] font-medium text-[#9ba6b8]"
+                  class="hidden rounded-full border border-white/8 bg-white/[0.035] px-3 py-1 text-[10px] font-medium text-[#9ba6b8] sm:inline-flex"
                   >Audio + screen share</span
                 >
               </div>
@@ -594,7 +565,10 @@
                 [micPending]="call.micPending()"
                 [screenShareActive]="call.screenShareActive()"
                 [screenSharePending]="call.screenSharePending()"
-                [screenShareDisabled]="call.anotherParticipantSharing()"
+                [screenShareSupported]="call.screenShareSupported()"
+                [screenShareDisabled]="
+                  !call.screenShareSupported() || call.anotherParticipantSharing()
+                "
                 [screenShareDisabledReason]="call.screenShareDisabledReason()"
                 [participantCount]="callParticipantCount()"
                 [chatOpen]="chatOpen()"
@@ -1173,65 +1147,29 @@
               aria-labelledby="drawer-invite-title"
               class="shrink-0 border-b border-white/[0.07] px-4 py-4"
             >
-              <div class="mb-2 flex items-center justify-between gap-3">
+              <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
                   <h3
                     id="drawer-invite-title"
                     class="text-[10px] font-semibold tracking-[0.12em] text-[#8994a6] uppercase"
                   >
-                    Invite link
+                    Room sharing
                   </h3>
 
                   <p class="mt-0.5 truncate text-[10px] text-[#626e82]">
-                    Share this link to invite someone
+                    Link, QR code, download, and native share
                   </p>
                 </div>
-
-                @if (inviteCopied()) {
-                  <span role="status" class="shrink-0 text-[10px] font-medium text-emerald-300">
-                    Link copied
-                  </span>
-                }
               </div>
 
-              <!-- Unified invite control -->
-              <div
-                class="flex h-9 min-w-0 items-stretch overflow-hidden rounded-lg border border-white/[0.08] bg-[#090d14]/80 focus-within:border-violet-400/35 focus-within:ring-1 focus-within:ring-violet-400/20"
+              <button
+                type="button"
+                (click)="shareRoomOpen.set(true); membersPanelOpen.set(false)"
+                class="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-primary/25 bg-primary/[0.09] px-4 text-xs font-semibold text-[#d9d2ff] outline-none transition hover:border-primary/40 hover:bg-primary/[0.16] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60"
               >
-                <div class="flex min-w-0 flex-1 items-center">
-                  <app-icon
-                    name="link"
-                    aria-hidden="true"
-                    class="ml-3 size-3.5 shrink-0 text-[#687488]"
-                  />
-
-                  <input
-                    id="drawerInviteLink"
-                    type="text"
-                    readonly
-                    [value]="guestInviteLink()"
-                    aria-label="Guest invite link"
-                    class="min-w-0 flex-1 truncate bg-transparent px-2.5 text-xs font-normal leading-none text-[#9ca7b8] outline-none selection:bg-violet-400/25"
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  (click)="copyInviteLink()"
-                  [attr.aria-label]="inviteCopied() ? 'Invite link copied' : 'Copy invite link'"
-                  class="inline-flex h-full shrink-0 items-center justify-center gap-1.5 border-l border-white/[0.08] bg-white/[0.035] px-3 text-xs font-medium leading-none text-[#c3cbd7] outline-none transition-colors hover:bg-white/[0.075] hover:text-white focus-visible:bg-white/[0.075] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-400/60"
-                >
-                  <app-icon
-                    [name]="inviteCopied() ? 'check' : 'copy'"
-                    aria-hidden="true"
-                    class="size-3.5 shrink-0"
-                  />
-
-                  <span>
-                    {{ inviteCopied() ? 'Copied' : 'Copy' }}
-                  </span>
-                </button>
-              </div>
+                <app-icon name="qr" aria-hidden="true" class="size-4" />
+                Share room
+              </button>
             </section>
 
             <!-- Updated participants sidebar -->
@@ -1251,7 +1189,9 @@
       }
 
       @if (mobileChatOpen()) {
-        <div class="fixed inset-0 z-50 flex flex-col bg-[#0b0f17] lg:hidden">
+        <div
+          class="fixed inset-0 z-50 flex h-dvh flex-col bg-[#0b0f17] pb-[env(safe-area-inset-bottom)] lg:hidden"
+        >
           <app-room-chat
             [title]="channel()?.name ?? 'Room chat'"
             [subtitle]="'Chat stays active during calls'"
@@ -1269,6 +1209,15 @@
             (close)="mobileChatOpen.set(false)"
           ></app-room-chat>
         </div>
+      }
+
+      @if (shareRoomOpen()) {
+        <app-share-room-dialog
+          [inviteUrl]="guestInviteLink()"
+          [inviteCode]="inviteCode"
+          [roomName]="channel()?.name ?? 'Guest room'"
+          (close)="shareRoomOpen.set(false)"
+        />
       }
 
       @if (confirmation(); as dialog) {

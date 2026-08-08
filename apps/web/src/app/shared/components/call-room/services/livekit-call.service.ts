@@ -52,6 +52,12 @@ export class LiveKitCallService {
   readonly micPending = this._micPending.asReadonly();
   readonly screenSharePending = this._screenSharePending.asReadonly();
   readonly error = this._error.asReadonly();
+  readonly screenShareSupported = computed(
+    () =>
+      isPlatformBrowser(this.platformId) &&
+      typeof navigator !== 'undefined' &&
+      typeof navigator.mediaDevices?.getDisplayMedia === 'function',
+  );
 
   readonly joined = computed(() => {
     const state = this._connectionState();
@@ -84,6 +90,9 @@ export class LiveKitCallService {
     return activeShare.track !== null && !activeShare.isLocal;
   });
   readonly screenShareDisabledReason = computed(() => {
+    if (!this.screenShareSupported()) {
+      return 'Screen sharing is not supported by this browser or device.';
+    }
     if (!this.connected()) {
       return 'Join the call before sharing your screen.';
     }
@@ -160,7 +169,7 @@ export class LiveKitCallService {
 
   async toggleScreenShare(): Promise<void> {
     const room = this.room;
-    if (!room || !this.connected()) return;
+    if (!room || !this.connected() || !this.screenShareSupported()) return;
 
     if (!this.screenShareActive() && this.anotherParticipantSharing()) {
       this._error.set(this.screenShareDisabledReason());

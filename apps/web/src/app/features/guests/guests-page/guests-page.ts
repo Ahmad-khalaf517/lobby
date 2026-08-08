@@ -180,7 +180,7 @@ export class GuestsPage {
 
     await this.run('create', async () => {
       const result = await this.guest.create(channelName, displayName, configuration ?? undefined);
-      await this.router.navigate(['/guest', result.code]);
+      await this.router.navigate(['/guest', result.code], { state: { shareRoom: true } });
     });
   }
 
