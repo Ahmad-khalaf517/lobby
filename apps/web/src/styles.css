@@ -187,3 +187,18 @@ body:has(.lobby-navbar) app-route-progress {
 @utility lobby-fade-up {
   animation: lobby-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+@keyframes lobby-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@utility lobby-toast-in {
+  animation: lobby-toast-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}

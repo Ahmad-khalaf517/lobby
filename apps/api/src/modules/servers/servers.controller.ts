@@ -23,6 +23,7 @@ import {
   type UpdateServerRequest,
 } from '@lobby/shared';
 import { RegisteredUserGuard } from '../../common/guards/registered-user.guard';
+import { SameUserGuard } from '../../common/guards/same-user.guard';
 import {
   SupabaseAuthGuard,
   type AuthenticatedRequest,
@@ -81,6 +82,33 @@ export class ServersController {
   async listMembers(@Param('id') id: string, @Req() request: AuthenticatedRequest) {
     const members = await this.servers.listMembers(id, request.user.id);
     return { members };
+  }
+
+  @Post(':id/members/:memberUserId')
+  addMember(
+    @Param('id') id: string,
+    @Param('memberUserId') memberUserId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.servers.addMember(id, request.user.id, memberUserId);
+  }
+
+  @Delete(':id/members/:memberUserId')
+  async removeMember(
+    @Param('id') id: string,
+    @Param('memberUserId') memberUserId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    await this.servers.removeMember(id, request.user.id, memberUserId);
+    return { success: true };
+  }
+
+  // :userId here must be the caller's own id — SameUserGuard enforces that.
+  @UseGuards(SameUserGuard)
+  @Post(':id/leave/:userId')
+  async leave(@Param('id') id: string, @Param('userId') userId: string) {
+    await this.servers.leaveServer(id, userId);
+    return { success: true };
   }
 
   @Post(':id/channels')

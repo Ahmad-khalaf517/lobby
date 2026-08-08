@@ -3,6 +3,7 @@ import type { User } from '@supabase/supabase-js';
 import type { Channel, Server, ServerMember, ServerWithChannels } from '@lobby/shared';
 import { ServersRepository } from './servers.repository';
 import { ChannelService } from '../channels/channel.service';
+import { ServerMembersService } from '../server-members/server-members.service';
 import { ChannelInsert } from '../../database/types';
 
 const DEFAULT_CHANNEL_NAME = 'general';
@@ -12,10 +13,12 @@ export class ServersService {
   constructor(
     private readonly serversRepository: ServersRepository,
     private readonly channelService: ChannelService,
+    private readonly serverMembersService: ServerMembersService,
   ) {}
 
   async createServer(owner: User, name: string): Promise<Server> {
     const server = await this.serversRepository.createServer(owner, name);
+    await this.serverMembersService.addMember(server.id, owner.id, 'owner');
     // A server with zero channels is a dead end — seed a default one to land in.
     await this.channelService.createChannel({
       name: DEFAULT_CHANNEL_NAME,
@@ -29,7 +32,6 @@ export class ServersService {
     return this.serversRepository.listServersForUser(userId);
   }
 
-  /** GET /servers/:id — server details plus the channels that belong to it. */
   async findServerWithChannels(id: string, userId: string): Promise<ServerWithChannels> {
     await this.assertMember(id, userId);
     const [server, channels] = await Promise.all([
@@ -46,16 +48,36 @@ export class ServersService {
 
   async joinServer(inviteCode: string, user: User): Promise<Server> {
     const server = await this.serversRepository.findServerByInviteCode(inviteCode);
-    const alreadyMember = await this.serversRepository.isMember(server.id, user.id);
+    const alreadyMember = await this.serverMembersService.isMember(server.id, user.id);
     if (!alreadyMember) {
-      await this.serversRepository.addMember(server.id, user, 'member');
+      await this.serversRepository.ensureUserExists(user);
+      await this.serverMembersService.addMember(server.id, user.id, 'member');
     }
     return server;
   }
 
   async listMembers(serverId: string, userId: string): Promise<ServerMember[]> {
     await this.assertMember(serverId, userId);
-    return this.serversRepository.listMembers(serverId);
+    return this.serverMembersService.listMembers(serverId);
+  }
+
+  /** Only the owner can add a member directly. */
+  async addMember(
+    serverId: string,
+    requesterId: string,
+    targetUserId: string,
+  ): Promise<ServerMember> {
+    await this.assertOwner(serverId, requesterId);
+    return this.serverMembersService.addMember(serverId, targetUserId, 'member');
+  }
+
+  /** Only the owner can remove members; the owner can't remove themself this way. */
+  async removeMember(serverId: string, requesterId: string, targetUserId: string): Promise<void> {
+    await this.assertOwner(serverId, requesterId);
+    if (targetUserId === requesterId) {
+      throw new ForbiddenException('Owner cannot remove themself; delete the server instead.');
+    }
+    await this.serverMembersService.removeMember(serverId, targetUserId);
   }
 
   async leaveServer(serverId: string, userId: string): Promise<void> {
@@ -63,7 +85,7 @@ export class ServersService {
     if (server.ownerId === userId) {
       throw new ForbiddenException('Owner cannot leave their own server; delete it instead.');
     }
-    await this.serversRepository.removeMember(serverId, userId);
+    await this.serverMembersService.removeMember(serverId, userId);
   }
 
   /** Channel creation/rename/delete are owner-only — membership alone isn't enough. */
@@ -84,17 +106,8 @@ export class ServersService {
 
   async deleteChannel(serverId: string, channelId: string, userId: string): Promise<void> {
     await this.assertOwner(serverId, userId);
-    // 404s when the channel belongs to a different server, so an id from
-    // elsewhere can't be deleted through this server's owner check.
-    await this.channelService.findChannelInServer(serverId, channelId);
-
-    // A server with no channels has no landing spot — creation seeds a default
-    // one for the same reason, so don't let deletion undo that.
-    const remaining = await this.channelService.countChannelsForServer(serverId);
-    if (remaining <= 1) {
-      throw new ForbiddenException('A server needs at least one channel.');
-    }
-
+    // ChannelService already enforces "channel belongs to this server" and
+    // "a server needs at least one channel" — trust it instead of re-checking here.
     await this.channelService.deleteChannel(serverId, channelId);
   }
 
@@ -104,7 +117,7 @@ export class ServersService {
   }
 
   private async assertMember(serverId: string, userId: string): Promise<void> {
-    const isMember = await this.serversRepository.isMember(serverId, userId);
+    const isMember = await this.serverMembersService.isMember(serverId, userId);
     if (!isMember) {
       throw new ForbiddenException('You are not a member of this server.');
     }

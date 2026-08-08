@@ -1,0 +1,94 @@
+<h2 class="text-base font-semibold text-app-foreground mb-4">General</h2>
+
+@if (loading()) {
+  <div class="animate-pulse" aria-busy="true" aria-label="Loading settings">
+    @for (group of [0, 1]; track group) {
+      <div class="h-3 w-24 rounded bg-app-border/60 pt-4 mb-3"></div>
+      <div class="border-t border-app-border"></div>
+      @for (row of [0, 1, 2]; track row) {
+        <div
+          class="flex items-center justify-between gap-4 py-3 border-b border-app-border last:border-b-0"
+        >
+          <div class="min-w-0 flex-1 space-y-2">
+            <div class="h-3 w-32 rounded bg-app-border/60"></div>
+            <div class="h-2.5 w-48 max-w-full rounded bg-app-border/40"></div>
+          </div>
+          <div class="h-6 w-11 shrink-0 rounded-full bg-app-border/60"></div>
+        </div>
+      }
+    }
+  </div>
+} @else {
+  @if (errorMessage()) {
+    <p class="mb-4 text-sm text-destructive">{{ errorMessage() }}</p>
+  }
+
+  @if (groups().length === 0) {
+    <p class="text-sm text-app-muted py-4">No settings available.</p>
+  }
+
+  @for (group of groups(); track group.category) {
+    <p class="pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-app-muted">
+      {{ categoryLabel(group.category) }}
+    </p>
+    <div class="border-t border-app-border"></div>
+
+    @for (setting of group.settings; track setting.settingKey) {
+      <div
+        class="flex items-start justify-between gap-4 py-3 border-b border-app-border last:border-b-0"
+      >
+        <div>
+          <p class="text-sm font-medium text-app-foreground">{{ setting.label }}</p>
+          @if (setting.description) {
+            <p class="text-xs text-app-muted">{{ setting.description }}</p>
+          }
+        </div>
+
+        @switch (setting.valueType) {
+          @case ('boolean') {
+            <app-toggle
+              [checked]="$any(setting.value)"
+              [disabled]="isSaving(setting.settingKey)"
+              [ariaLabel]="setting.label"
+              (checkedChange)="onToggle(setting, $event)"
+            />
+          }
+          @case ('select') {
+            <select
+              class="shrink-0 rounded-lg border border-app-border bg-app-background px-2 py-1 text-sm text-app-foreground disabled:opacity-50"
+              [disabled]="isSaving(setting.settingKey)"
+              [attr.aria-label]="setting.label"
+              (change)="onSelectChange(setting, $event)"
+            >
+              @for (option of setting.options ?? []; track option.value) {
+                <option [value]="option.value" [selected]="option.value === setting.value">
+                  {{ option.label }}
+                </option>
+              }
+            </select>
+          }
+          @case ('number') {
+            <input
+              type="number"
+              class="w-24 shrink-0 rounded-lg border border-app-border bg-app-background px-2 py-1 text-sm text-app-foreground disabled:opacity-50"
+              [disabled]="isSaving(setting.settingKey)"
+              [attr.aria-label]="setting.label"
+              [value]="setting.value"
+              (change)="onTextChange(setting, $event)"
+            />
+          }
+          @default {
+            <input
+              type="text"
+              class="w-40 shrink-0 rounded-lg border border-app-border bg-app-background px-2 py-1 text-sm text-app-foreground disabled:opacity-50"
+              [disabled]="isSaving(setting.settingKey)"
+              [attr.aria-label]="setting.label"
+              [value]="setting.value"
+              (change)="onTextChange(setting, $event)"
+            />
+          }
+        }
+      </div>
+    }
+  }
+}

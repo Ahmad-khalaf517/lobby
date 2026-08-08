@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -21,6 +21,7 @@ import {
 } from '@lobby/shared';
 
 import { environment } from '../../../../environments/environment';
+import { SKIP_ERROR_TOAST } from '../../../core/auth-http-context';
 import {
   CallControlBarComponent,
   CallParticipantsSidebarComponent,
@@ -491,7 +492,9 @@ export class GuestRoomPage {
     this.callStatusPollInFlight = true;
     try {
       const raw = await firstValueFrom(
-        this.http.get<unknown>(`${this.apiUrl()}/channels/${channelId}/call-status`),
+        this.http.get<unknown>(`${this.apiUrl()}/channels/${channelId}/call-status`, {
+          context: new HttpContext().set(SKIP_ERROR_TOAST, true),
+        }),
       );
       const response = CallStatusResponseSchema.parse(raw);
 

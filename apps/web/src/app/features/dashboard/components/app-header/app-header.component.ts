@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   ElementRef,
   HostListener,
   inject,
@@ -9,25 +10,32 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
-import { MAX_SERVER_NAME_LENGTH, type Server } from '@lobby/shared';
+import { Router } from '@angular/router';
+import { MAX_SERVER_NAME_LENGTH, type Server, type UserProfile } from '@lobby/shared';
 
 import { AuthService } from '../../../auth/services/auth';
 import { ChatAvatarComponent } from '../../../../shared/components/room-chat';
 import { LobbyIconComponent } from '../../../../shared/ui/icon/lobby-icon.component';
 import { LogoComponent } from '../../../../shared/ui/logo/lobby-logo.component';
+import { ToastService } from '../../../../core/toast/toast.service';
+import { ProfilePopupService } from '../../../profile/services/profile-popup.service';
+import { ProfileService } from '../../../profile/services/profile.service';
+import { SettingsPopupService } from '../../../account-settings/services/settings-popup.service';
 import { DashboardStore } from '../../services/dashboard.store';
 import { PromptModalComponent } from '../prompt-modal/prompt-modal.component';
+import { ProfilePopupComponent } from '../../../profile/profile-popup/profile-popup';
+import { SettingsPopupComponent } from '../../../account-settings/settings-popup/settings-popup';
 
 @Component({
   selector: 'app-dashboard-header',
   standalone: true,
   imports: [
-    RouterLink,
     LobbyIconComponent,
     LogoComponent,
     ChatAvatarComponent,
     PromptModalComponent,
+    ProfilePopupComponent,
+    SettingsPopupComponent,
   ],
   templateUrl: './app-header.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -42,10 +50,45 @@ export class AppHeaderComponent {
   private readonly router = inject(Router);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly dashboardStore = inject(DashboardStore);
+  private readonly profilePopup = inject(ProfilePopupService);
+  private readonly settingsPopup = inject(SettingsPopupService);
+  private readonly profileService = inject(ProfileService);
+  private readonly toast = inject(ToastService);
   protected readonly notificationsOpen = signal(false);
   protected readonly accountMenuOpen = signal(false);
 
+  protected readonly myProfile = signal<UserProfile | null>(null);
+  protected readonly currentUserId = computed(() => this.auth.user()?.id ?? '');
+
+  constructor() {
+    // Reload once whenever both profile-editing surfaces are closed — this
+    // covers the initial load and picks up an avatar/name change made in
+    // either the profile popup or the settings popup's profile panel.
+    effect(() => {
+      const userId = this.currentUserId();
+      const editingOpen = this.settingsPopup.isOpen() || this.profilePopup.userId() !== null;
+      if (!userId) {
+        this.myProfile.set(null);
+      } else if (!editingOpen) {
+        void this.loadMyProfile(userId);
+      }
+    });
+  }
+
+  private async loadMyProfile(userId: string): Promise<void> {
+    try {
+      this.myProfile.set(await this.profileService.getProfile(userId));
+    } catch {
+      // Avatar is decorative here — silently keep showing initials on failure.
+    }
+  }
+
   protected readonly displayName = computed(() => {
+    // Prefer the customizable profile name (set via the profile panel) once
+    // it's loaded; it can drift from the auth metadata name set at signup.
+    const profileName = this.myProfile()?.displayName;
+    if (profileName?.trim()) return profileName.trim();
+
     const user = this.auth.user();
     const metadataName = user?.userMetadata['name'];
     return typeof metadataName === 'string' && metadataName.trim()
@@ -53,7 +96,6 @@ export class AppHeaderComponent {
       : (user?.email ?? 'Account');
   });
 
-  protected readonly currentUserId = computed(() => this.auth.user()?.id ?? '');
   protected readonly isServerOwner = computed(
     () => this.activeServer()?.ownerId === this.currentUserId(),
   );
@@ -92,11 +134,23 @@ export class AppHeaderComponent {
     try {
       await this.dashboardStore.renameServer(server.id, name);
       this.renameModalOpen.set(false);
+      this.toast.success(`Space renamed to "${name}"`);
     } catch {
       this.renameError.set('Could not rename the space. Please try again.');
     } finally {
       this.renameSaving.set(false);
     }
+  }
+
+  protected openMyProfile(): void {
+    this.accountMenuOpen.set(false);
+    const userId = this.currentUserId();
+    if (userId) this.profilePopup.open(userId);
+  }
+
+  protected openSettings(): void {
+    this.accountMenuOpen.set(false);
+    this.settingsPopup.open('profile');
   }
 
   protected toggleNotifications(): void {

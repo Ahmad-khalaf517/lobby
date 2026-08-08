@@ -25,6 +25,7 @@ import { LiveKitCallService } from '../../../shared/components/call-room';
 import { RoomChatComponent } from '../../../shared/components/room-chat';
 import { LobbyIconComponent } from '../../../shared/ui/icon/lobby-icon.component';
 import { LoadingStateComponent } from '../../../shared/ui/loading-state/loading-state.component';
+import { ToastService } from '../../../core/toast/toast.service';
 import { ConfirmModalComponent } from '../components/confirm-modal/confirm-modal.component';
 import { PromptModalComponent } from '../components/prompt-modal/prompt-modal.component';
 import { DashboardStore } from '../services/dashboard.store';
@@ -52,6 +53,7 @@ export class ChannelView {
   private readonly auth = inject(AuthService);
   private readonly serversService = inject(ServersService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly toast = inject(ToastService);
 
   protected readonly dashboardStore = inject(DashboardStore);
 
@@ -248,6 +250,7 @@ export class ChannelView {
       this.server.set(nextServer);
       this.dashboardStore.cacheChannels(server.id, nextServer.channels);
       this.renameTarget.set(null);
+      this.toast.success(`Channel renamed to "${name}"`);
     } catch {
       this.renameError.set('Could not rename the channel. Please try again.');
     } finally {
@@ -269,6 +272,7 @@ export class ChannelView {
       this.server.set(nextServer);
       this.dashboardStore.cacheChannels(server.id, remaining);
       this.deleteTarget.set(null);
+      this.toast.success(`Channel "${channel.name}" deleted`);
 
       if (this.channelId() === channel.id) {
         const next = remaining[0];
@@ -306,6 +310,7 @@ export class ChannelView {
       this.server.set(updated);
       this.dashboardStore.cacheChannels(server.id, updated.channels);
       this.addChannelOpen.set(false);
+      this.toast.success(`Channel "${channel.name}" created`);
       await this.router.navigate(['/app/servers', server.id, 'channels', channel.id]);
     } catch {
       this.addChannelError.set('Could not create the channel. Please try again.');

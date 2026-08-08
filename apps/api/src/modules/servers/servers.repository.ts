@@ -1,21 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 import type { User } from '@supabase/supabase-js';
-import type { Server, ServerMember } from '@lobby/shared';
+import type { Server } from '@lobby/shared';
 import { SupabaseService } from '../database/supabase.service';
-import { toServer, toServerMembers, toServers } from './servers.mappers';
-import { ChannelService } from '../channels/channel.service';
-import { ServerInsert, ServerMemberInsert, ServerUpdate, UserInsert } from '../../database/types';
+import { toServer, toServers } from './servers.mappers';
+import { ServerInsert, ServerUpdate, UserInsert } from '../../database/types';
 
 // Invite codes are separate from server ids: short, unambiguous, shareable.
 const generateInviteCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 8);
 
 @Injectable()
 export class ServersRepository {
-  constructor(
-    private readonly supabase: SupabaseService,
-    private readonly channelService: ChannelService,
-  ) {}
+  constructor(private readonly supabase: SupabaseService) {}
 
   async createServer(owner: User, name: string): Promise<Server> {
     await this.ensureUserExists(owner);
@@ -33,19 +29,7 @@ export class ServersRepository {
       .single();
 
     if (error) throw error;
-    const created = toServer(data);
-
-    // Creating a server makes the creator its first member, with owner role.
-    const member: ServerMemberInsert = {
-      server_id: created.id,
-      user_id: owner.id,
-      role: 'owner',
-    };
-    const { error: memberError } = await this.supabase.client.from('server_members').insert(member);
-
-    if (memberError) throw memberError;
-
-    return created;
+    return toServer(data);
   }
 
   async findServer(id: string): Promise<Server> {
@@ -100,76 +84,36 @@ export class ServersRepository {
     return toServers(rows);
   }
 
-  async addMember(
-    serverId: string,
-    user: User,
-    role: ServerMemberInsert['role'] = 'member',
-  ): Promise<ServerMember> {
-    await this.ensureUserExists(user);
-
-    const member: ServerMemberInsert = { server_id: serverId, user_id: user.id, role };
-    const { data, error } = await this.supabase.client
-      .from('server_members')
-      .insert(member)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return toServerMembers([data])[0];
-  }
-
-  async isMember(serverId: string, userId: string): Promise<boolean> {
-    const { data, error } = await this.supabase.client
-      .from('server_members')
-      .select('id')
-      .eq('server_id', serverId)
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (error) throw error;
-    return data !== null;
-  }
-
-  async listMembers(serverId: string): Promise<ServerMember[]> {
-    const { data, error } = await this.supabase.client
-      .from('server_members')
-      .select()
-      .eq('server_id', serverId);
-
-    if (error) throw error;
-    return toServerMembers(data ?? []);
-  }
-
-  async removeMember(serverId: string, userId: string): Promise<void> {
-    const { error } = await this.supabase.client
-      .from('server_members')
-      .delete()
-      .eq('server_id', serverId)
-      .eq('user_id', userId);
-
-    if (error) throw error;
-  }
-
   /**
-   * Upserts the users row backing this authenticated user. Prefers the real
-   * display name set at signup (user_metadata.name — see auth.service.ts's
-   * signUp call) so servers/members show real names instead of a
-   * fabricated placeholder for every user.
+   * Scaffolds a `users` row the first time this id is seen. Deliberately
+   * insert-only, not upsert: this runs on every createServer/joinServer
+   * call, and an unconditional upsert would silently clobber a
+   * name/username the person has since customized via the profile panel.
    */
-  private async ensureUserExists(authUser: User): Promise<void> {
+  async ensureUserExists(authUser: User | string): Promise<void> {
+    const id = typeof authUser === 'string' ? authUser : authUser.id;
+
+    const { data: existing, error: selectError } = await this.supabase.client
+      .from('users')
+      .select('id')
+      .eq('id', id)
+      .maybeSingle();
+    if (selectError) throw selectError;
+    if (existing) return;
+
     const metadataName =
-      typeof authUser.user_metadata?.['name'] === 'string'
+      typeof authUser !== 'string' && typeof authUser.user_metadata?.['name'] === 'string'
         ? (authUser.user_metadata['name'] as string).trim()
         : '';
-    const name = metadataName || `User ${authUser.id.slice(0, 8)}`;
+    const name = metadataName || `User ${id.slice(0, 8)}`;
 
     const user: UserInsert = {
-      id: authUser.id,
+      id,
       name,
       user_name: name.toLowerCase().replace(/\s+/g, '_'),
     };
 
-    const { error } = await this.supabase.client.from('users').upsert(user, { onConflict: 'id' });
+    const { error } = await this.supabase.client.from('users').insert(user);
 
     if (error) throw error;
   }

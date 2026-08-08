@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, input, signal } from '@angular/core';
 import type { ChatUserStatus } from '../models/chat-user.model';
 
 export type ChatAvatarSize = 'xs' | 'sm' | 'md' | 'lg';
@@ -33,6 +33,9 @@ export type ChatAvatarSize = 'xs' | 'sm' | 'md' | 'lg';
 export class ChatAvatarComponent {
   /** Name used to derive initials and the avatar color (and shown to users). */
   name = input<string>('?');
+
+  /** Real photo, if the person has one. Falls back to the initials below on load failure or when omitted. */
+  avatarUrl = input<string | null>(null);
 
   /** Visual size. `md` matches the guest-room message rows. */
   size = input<ChatAvatarSize>('md');
@@ -70,6 +73,22 @@ export class ChatAvatarComponent {
   protected readonly initials = computed(
     () => this.initialsOverride() ?? initialsFromName(this.name()),
   );
+
+  protected readonly imageFailed = signal(false);
+
+  protected readonly showImage = computed(() => this.avatarUrl() !== null && !this.imageFailed());
+
+  constructor() {
+    // A new url deserves a fresh attempt even if a previous one failed to load.
+    effect(() => {
+      this.avatarUrl();
+      this.imageFailed.set(false);
+    });
+  }
+
+  protected onImageError(): void {
+    this.imageFailed.set(true);
+  }
 
   protected readonly background = computed(
     () => this.backgroundOverride() ?? avatarGradient(this.name(), 0.34, 0.2),

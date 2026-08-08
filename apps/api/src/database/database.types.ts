@@ -33,6 +33,87 @@ export type Database = {
   };
   public: {
     Tables: {
+      account_setting_definitions: {
+        Row: {
+          category: string;
+          created_at: string;
+          default_value: Json;
+          description: string | null;
+          is_active: boolean;
+          label: string;
+          options: Json | null;
+          setting_key: string;
+          sort_order: number;
+          updated_at: string;
+          value_type: string;
+        };
+        Insert: {
+          category?: string;
+          created_at?: string;
+          default_value: Json;
+          description?: string | null;
+          is_active?: boolean;
+          label: string;
+          options?: Json | null;
+          setting_key: string;
+          sort_order?: number;
+          updated_at?: string;
+          value_type: string;
+        };
+        Update: {
+          category?: string;
+          created_at?: string;
+          default_value?: Json;
+          description?: string | null;
+          is_active?: boolean;
+          label?: string;
+          options?: Json | null;
+          setting_key?: string;
+          sort_order?: number;
+          updated_at?: string;
+          value_type?: string;
+        };
+        Relationships: [];
+      };
+      account_settings: {
+        Row: {
+          created_at: string;
+          setting_key: string;
+          updated_at: string;
+          user_id: string;
+          value: Json;
+        };
+        Insert: {
+          created_at?: string;
+          setting_key: string;
+          updated_at?: string;
+          user_id: string;
+          value: Json;
+        };
+        Update: {
+          created_at?: string;
+          setting_key?: string;
+          updated_at?: string;
+          user_id?: string;
+          value?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'account_settings_setting_key_fkey';
+            columns: ['setting_key'];
+            isOneToOne: false;
+            referencedRelation: 'account_setting_definitions';
+            referencedColumns: ['setting_key'];
+          },
+          {
+            foreignKeyName: 'account_settings_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       channel_members: {
         Row: {
           id: string;
@@ -123,6 +204,87 @@ export type Database = {
           {
             foreignKeyName: 'channels_created_by_id_fkey';
             columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      dm_conversations: {
+        Row: {
+          created_at: string;
+          id: string;
+          updated_at: string;
+          user_a_id: string;
+          user_b_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          updated_at?: string;
+          user_a_id: string;
+          user_b_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          updated_at?: string;
+          user_a_id?: string;
+          user_b_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'dm_conversations_user_a_id_fkey';
+            columns: ['user_a_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'dm_conversations_user_b_id_fkey';
+            columns: ['user_b_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      dm_messages: {
+        Row: {
+          content: string;
+          conversation_id: string;
+          created_at: string;
+          id: string;
+          reaction_emoji: string | null;
+          sender_id: string;
+        };
+        Insert: {
+          content: string;
+          conversation_id: string;
+          created_at?: string;
+          id?: string;
+          reaction_emoji?: string | null;
+          sender_id: string;
+        };
+        Update: {
+          content?: string;
+          conversation_id?: string;
+          created_at?: string;
+          id?: string;
+          reaction_emoji?: string | null;
+          sender_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'dm_messages_conversation_id_fkey';
+            columns: ['conversation_id'];
+            isOneToOne: false;
+            referencedRelation: 'dm_conversations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'dm_messages_sender_id_fkey';
+            columns: ['sender_id'];
             isOneToOne: false;
             referencedRelation: 'users';
             referencedColumns: ['id'];
@@ -291,6 +453,77 @@ export type Database = {
           },
         ];
       };
+      notifications: {
+        Row: {
+          body: string;
+          channel_id: string | null;
+          created_at: string;
+          id: string;
+          is_read: boolean;
+          message_id: string | null;
+          read_at: string | null;
+          server_id: string | null;
+          title: string;
+          type: Database['public']['Enums']['notification_type'];
+          user_id: string;
+        };
+        Insert: {
+          body: string;
+          channel_id?: string | null;
+          created_at?: string;
+          id?: string;
+          is_read?: boolean;
+          message_id?: string | null;
+          read_at?: string | null;
+          server_id?: string | null;
+          title: string;
+          type: Database['public']['Enums']['notification_type'];
+          user_id: string;
+        };
+        Update: {
+          body?: string;
+          channel_id?: string | null;
+          created_at?: string;
+          id?: string;
+          is_read?: boolean;
+          message_id?: string | null;
+          read_at?: string | null;
+          server_id?: string | null;
+          title?: string;
+          type?: Database['public']['Enums']['notification_type'];
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'notifications_channel_id_fkey';
+            columns: ['channel_id'];
+            isOneToOne: false;
+            referencedRelation: 'channels';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'notifications_message_id_fkey';
+            columns: ['message_id'];
+            isOneToOne: false;
+            referencedRelation: 'messages';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'notifications_server_id_fkey';
+            columns: ['server_id'];
+            isOneToOne: false;
+            referencedRelation: 'servers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'notifications_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       server_members: {
         Row: {
           id: string;
@@ -369,8 +602,8 @@ export type Database = {
           created_at: string;
           id: string;
           name: string;
-          user_name: string;
           updated_at: string;
+          user_name: string;
         };
         Insert: {
           avatar_url?: string | null;
@@ -378,8 +611,8 @@ export type Database = {
           created_at?: string;
           id: string;
           name: string;
-          user_name: string;
           updated_at?: string;
+          user_name: string;
         };
         Update: {
           avatar_url?: string | null;
@@ -387,8 +620,8 @@ export type Database = {
           created_at?: string;
           id?: string;
           name?: string;
-          user_name?: string;
           updated_at?: string;
+          user_name?: string;
         };
         Relationships: [];
       };
@@ -406,6 +639,15 @@ export type Database = {
       guest_room_status: 'active' | 'expired' | 'ended';
       message_type: 'text' | 'system' | 'file' | 'image';
       channel_role: 'owner' | 'member';
+      notification_type:
+        | 'friend_request'
+        | 'friend_accept'
+        | 'server_invite'
+        | 'channel_invite'
+        | 'mention'
+        | 'message'
+        | 'reaction'
+        | 'system';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -533,6 +775,16 @@ export const Constants = {
       guest_room_end_reason: ['expired', 'closed_by_owner', 'empty', 'moderation'],
       guest_room_message_type: ['text', 'system', 'file', 'image'],
       guest_room_status: ['active', 'expired', 'ended'],
+      notification_type: [
+        'friend_request',
+        'friend_accept',
+        'server_invite',
+        'channel_invite',
+        'mention',
+        'message',
+        'reaction',
+        'system',
+      ],
     },
   },
 } as const;

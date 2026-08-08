@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { MAX_SERVER_NAME_LENGTH } from '@lobby/shared';
 
 import { LobbyIconComponent } from '../../../../shared/ui/icon/lobby-icon.component';
+import { ToastService } from '../../../../core/toast/toast.service';
 import { DashboardStore } from '../../services/dashboard.store';
 import { ServerIconComponent } from '../server-icon/server-icon.component';
 
@@ -17,6 +18,7 @@ import { ServerIconComponent } from '../server-icon/server-icon.component';
 export class CreateServerModalComponent {
   protected readonly store = inject(DashboardStore);
   private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
 
   protected readonly maxNameLength = MAX_SERVER_NAME_LENGTH;
   protected readonly name = signal('');
@@ -38,6 +40,7 @@ export class CreateServerModalComponent {
     try {
       const server = await this.store.createServer(trimmed);
       this.name.set('');
+      this.toast.success(`Space "${server.name}" created`);
       await this.router.navigate(['/app/servers', server.id]);
     } catch {
       this.error.set('Could not create the server. Please try again.');
