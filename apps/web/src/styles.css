@@ -191,7 +191,7 @@ body:has(.lobby-navbar) app-route-progress {
   }
 
   .auth-submit {
-    @apply inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(124, 92, 252, 0.24)] transition hover:bg-[#8b6dff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b69cff]/70 disabled:cursor-not-allowed disabled:opacity-65;
+    @apply inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(124,92,252,0.24)] transition hover:bg-[#8b6dff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b69cff]/70 disabled:cursor-not-allowed disabled:opacity-65;
   }
 
   .auth-spinner {
