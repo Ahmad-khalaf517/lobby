@@ -1,4 +1,4 @@
-import { computed, effect, inject, Injectable } from '@angular/core';
+import { computed, effect, inject, Injectable, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -22,6 +22,7 @@ export class NotificationsService {
   private readonly supabaseSession = inject(SupabaseSessionService);
   private readonly toast = inject(ToastService);
   private readonly friends = inject(FriendsService);
+  private readonly ngZone = inject(NgZone);
 
   private readonly currentUserId = computed(() => this.auth.user()?.id ?? '');
   private realtimeChannel: RealtimeChannel | null = null;
@@ -37,6 +38,24 @@ export class NotificationsService {
   private subscribe(userId: string): void {
     if (this.realtimeChannel) return;
 
+    // Same prerequisite as the postgres_changes subscription itself — if this
+    // direct read fails, realtime will silently deliver nothing regardless of
+    // the filter, so it's a fast way to confirm a missing RLS/GRANT vs. some
+    // other cause.
+    void this.supabaseSession.client
+      .from('notifications')
+      .select('id')
+      .limit(1)
+      .then(({ error }) => {
+        if (error) {
+          console.error(
+            '[NotificationsService] Direct read of notifications failed — realtime needs the ' +
+              'same access. Check RLS SELECT policies and GRANT SELECT ... TO authenticated.',
+            error,
+          );
+        }
+      });
+
     this.realtimeChannel = this.supabaseSession.client
       .channel(`notifications:${userId}`)
       .on(
@@ -47,7 +66,7 @@ export class NotificationsService {
           table: 'notifications',
           filter: `user_id=eq.${userId}`,
         },
-        (payload) => this.handleNotification(payload.new as NotificationRow),
+        (payload) => this.ngZone.run(() => this.handleNotification(payload.new as NotificationRow)),
       )
       .subscribe((status, error) => {
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {

@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { computed, effect, inject, Injectable, signal } from '@angular/core';
+import { computed, effect, inject, Injectable, NgZone, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -37,6 +37,7 @@ export class DirectMessagesService {
   private readonly router = inject(Router);
   private readonly supabaseSession = inject(SupabaseSessionService);
   private readonly toast = inject(ToastService);
+  private readonly ngZone = inject(NgZone);
   private readonly apiUrl = environment.apiUrl.replace(/\/$/, '');
 
   private readonly conversationsSignal = signal<Conversation[]>([]);
@@ -421,23 +422,50 @@ export class DirectMessagesService {
   private subscribeRealtime(): void {
     if (this.realtimeChannel) return;
 
+    // Realtime silently delivers nothing if direct reads aren't actually
+    // permitted (missing RLS policy or GRANT SELECT) — this is the same
+    // prerequisite postgres_changes needs, so it's a fast, direct way to
+    // confirm that root cause instead of guessing from silence alone.
+    void this.supabaseSession.client
+      .from('dm_messages')
+      .select('id')
+      .limit(1)
+      .then(({ error }) => {
+        if (error) {
+          console.error(
+            '[DirectMessagesService] Direct read of dm_messages failed — realtime needs the ' +
+              'same access. Check RLS SELECT policies and GRANT SELECT ... TO authenticated.',
+            error,
+          );
+        }
+      });
+
+    // Supabase Realtime's WebSocket may fire its callbacks outside Angular's
+    // zone (depending on when the client's socket was constructed relative to
+    // zone.js patching it) — wrapping in ngZone.run() guarantees change
+    // detection actually runs after these signal writes instead of silently
+    // leaving the view stale until some unrelated zone-tracked event happens.
     this.realtimeChannel = this.supabaseSession.client
       .channel(`dms:${this.currentUserId()}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'dm_messages' },
-        (payload) => void this.handleIncomingMessage(payload.new as DmMessageRow),
+        (payload) =>
+          this.ngZone.run(() => void this.handleIncomingMessage(payload.new as DmMessageRow)),
       )
       .on(
         'postgres_changes',
         { event: 'DELETE', schema: 'public', table: 'dm_messages' },
         (payload) =>
-          this.handleMessageDeleted(payload.old as { id: string; conversation_id: string }),
+          this.ngZone.run(() =>
+            this.handleMessageDeleted(payload.old as { id: string; conversation_id: string }),
+          ),
       )
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'dm_conversations' },
-        (payload) => void this.handleNewConversation(payload.new as DmConversationRow),
+        (payload) =>
+          this.ngZone.run(() => void this.handleNewConversation(payload.new as DmConversationRow)),
       )
       .subscribe((status, error) => {
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
@@ -481,12 +509,13 @@ export class DirectMessagesService {
     const reply = this.resolveReplyFromCache(userId, dmMessage.replyToMessageId);
     const message = this.toChatMessage(dmMessage, author, reply);
 
-    if (this.historyLoaded.has(userId)) {
-      this.messagesSignal.update((store) => ({
-        ...store,
-        [userId]: [...(store[userId] ?? []), message],
-      }));
-    }
+    // Append unconditionally — fetchHistory() always fully replaces this
+    // array when a conversation is opened, so there's no risk of this
+    // creating a stale/incomplete list even if history was never loaded yet.
+    this.messagesSignal.update((store) => ({
+      ...store,
+      [userId]: [...(store[userId] ?? []), message],
+    }));
     this.bumpConversation(userId, dmMessage.body, dmMessage.createdAt);
 
     const isOpenAndFocused = this.activeConversationSignal() === userId && document.hasFocus();
