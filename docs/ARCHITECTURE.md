@@ -81,6 +81,32 @@ Remote audio tracks are attached in Angular. Active-speaker, mute, screen-share,
 
 The shared call service disables a new share while a remote participant is presenting. If two participants start in the same instant, all clients select the same identity deterministically and the losing local publisher stops its screen track, restoring the single-presenter state without application media signaling.
 
+## Direct messages, friends, and notifications
+
+```text
+Angular DirectMessagesService
+  |-- conversation discovery/create --> NestJS
+  |-- participant RLS SELECT ---------> public.dm_conversations + dm_messages
+  |-- authenticated RPC --------------> DM mutation/read-boundary functions
+  `-- Realtime subscription <---------- DM rows
+
+Angular NotificationsService
+  |-- self-only SELECT/UPDATE --------> public.notifications
+  `-- Realtime subscription <---------- self rows
+```
+
+DM message persistence is separate from the channel-chat store, but reuses its
+optimistic UUID, idempotent RPC, pagination, stale-session, and Realtime
+reconciliation patterns. NestJS does not proxy ordinary DM message operations.
+Per-participant read and clear timestamps make unread state durable without
+deleting shared history.
+
+Friendship mutations and conversation creation stay in NestJS because they are
+business workflows that can create privileged notifications. Browser SELECT is
+limited to the caller's friendship rows so Realtime can refresh existing REST
+state. Server-membership Realtime exposes only the caller's membership rows and
+lets the dashboard evict a removed server immediately.
+
 Owner kick/block actions remain authenticated guest-schema RPCs. Their membership update is distributed through Supabase Realtime. After the database commits the removal, Angular asks the guarded NestJS LiveKit endpoint to disconnect that already-removed media identity and revoke its current token; NestJS independently verifies the owner and removal record first.
 
 ## Legacy isolation

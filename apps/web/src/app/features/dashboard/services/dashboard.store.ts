@@ -1,8 +1,12 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { effect, inject, Injectable, NgZone, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import type { Channel, Server, ServerMember } from '@lobby/shared';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 import { SessionScopeService, type SessionScope } from '../../../core/session-scope.service';
+import { SupabaseSessionService } from '../../../core/supabase/supabase-session.service';
 import { ProfileService } from '../../profile/services/profile.service';
+import { LiveKitCallService } from '../../../shared/components/call-room/services/livekit-call.service';
 import { ServersService } from './servers.service';
 
 /** Human-friendly context for whichever channel the user is currently voice-connected to, shown by the rail's persistent call widget. */
@@ -37,6 +41,10 @@ export class DashboardStore {
   private readonly serversService = inject(ServersService);
   private readonly profileService = inject(ProfileService);
   private readonly sessionScope = inject(SessionScopeService);
+  private readonly supabase = inject(SupabaseSessionService);
+  private readonly router = inject(Router);
+  private readonly ngZone = inject(NgZone);
+  private readonly call = inject(LiveKitCallService);
 
   private readonly _servers = signal<Server[]>([]);
   private readonly _loading = signal(false);
@@ -59,9 +67,15 @@ export class DashboardStore {
 
   private loaded = false;
   private activeCallStorageKey: string | null = null;
+  private membershipChannel: RealtimeChannel | null = null;
 
   constructor() {
     this.sessionScope.registerCleanup(() => this.reset());
+    effect(() => {
+      const userId = this.sessionScope.userId();
+      if (userId) this.subscribeMembership(userId);
+      else void this.unsubscribeMembership();
+    });
   }
 
   async ensureLoaded(): Promise<void> {
@@ -263,7 +277,37 @@ export class DashboardStore {
     await this.loadMembers(serverId, true);
   }
 
+  async leaveServer(serverId: string): Promise<void> {
+    const scope = this.requireScope();
+    await this.serversService.leaveServer(serverId);
+    this.assertCurrent(scope);
+    this.removeServerState(serverId);
+  }
+
+  async deleteServer(serverId: string): Promise<void> {
+    const scope = this.requireScope();
+    await this.serversService.deleteServer(serverId);
+    this.assertCurrent(scope);
+    this.removeServerState(serverId);
+  }
+
+  private removeServerState(serverId: string): void {
+    this._servers.update((servers) => servers.filter((server) => server.id !== serverId));
+    this._channelsByServer.update((current) => {
+      const next = { ...current };
+      delete next[serverId];
+      return next;
+    });
+    this._membersByServer.update((current) => {
+      const next = { ...current };
+      delete next[serverId];
+      return next;
+    });
+    if (this._activeCall()?.serverId === serverId) this.clearActiveCall();
+  }
+
   reset(): void {
+    void this.unsubscribeMembership();
     this.clearActiveCall();
     this.loaded = false;
     this.membersLoading.clear();
@@ -274,6 +318,52 @@ export class DashboardStore {
     this._joinModalOpen.set(false);
     this._channelsByServer.set({});
     this._membersByServer.set({});
+  }
+
+  private subscribeMembership(userId: string): void {
+    if (this.membershipChannel) return;
+    this.membershipChannel = this.supabase.client
+      .channel(`server-membership:${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'server_members',
+        },
+        () => this.ngZone.run(() => void this.refreshMembershipAfterDelete(userId)),
+      )
+      .subscribe();
+  }
+
+  private async refreshMembershipAfterDelete(userId: string): Promise<void> {
+    const scope = this.sessionScope.capture();
+    if (scope.userId !== userId) return;
+    try {
+      const servers = await this.serversService.listServers();
+      this.assertCurrent(scope);
+      const remainingIds = new Set(servers.map((server) => server.id));
+      const removedIds = this._servers()
+        .map((server) => server.id)
+        .filter((serverId) => !remainingIds.has(serverId));
+      this._servers.set(servers);
+      for (const serverId of removedIds) {
+        if (this._activeCall()?.serverId === serverId) await this.call.disconnect();
+        this.removeServerState(serverId);
+        if (this.router.url.includes(`/app/servers/${serverId}`)) {
+          await this.router.navigate(['/app']);
+        }
+      }
+    } catch {
+      // A transient refresh failure is harmless; the next dashboard request is
+      // still protected by server membership authorization.
+    }
+  }
+
+  private async unsubscribeMembership(): Promise<void> {
+    const channel = this.membershipChannel;
+    this.membershipChannel = null;
+    if (channel) await this.supabase.client.removeChannel(channel).catch(() => undefined);
   }
 
   private callStorageKey(): string | null {

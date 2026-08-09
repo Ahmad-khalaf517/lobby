@@ -78,6 +78,12 @@ export class ServersController {
     return this.servers.updateServer(id, request.user.id, body.name);
   }
 
+  @Delete(':id')
+  @HttpCode(204)
+  deleteServer(@Param('id') id: string, @Req() request: AuthenticatedRequest) {
+    return this.servers.deleteServer(id, request.user.id);
+  }
+
   @Get(':id/members')
   async listMembers(@Param('id') id: string, @Req() request: AuthenticatedRequest) {
     const members = await this.servers.listMembers(id, request.user.id);
@@ -108,6 +114,12 @@ export class ServersController {
   @Post(':id/leave/:userId')
   async leave(@Param('id') id: string, @Param('userId') userId: string) {
     await this.servers.leaveServer(id, userId);
+    return { success: true };
+  }
+
+  @Post(':id/leave')
+  async leaveCurrentUser(@Param('id') id: string, @Req() request: AuthenticatedRequest) {
+    await this.servers.leaveServer(id, request.user.id);
     return { success: true };
   }
 

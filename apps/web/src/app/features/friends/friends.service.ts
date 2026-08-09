@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, effect, inject, Injectable, NgZone, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import {
   FriendListResponseSchema,
   UserProfileSchema,
@@ -9,6 +10,7 @@ import {
 } from '@lobby/shared';
 import { environment } from '../../../environments/environment';
 import { SessionScopeService, type SessionScope } from '../../core/session-scope.service';
+import { SupabaseSessionService } from '../../core/supabase/supabase-session.service';
 import { personFromProfile } from '../../shared/components/person-avatar/person.util';
 import type { BlockedUser, Friend, PendingRequest } from './friends.models';
 
@@ -22,6 +24,8 @@ import type { BlockedUser, Friend, PendingRequest } from './friends.models';
 export class FriendsService {
   private readonly http = inject(HttpClient);
   private readonly sessionScope = inject(SessionScopeService);
+  private readonly supabase = inject(SupabaseSessionService);
+  private readonly ngZone = inject(NgZone);
   private readonly apiUrl = environment.apiUrl.replace(/\/$/, '');
 
   private readonly friendsSignal = signal<Friend[]>([]);
@@ -31,9 +35,16 @@ export class FriendsService {
   private readonly loadingSignal = signal(false);
   private readonly errorSignal = signal<string | null>(null);
   private loadedOnce = false;
+  private realtimeChannel: RealtimeChannel | null = null;
+  private realtimeReload: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     this.sessionScope.registerCleanup(() => this.reset());
+    effect(() => {
+      const userId = this.sessionScope.userId();
+      if (userId) this.subscribeRealtime(userId);
+      else void this.unsubscribeRealtime();
+    });
   }
 
   readonly friends = this.friendsSignal.asReadonly();
@@ -189,6 +200,7 @@ export class FriendsService {
   }
 
   reset(): void {
+    void this.unsubscribeRealtime();
     this.loadedOnce = false;
     this.friendsSignal.set([]);
     this.pendingIncomingSignal.set([]);
@@ -196,6 +208,32 @@ export class FriendsService {
     this.blockedSignal.set([]);
     this.loadingSignal.set(false);
     this.errorSignal.set(null);
+  }
+
+  private subscribeRealtime(userId: string): void {
+    if (this.realtimeChannel) return;
+    this.realtimeChannel = this.supabase.client
+      .channel(`friendships:${userId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () =>
+        this.ngZone.run(() => this.scheduleRealtimeLoad()),
+      )
+      .subscribe();
+  }
+
+  private scheduleRealtimeLoad(): void {
+    if (this.realtimeReload) clearTimeout(this.realtimeReload);
+    this.realtimeReload = setTimeout(() => {
+      this.realtimeReload = null;
+      void this.load();
+    }, 50);
+  }
+
+  private async unsubscribeRealtime(): Promise<void> {
+    if (this.realtimeReload) clearTimeout(this.realtimeReload);
+    this.realtimeReload = null;
+    const channel = this.realtimeChannel;
+    this.realtimeChannel = null;
+    if (channel) await this.supabase.client.removeChannel(channel).catch(() => undefined);
   }
 
   private requireScope(): SessionScope {

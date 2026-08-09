@@ -58,6 +58,38 @@ The RPCs accept channel/message/content/client-message/reply/emoji values only. 
 
 `client_message_id` is a browser-generated UUID unique per sender membership, making create retries idempotent and allowing optimistic rows to deduplicate against RPC and Realtime results. The browser keeps SELECT only on the two chat tables; raw INSERT/UPDATE/DELETE remain revoked. Only the named security-definer functions have `authenticated` execute grants.
 
+## Direct-message database contract
+
+NestJS remains the registered-session and conversation business authority:
+
+| Method and path | Request                   | Response                      | Shared schema                                    |
+| --------------- | ------------------------- | ----------------------------- | ------------------------------------------------ |
+| `GET /dms`      | registered cookie session | conversation list             | `DmListResponseSchema`                           |
+| `POST /dms`     | `{ userId }`              | existing/new 1:1 conversation | `CreateDmRequestSchema` / `DmConversationSchema` |
+
+Ordinary DM history and message operations do not cross NestJS. Angular uses
+the registered user's Supabase JWT with participant-scoped SELECT policies on
+`public.dm_conversations` and `public.dm_messages`, plus narrow create, edit,
+delete, reaction, mark-read, and clear-conversation RPCs.
+
+The functions derive the caller from `auth.uid()`, reject anonymous sessions,
+and require 1:1 participation. Create is idempotent by sender plus browser UUID;
+edit/delete are owner-only. Clearing advances only the caller's visibility
+boundary and never removes the other participant's history. Raw DM mutations
+remain revoked.
+
+Notifications are self-readable and their `is_read`/`read_at` columns are
+self-updatable through RLS. Friendship and current-user server-membership rows
+are self/participant-readable for Realtime refresh only; privileged mutations
+remain NestJS operations.
+
+## Server lifecycle REST endpoints
+
+| Method and path           | Authority                                 | Result                                       |
+| ------------------------- | ----------------------------------------- | -------------------------------------------- |
+| `POST /servers/:id/leave` | current registered member; owner rejected | removes caller membership                    |
+| `DELETE /servers/:id`     | owner only                                | deletes server and cascading dependent state |
+
 ## Guest database contract
 
 Guest reads and most mutations do not cross the NestJS REST or Socket.IO boundary. Angular uses its user-scoped Supabase JWT with:

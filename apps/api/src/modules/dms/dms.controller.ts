@@ -1,27 +1,6 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Put,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
-import type {
-  CreateDmRequest,
-  EditDmMessageRequest,
-  SendDmMessageRequest,
-  SetDmReactionRequest,
-} from '@lobby/shared';
-import {
-  CreateDmRequestSchema,
-  EditDmMessageRequestSchema,
-  SendDmMessageRequestSchema,
-  SetDmReactionRequestSchema,
-} from '@lobby/shared';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import type { CreateDmRequest } from '@lobby/shared';
+import { CreateDmRequestSchema } from '@lobby/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 import { RegisteredUserGuard } from '../../common/guards/registered-user.guard';
@@ -45,78 +24,5 @@ export class DmsController {
     @Body(new ZodValidationPipe(CreateDmRequestSchema)) body: CreateDmRequest,
   ) {
     return this.dmsService.getOrCreateConversation(userId, body.userId);
-  }
-
-  @Get(':conversationId/messages')
-  listMessages(
-    @CurrentUser('id') userId: string,
-    @Param('conversationId') conversationId: string,
-    @Query('limit') limit?: string,
-  ) {
-    const parsed = limit ? Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200) : 50;
-    return this.dmsService.listMessages(userId, conversationId, parsed);
-  }
-
-  @Post(':conversationId/messages')
-  sendMessage(
-    @CurrentUser('id') userId: string,
-    @Param('conversationId') conversationId: string,
-    @Body(new ZodValidationPipe(SendDmMessageRequestSchema)) body: SendDmMessageRequest,
-  ) {
-    return this.dmsService.sendMessage(
-      userId,
-      conversationId,
-      body.body,
-      body.replyToMessageId ?? null,
-    );
-  }
-
-  /** Only the sender can edit their own message. */
-  @Patch(':conversationId/messages/:messageId')
-  editMessage(
-    @CurrentUser('id') userId: string,
-    @Param('conversationId') conversationId: string,
-    @Param('messageId') messageId: string,
-    @Body(new ZodValidationPipe(EditDmMessageRequestSchema)) body: EditDmMessageRequest,
-  ) {
-    return this.dmsService.editMessage(userId, conversationId, messageId, body.body);
-  }
-
-  /** Either participant can set the message's reaction. */
-  @Put(':conversationId/messages/:messageId/reaction')
-  setReaction(
-    @CurrentUser('id') userId: string,
-    @Param('conversationId') conversationId: string,
-    @Param('messageId') messageId: string,
-    @Body(new ZodValidationPipe(SetDmReactionRequestSchema)) body: SetDmReactionRequest,
-  ) {
-    return this.dmsService.setReaction(userId, conversationId, messageId, body.emoji);
-  }
-
-  @Delete(':conversationId/messages/:messageId/reaction')
-  removeReaction(
-    @CurrentUser('id') userId: string,
-    @Param('conversationId') conversationId: string,
-    @Param('messageId') messageId: string,
-  ) {
-    return this.dmsService.setReaction(userId, conversationId, messageId, null);
-  }
-
-  /** Clear a conversation's message history, keeping the conversation row. */
-  @Delete(':conversationId/messages')
-  clearMessages(
-    @CurrentUser('id') userId: string,
-    @Param('conversationId') conversationId: string,
-  ) {
-    return this.dmsService.clearMessages(userId, conversationId);
-  }
-
-  /** Delete a conversation and all of its messages. */
-  @Delete(':conversationId')
-  deleteConversation(
-    @CurrentUser('id') userId: string,
-    @Param('conversationId') conversationId: string,
-  ) {
-    return this.dmsService.deleteConversation(userId, conversationId);
   }
 }

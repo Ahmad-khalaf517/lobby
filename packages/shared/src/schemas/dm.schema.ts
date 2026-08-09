@@ -51,12 +51,15 @@ export const DmMessageSchema = z.object({
   id: z.string().uuid(),
   conversationId: z.string().uuid(),
   senderId: z.string().uuid(),
+  clientMessageId: z.string().uuid().nullable(),
   body: z.string().min(1).max(MAX_MESSAGE_LENGTH),
   /** One reaction slot per message — null until either participant reacts. */
   reactionEmoji: z.string().min(1).max(16).nullable(),
+  reactionUserId: z.string().uuid().nullable(),
   /** Id of the message this one replies to, or null. The client resolves the
    * quoted preview (author/text) from its own already-loaded history. */
   replyToMessageId: z.string().uuid().nullable(),
+  editedAt: z.string().datetime({ offset: true }).nullable(),
   // { offset: true } — Supabase/PostgREST serializes timestamptz as
   // "...+00:00", not the "Z" suffix z.string().datetime() requires by default.
   createdAt: z.string().datetime({ offset: true }),

@@ -6,8 +6,6 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import {
   DmConversationSchema,
   DmListResponseSchema,
-  DmMessageHistorySchema,
-  DmMessageSchema,
   UserProfileSchema,
   type DmConversation,
   type DmMessage,
@@ -25,11 +23,12 @@ import type { ChatMessage, ChatReplyPreview, ChatUser } from '../../shared/compo
 import { initialsFromName } from '../../shared/components/room-chat';
 import type { Conversation } from './messages.models';
 
+const DM_PAGE_SIZE = 50;
+
 /**
- * Direct messages feature state — backed by the DMs REST API for
- * reads/writes, plus a Supabase Realtime subscription (mirroring
- * GuestChannelStore's pattern) so messages/conversations from the other
- * participant show up live instead of only on next fetch.
+ * Direct messages use NestJS only to discover/create conversations. History,
+ * message mutations, read state, and Realtime use the registered user's
+ * RLS-scoped Supabase client.
  */
 @Injectable({ providedIn: 'root' })
 export class DirectMessagesService {
@@ -51,6 +50,8 @@ export class DirectMessagesService {
   private readonly activeConversationSignal = signal<string | null>(null);
 
   private realtimeChannel: RealtimeChannel | null = null;
+  private conversationStates = new Map<string, DmConversationRow>();
+  private readonly pendingByClientId = new Map<string, { userId: string; temporaryId: string }>();
 
   /** The signed-in user's id — own messages / "You" styling. */
   readonly currentUserId = computed(() => this.auth.user()?.id ?? '');
@@ -75,7 +76,9 @@ export class DirectMessagesService {
 
   /** Per-conversation flag while its history is being fetched over the wire. */
   private readonly historyLoadingSignal = signal<Record<string, boolean>>({});
+  private readonly historyHasMoreSignal = signal<Record<string, boolean>>({});
   readonly historyLoadingRecord = this.historyLoadingSignal.asReadonly();
+  readonly historyHasMoreRecord = this.historyHasMoreSignal.asReadonly();
 
   constructor() {
     this.sessionScope.registerCleanup(() => this.reset());
@@ -105,13 +108,47 @@ export class DirectMessagesService {
     this.errorSignal.set(null);
     try {
       const response = await firstValueFrom(this.http.get<unknown>(`${this.apiUrl}/dms`));
-      const rows = DmListResponseSchema.parse(response).map(toConversation);
+      const apiRows = DmListResponseSchema.parse(response);
+      const statesResult = apiRows.length
+        ? await this.supabaseSession.client
+            .from('dm_conversations')
+            .select()
+            .in(
+              'id',
+              apiRows.map((row) => row.conversationId),
+            )
+        : { data: [], error: null };
+      if (statesResult.error) throw statesResult.error;
       this.assertCurrent(scope);
-      // Preserve locally-tracked unread counts — the REST list doesn't know
-      // about messages that arrived over realtime since the last full load.
-      const unreadById = new Map(this.conversationsSignal().map((c) => [c.friendId, c.unread]));
+      this.conversationStates = new Map(
+        (statesResult.data ?? []).map((row) => [row.id, row] as const),
+      );
+      const rows = await Promise.all(
+        apiRows.map(async (apiRow) => {
+          const state = this.conversationStates.get(apiRow.conversationId);
+          const clearedAt = state ? clearedAtFor(state, scope.userId!) : null;
+          const readAt = state ? readAtFor(state, scope.userId!) : null;
+          const after = latestTimestamp(clearedAt, readAt);
+          let countQuery = this.supabaseSession.client
+            .from('dm_messages')
+            .select('id', { count: 'exact', head: true })
+            .eq('conversation_id', apiRow.conversationId)
+            .neq('sender_id', scope.userId!);
+          if (after) countQuery = countQuery.gt('created_at', after);
+          const { count, error } = await countQuery;
+          if (error) throw error;
+          return toConversation(apiRow, count ?? 0);
+        }),
+      );
+      this.assertCurrent(scope);
       this.conversationsSignal.set(
-        rows.map((row) => ({ ...row, unread: unreadById.get(row.friendId) ?? row.unread })),
+        rows
+          .filter((row) => {
+            const state = this.conversationStates.get(row.conversationId);
+            const clearedAt = state ? clearedAtFor(state, scope.userId!) : null;
+            return !clearedAt || row.lastMessageAt > clearedAt;
+          })
+          .map((row) => row),
       );
     } catch {
       if (this.sessionScope.isCurrent(scope)) {
@@ -155,10 +192,9 @@ export class DirectMessagesService {
     conversation: Conversation,
     scope: SessionScope,
   ): Promise<void> {
-    const response = await firstValueFrom(
-      this.http.get<unknown>(`${this.apiUrl}/dms/${conversation.conversationId}/messages`),
+    const history = (await this.fetchMessageRows(conversation.conversationId, scope.userId!)).map(
+      dmMessageFromRow,
     );
-    const history = DmMessageHistorySchema.parse(response);
 
     const [selfAuthor, partnerAuthor] = await Promise.all([
       this.selfAuthor(scope),
@@ -182,6 +218,10 @@ export class DirectMessagesService {
     });
 
     this.messagesSignal.update((store) => ({ ...store, [userId]: mapped }));
+    this.historyHasMoreSignal.update((record) => ({
+      ...record,
+      [userId]: history.length === DM_PAGE_SIZE,
+    }));
     this.historyLoaded.add(userId);
     this.markRead(userId);
   }
@@ -203,7 +243,48 @@ export class DirectMessagesService {
     return this.messagesSignal()[userId] ?? [];
   }
 
-  /** Send a message (optionally a reply quoting another message). Persists via POST. */
+  async loadOlder(userId: string): Promise<void> {
+    if (this.historyLoadingSignal()[userId] || !this.historyHasMoreSignal()[userId]) return;
+    const scope = this.requireScope();
+    const conversation = this.conversationFor(userId);
+    const oldest = this.messagesSignal()[userId]?.[0];
+    if (!conversation || !oldest) return;
+
+    this.setHistoryLoading(userId, true);
+    try {
+      const history = (
+        await this.fetchMessageRows(conversation.conversationId, scope.userId!, oldest.createdAt)
+      ).map(dmMessageFromRow);
+      const [selfAuthor, partnerAuthor] = await Promise.all([
+        this.selfAuthor(scope),
+        authorFromPerson(conversation.partner),
+      ]);
+      this.assertCurrent(scope);
+      const mapped = history.map((message) =>
+        this.toChatMessage(
+          message,
+          message.senderId === this.currentUserId() ? selfAuthor : partnerAuthor,
+          this.resolveReplyFromCache(userId, message.replyToMessageId),
+        ),
+      );
+      this.messagesSignal.update((store) => {
+        const current = store[userId] ?? [];
+        const existing = new Set(current.map((message) => message.id));
+        return {
+          ...store,
+          [userId]: [...mapped.filter((message) => !existing.has(message.id)), ...current],
+        };
+      });
+      this.historyHasMoreSignal.update((record) => ({
+        ...record,
+        [userId]: history.length === DM_PAGE_SIZE,
+      }));
+    } finally {
+      if (this.sessionScope.isCurrent(scope)) this.setHistoryLoading(userId, false);
+    }
+  }
+
+  /** Send immediately in the UI, then reconcile the idempotent DM RPC result. */
   async send(userId: string, text: string, reply: ChatReplyPreview | null = null): Promise<void> {
     const scope = this.requireScope();
     const content = text.trim();
@@ -212,32 +293,53 @@ export class DirectMessagesService {
     }
 
     const conversation = await this.ensureConversation(userId);
-    const response = await firstValueFrom(
-      this.http.post<unknown>(`${this.apiUrl}/dms/${conversation.conversationId}/messages`, {
-        body: content,
-        replyToMessageId: reply?.messageId ?? null,
-      }),
-    );
-    const created = DmMessageSchema.parse(response);
-    this.assertCurrent(scope);
-
-    const author =
-      created.senderId === this.currentUserId()
-        ? await this.selfAuthor(scope)
-        : await authorFromPerson(conversation.partner);
-
-    const message = this.toChatMessage(created, author, reply);
-    this.assertCurrent(scope);
-
+    const clientMessageId = crypto.randomUUID();
+    const temporaryId = `pending:${clientMessageId}`;
+    const pending: ChatMessage = {
+      id: temporaryId,
+      author: await this.selfAuthor(scope),
+      text: content,
+      createdAt: new Date().toISOString(),
+      reactions: [],
+      ownReaction: null,
+      reply,
+      edited: false,
+      deleted: false,
+      pending: true,
+      failed: false,
+    };
+    this.pendingByClientId.set(clientMessageId, { userId, temporaryId });
     this.messagesSignal.update((store) => ({
       ...store,
-      [userId]: [...(store[userId] ?? []), message],
+      [userId]: [...(store[userId] ?? []), pending],
     }));
-    this.bumpConversation(userId, created.body, created.createdAt);
-    this.markRead(userId);
+    this.bumpConversation(userId, content, pending.createdAt);
+
+    try {
+      const { data, error } = await this.supabaseSession.client.rpc('create_dm_message', {
+        p_conversation_id: conversation.conversationId,
+        p_content: content,
+        p_client_message_id: clientMessageId,
+        ...(reply ? { p_reply_to: reply.messageId } : {}),
+      });
+      if (error) throw error;
+      this.assertCurrent(scope);
+      await this.reconcileMessage(userId, data, scope);
+      this.markRead(userId);
+    } catch (error) {
+      if (this.sessionScope.isCurrent(scope)) {
+        this.messagesSignal.update((store) => ({
+          ...store,
+          [userId]: (store[userId] ?? []).map((message) =>
+            message.id === temporaryId ? { ...message, pending: false, failed: true } : message,
+          ),
+        }));
+      }
+      throw error;
+    }
   }
 
-  /** Persists an edit via PATCH, then applies it locally (rolled back on failure). */
+  /** Apply an edit optimistically, rolling back if the owner-only RPC fails. */
   async editMessage(userId: string, messageId: string, newText: string): Promise<void> {
     const scope = this.requireScope();
     const content = newText.trim();
@@ -250,13 +352,14 @@ export class DirectMessagesService {
 
     this.applyMessageEdit(userId, messageId, content);
     try {
-      await firstValueFrom(
-        this.http.patch<unknown>(
-          `${this.apiUrl}/dms/${conversation.conversationId}/messages/${messageId}`,
-          { body: content },
-        ),
-      );
+      const { data, error } = await this.supabaseSession.client.rpc('edit_dm_message', {
+        p_conversation_id: conversation.conversationId,
+        p_message_id: messageId,
+        p_content: content,
+      });
+      if (error) throw error;
       this.assertCurrent(scope);
+      this.handleMessageUpdated(data);
     } catch {
       // Roll back to the pre-edit text on failure.
       if (this.sessionScope.isCurrent(scope)) {
@@ -274,15 +377,33 @@ export class DirectMessagesService {
     }));
   }
 
-  /** Remove a message from local state — local-only until the API ships. */
-  deleteMessage(userId: string, messageId: string): void {
+  /** Remove an owned message through the participant-scoped RPC. */
+  async deleteMessage(userId: string, messageId: string): Promise<void> {
+    const scope = this.requireScope();
+    const conversation = this.conversationFor(userId);
+    if (!conversation) return;
+    const previous = this.messagesSignal()[userId] ?? [];
     this.messagesSignal.update((store) => ({
       ...store,
       [userId]: (store[userId] ?? []).filter((message) => message.id !== messageId),
     }));
+    try {
+      const { error } = await this.supabaseSession.client.rpc('delete_dm_message', {
+        p_conversation_id: conversation.conversationId,
+        p_message_id: messageId,
+      });
+      if (error) throw error;
+      this.assertCurrent(scope);
+      await this.loadConversations();
+    } catch (error) {
+      if (this.sessionScope.isCurrent(scope)) {
+        this.messagesSignal.update((store) => ({ ...store, [userId]: previous }));
+      }
+      throw error;
+    }
   }
 
-  /** Toggle the current user's reaction — persists via PUT/DELETE reaction APIs. */
+  /** Toggle the current user's reaction through the participant-scoped RPC. */
   async toggleReaction(userId: string, messageId: string, emoji: string): Promise<void> {
     const scope = this.requireScope();
     const conversation = this.conversationFor(userId);
@@ -293,63 +414,49 @@ export class DirectMessagesService {
       return;
     }
 
-    const next = current.ownReaction === emoji ? null : emoji;
-    const url = `${this.apiUrl}/dms/${conversation.conversationId}/messages/${messageId}/reaction`;
-
     try {
-      if (next === null) {
-        await firstValueFrom(this.http.delete<unknown>(url));
-      } else {
-        await firstValueFrom(this.http.put<unknown>(url, { emoji: next }));
-      }
+      const { data, error } = await this.supabaseSession.client.rpc('toggle_dm_message_reaction', {
+        p_conversation_id: conversation.conversationId,
+        p_message_id: messageId,
+        p_emoji: emoji,
+      });
+      if (error) throw error;
+      this.assertCurrent(scope);
+      this.handleMessageUpdated(data);
     } catch {
       return; // Keep the previous state on failure.
     }
-
-    this.assertCurrent(scope);
-    this.applyLocalReaction(userId, messageId, next);
   }
 
-  private applyLocalReaction(userId: string, messageId: string, ownReaction: string | null): void {
-    this.messagesSignal.update((store) => ({
-      ...store,
-      [userId]: (store[userId] ?? []).map((message) =>
-        message.id === messageId
-          ? {
-              ...message,
-              ownReaction,
-              reactions: ownReaction ? [{ emoji: ownReaction, count: 1, reactedByMe: true }] : [],
-            }
-          : message,
-      ),
-    }));
-  }
-
-  /** Clear the unread badge for a conversation — local state only. */
+  /** Clear unread state locally and persist the participant read boundary. */
   markRead(userId: string): void {
     this.conversationsSignal.update((list) =>
       list.map((conversation) =>
         conversation.friendId === userId ? { ...conversation, unread: 0 } : conversation,
       ),
     );
+    const conversation = this.conversationFor(userId);
+    if (conversation) {
+      void this.supabaseSession.client
+        .rpc('mark_dm_conversation_read', { p_conversation_id: conversation.conversationId })
+        .then(({ error }) => {
+          if (error) console.error('[DirectMessagesService] Could not persist read state.', error);
+        });
+    }
   }
 
   /**
-   * Clear a conversation's history (keeps the chat + friend) via
-   * `DELETE /dms/:conversationId/messages`, then empty the local message list.
+   * Hide the conversation history for this participant only. The other
+   * participant's history is never deleted.
    */
   async clearChatHistory(userId: string): Promise<void> {
     const scope = this.requireScope();
     const conversation = this.conversationFor(userId);
-    if (conversation) {
-      try {
-        await firstValueFrom(
-          this.http.delete<unknown>(`${this.apiUrl}/dms/${conversation.conversationId}/messages`),
-        );
-      } catch {
-        // The messages are cleared locally regardless.
-      }
-    }
+    if (!conversation) return;
+    const { error } = await this.supabaseSession.client.rpc('clear_dm_conversation', {
+      p_conversation_id: conversation.conversationId,
+    });
+    if (error) throw error;
     this.assertCurrent(scope);
     this.messagesSignal.update((store) => ({ ...store, [userId]: [] }));
     this.conversationsSignal.update((list) =>
@@ -369,9 +476,37 @@ export class DirectMessagesService {
     );
     const apiConversation = DmConversationSchema.parse(response);
     this.assertCurrent(scope);
-    const conversation = toConversation(apiConversation);
+    const { data: state, error } = await this.supabaseSession.client
+      .from('dm_conversations')
+      .select()
+      .eq('id', apiConversation.conversationId)
+      .single();
+    if (error) throw error;
+    this.assertCurrent(scope);
+    this.conversationStates.set(state.id, state);
+    const conversation = toConversation(apiConversation, 0);
     this.upsertConversation(conversation);
     return conversation;
+  }
+
+  private async fetchMessageRows(
+    conversationId: string,
+    currentUserId: string,
+    before?: string,
+  ): Promise<DmMessageRow[]> {
+    const state = this.conversationStates.get(conversationId);
+    let query = this.supabaseSession.client
+      .from('dm_messages')
+      .select()
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: false })
+      .limit(DM_PAGE_SIZE);
+    const clearedAt = state ? clearedAtFor(state, currentUserId) : null;
+    if (clearedAt) query = query.gt('created_at', clearedAt);
+    if (before) query = query.lt('created_at', before);
+    const { data, error } = await query;
+    if (error) throw error;
+    return [...(data ?? [])].reverse();
   }
 
   private upsertConversation(conversation: Conversation): void {
@@ -413,11 +548,17 @@ export class DirectMessagesService {
       text: message.body,
       createdAt: message.createdAt,
       reactions: message.reactionEmoji
-        ? [{ emoji: message.reactionEmoji, count: 1, reactedByMe: false }]
+        ? [
+            {
+              emoji: message.reactionEmoji,
+              count: 1,
+              reactedByMe: message.reactionUserId === this.currentUserId(),
+            },
+          ]
         : [],
-      ownReaction: null,
+      ownReaction: message.reactionUserId === this.currentUserId() ? message.reactionEmoji : null,
       reply,
-      edited: false,
+      edited: message.editedAt !== null,
       deleted: false,
       pending: false,
       failed: false,
@@ -485,6 +626,11 @@ export class DirectMessagesService {
       )
       .on(
         'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'dm_messages' },
+        (payload) => this.ngZone.run(() => this.handleMessageUpdated(payload.new as DmMessageRow)),
+      )
+      .on(
+        'postgres_changes',
         { event: 'DELETE', schema: 'public', table: 'dm_messages' },
         (payload) =>
           this.ngZone.run(() => this.handleMessageDeleted(payload.old as { id: string })),
@@ -494,6 +640,12 @@ export class DirectMessagesService {
         { event: 'INSERT', schema: 'public', table: 'dm_conversations' },
         (payload) =>
           this.ngZone.run(() => void this.handleNewConversation(payload.new as DmConversationRow)),
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'dm_conversations' },
+        (payload) =>
+          this.ngZone.run(() => this.handleConversationUpdated(payload.new as DmConversationRow)),
       )
       .subscribe((status, error) => {
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
@@ -515,6 +667,9 @@ export class DirectMessagesService {
     this.conversationsSignal.set([]);
     this.messagesSignal.set({});
     this.historyLoadingSignal.set({});
+    this.historyHasMoreSignal.set({});
+    this.conversationStates.clear();
+    this.pendingByClientId.clear();
     this.activeConversationSignal.set(null);
     this.loadingSignal.set(false);
     this.errorSignal.set(null);
@@ -525,7 +680,6 @@ export class DirectMessagesService {
 
   private async handleIncomingMessage(row: DmMessageRow): Promise<void> {
     const scope = this.requireScope();
-    if (row.sender_id === scope.userId) return; // my own send already applied it optimistically
 
     let conversation = this.conversationsSignal().find(
       (c) => c.conversationId === row.conversation_id,
@@ -541,19 +695,18 @@ export class DirectMessagesService {
 
     const userId = conversation.friendId;
     const dmMessage = dmMessageFromRow(row);
-    const author = await authorFromPerson(conversation.partner);
+    const author =
+      row.sender_id === scope.userId
+        ? await this.selfAuthor(scope)
+        : await authorFromPerson(conversation.partner);
     const reply = this.resolveReplyFromCache(userId, dmMessage.replyToMessageId);
     const message = this.toChatMessage(dmMessage, author, reply);
     this.assertCurrent(scope);
 
-    // Append unconditionally — fetchHistory() always fully replaces this
-    // array when a conversation is opened, so there's no risk of this
-    // creating a stale/incomplete list even if history was never loaded yet.
-    this.messagesSignal.update((store) => ({
-      ...store,
-      [userId]: [...(store[userId] ?? []), message],
-    }));
+    this.upsertChatMessage(userId, message, row.client_message_id);
     this.bumpConversation(userId, dmMessage.body, dmMessage.createdAt);
+
+    if (row.sender_id === scope.userId) return;
 
     const isOpenAndFocused = this.activeConversationSignal() === userId && document.hasFocus();
     if (isOpenAndFocused) {
@@ -592,6 +745,82 @@ export class DirectMessagesService {
     void this.loadConversations().catch(() => undefined);
   }
 
+  private handleMessageUpdated(row: DmMessageRow): void {
+    const currentUserId = this.currentUserId();
+    this.messagesSignal.update((store) =>
+      Object.fromEntries(
+        Object.entries(store).map(([userId, messages]) => [
+          userId,
+          messages.map((message) =>
+            message.id === row.id
+              ? {
+                  ...message,
+                  text: row.content,
+                  edited: row.edited_at !== null,
+                  ownReaction: row.reaction_user_id === currentUserId ? row.reaction_emoji : null,
+                  reactions: row.reaction_emoji
+                    ? [
+                        {
+                          emoji: row.reaction_emoji,
+                          count: 1,
+                          reactedByMe: row.reaction_user_id === currentUserId,
+                        },
+                      ]
+                    : [],
+                }
+              : message,
+          ),
+        ]),
+      ),
+    );
+    void this.loadConversations().catch(() => undefined);
+  }
+
+  private async reconcileMessage(
+    userId: string,
+    row: DmMessageRow,
+    scope: SessionScope,
+  ): Promise<void> {
+    const conversation = this.conversationFor(userId);
+    if (!conversation) return;
+    const author =
+      row.sender_id === scope.userId
+        ? await this.selfAuthor(scope)
+        : await authorFromPerson(conversation.partner);
+    this.assertCurrent(scope);
+    this.upsertChatMessage(
+      userId,
+      this.toChatMessage(
+        dmMessageFromRow(row),
+        author,
+        this.resolveReplyFromCache(userId, row.reply_to),
+      ),
+      row.client_message_id,
+    );
+    this.bumpConversation(userId, row.content, row.created_at);
+  }
+
+  private upsertChatMessage(
+    userId: string,
+    message: ChatMessage,
+    clientMessageId: string | null,
+  ): void {
+    const pending = clientMessageId ? this.pendingByClientId.get(clientMessageId) : undefined;
+    this.messagesSignal.update((store) => {
+      const current = store[userId] ?? [];
+      const withoutDuplicate = current.filter(
+        (candidate) => candidate.id !== message.id && candidate.id !== pending?.temporaryId,
+      );
+      return {
+        ...store,
+        [userId]: [...withoutDuplicate, message].sort((a, b) =>
+          a.createdAt.localeCompare(b.createdAt),
+        ),
+      };
+    });
+    if (clientMessageId) this.pendingByClientId.delete(clientMessageId);
+  }
+
   private async handleNewConversation(row: DmConversationRow): Promise<void> {
     const scope = this.requireScope();
     const currentUserId = scope.userId;
@@ -599,6 +828,25 @@ export class DirectMessagesService {
     if (this.conversationsSignal().some((c) => c.conversationId === row.id)) return;
     await this.loadConversations();
     this.assertCurrent(scope);
+  }
+
+  private handleConversationUpdated(row: DmConversationRow): void {
+    const userId = this.currentUserId();
+    if (!userId || (row.user_a_id !== userId && row.user_b_id !== userId)) return;
+    this.conversationStates.set(row.id, row);
+    const conversation = this.conversationsSignal().find(
+      (candidate) => candidate.conversationId === row.id,
+    );
+    const clearedAt = clearedAtFor(row, userId);
+    if (conversation && clearedAt) {
+      this.messagesSignal.update((store) => ({
+        ...store,
+        [conversation.friendId]: (store[conversation.friendId] ?? []).filter(
+          (message) => message.createdAt > clearedAt,
+        ),
+      }));
+    }
+    void this.loadConversations().catch(() => undefined);
   }
 
   private requireScope(): SessionScope {
@@ -634,11 +882,11 @@ export class DirectMessagesService {
   }
 }
 
-function toConversation(api: DmConversation): Conversation {
+function toConversation(api: DmConversation, unread = 0): Conversation {
   return {
     friendId: api.user.userId,
     conversationId: api.conversationId,
-    unread: 0,
+    unread,
     lastMessageAt: api.lastMessage?.createdAt ?? api.updatedAt,
     preview: api.lastMessage?.body ?? null,
     partner: personFromProfile(api.user),
@@ -651,10 +899,27 @@ function dmMessageFromRow(row: DmMessageRow): DmMessage {
     conversationId: row.conversation_id,
     senderId: row.sender_id,
     body: row.content,
+    clientMessageId: row.client_message_id,
     reactionEmoji: row.reaction_emoji,
+    reactionUserId: row.reaction_user_id,
     replyToMessageId: row.reply_to,
+    editedAt: row.edited_at,
     createdAt: row.created_at,
   };
+}
+
+function clearedAtFor(row: DmConversationRow, userId: string): string | null {
+  return row.user_a_id === userId ? row.user_a_cleared_at : row.user_b_cleared_at;
+}
+
+function readAtFor(row: DmConversationRow, userId: string): string | null {
+  return row.user_a_id === userId ? row.user_a_last_read_at : row.user_b_last_read_at;
+}
+
+function latestTimestamp(left: string | null, right: string | null): string | null {
+  if (!left) return right;
+  if (!right) return left;
+  return left > right ? left : right;
 }
 
 function authorFromPerson(person: Person): Promise<ChatUser> {

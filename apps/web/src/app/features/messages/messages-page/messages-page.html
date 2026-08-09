@@ -260,6 +260,18 @@
             #messageList
             class="lobby-scrollbar min-h-0 flex-1 space-y-1.5 overflow-y-auto px-4 pb-5 pt-8 sm:px-5"
           >
+            @if (historyHasMore()) {
+              <div class="flex justify-center pb-3">
+                <button
+                  type="button"
+                  (click)="loadOlder()"
+                  [disabled]="historyLoading()"
+                  class="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-[#9aa4b2] transition hover:bg-white/6 hover:text-white disabled:opacity-50"
+                >
+                  {{ historyLoading() ? 'Loading…' : 'Load older messages' }}
+                </button>
+              </div>
+            }
             @for (message of selectedMessages(); track message.id) {
               <app-message-row
                 [message]="message"

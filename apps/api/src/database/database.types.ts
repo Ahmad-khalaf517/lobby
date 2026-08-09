@@ -190,22 +190,34 @@ export type Database = {
           created_at: string;
           id: string;
           updated_at: string;
+          user_a_cleared_at: string | null;
           user_a_id: string;
+          user_a_last_read_at: string | null;
+          user_b_cleared_at: string | null;
           user_b_id: string;
+          user_b_last_read_at: string | null;
         };
         Insert: {
           created_at?: string;
           id?: string;
           updated_at?: string;
+          user_a_cleared_at?: string | null;
           user_a_id: string;
+          user_a_last_read_at?: string | null;
+          user_b_cleared_at?: string | null;
           user_b_id: string;
+          user_b_last_read_at?: string | null;
         };
         Update: {
           created_at?: string;
           id?: string;
           updated_at?: string;
+          user_a_cleared_at?: string | null;
           user_a_id?: string;
+          user_a_last_read_at?: string | null;
+          user_b_cleared_at?: string | null;
           user_b_id?: string;
+          user_b_last_read_at?: string | null;
         };
         Relationships: [
           {
@@ -226,29 +238,38 @@ export type Database = {
       };
       dm_messages: {
         Row: {
+          client_message_id: string | null;
           content: string;
           conversation_id: string;
           created_at: string;
+          edited_at: string | null;
           id: string;
           reaction_emoji: string | null;
+          reaction_user_id: string | null;
           reply_to: string | null;
           sender_id: string;
         };
         Insert: {
+          client_message_id?: string | null;
           content: string;
           conversation_id: string;
           created_at?: string;
+          edited_at?: string | null;
           id?: string;
           reaction_emoji?: string | null;
+          reaction_user_id?: string | null;
           reply_to?: string | null;
           sender_id: string;
         };
         Update: {
+          client_message_id?: string | null;
           content?: string;
           conversation_id?: string;
           created_at?: string;
+          edited_at?: string | null;
           id?: string;
           reaction_emoji?: string | null;
+          reaction_user_id?: string | null;
           reply_to?: string | null;
           sender_id?: string;
         };
@@ -265,6 +286,13 @@ export type Database = {
             columns: ['reply_to'];
             isOneToOne: false;
             referencedRelation: 'dm_messages';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'dm_messages_reaction_user_id_fkey';
+            columns: ['reaction_user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
             referencedColumns: ['id'];
           },
           {
@@ -608,6 +636,106 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      clear_dm_conversation: {
+        Args: { p_conversation_id: string };
+        Returns: undefined;
+      };
+      create_dm_message: {
+        Args: {
+          p_client_message_id: string;
+          p_content: string;
+          p_conversation_id: string;
+          p_reply_to?: string;
+        };
+        Returns: {
+          client_message_id: string | null;
+          content: string;
+          conversation_id: string;
+          created_at: string;
+          edited_at: string | null;
+          id: string;
+          reaction_emoji: string | null;
+          reaction_user_id: string | null;
+          reply_to: string | null;
+          sender_id: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'dm_messages';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      delete_dm_message: {
+        Args: { p_conversation_id: string; p_message_id: string };
+        Returns: string;
+      };
+      edit_dm_message: {
+        Args: { p_content: string; p_conversation_id: string; p_message_id: string };
+        Returns: {
+          client_message_id: string | null;
+          content: string;
+          conversation_id: string;
+          created_at: string;
+          edited_at: string | null;
+          id: string;
+          reaction_emoji: string | null;
+          reaction_user_id: string | null;
+          reply_to: string | null;
+          sender_id: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'dm_messages';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      mark_dm_conversation_read: {
+        Args: { p_conversation_id: string };
+        Returns: undefined;
+      };
+      require_dm_participant: {
+        Args: { p_conversation_id: string };
+        Returns: {
+          created_at: string;
+          id: string;
+          updated_at: string;
+          user_a_cleared_at: string | null;
+          user_a_id: string;
+          user_a_last_read_at: string | null;
+          user_b_cleared_at: string | null;
+          user_b_id: string;
+          user_b_last_read_at: string | null;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'dm_conversations';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      toggle_dm_message_reaction: {
+        Args: { p_conversation_id: string; p_emoji: string; p_message_id: string };
+        Returns: {
+          client_message_id: string | null;
+          content: string;
+          conversation_id: string;
+          created_at: string;
+          edited_at: string | null;
+          id: string;
+          reaction_emoji: string | null;
+          reaction_user_id: string | null;
+          reply_to: string | null;
+          sender_id: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'dm_messages';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       create_authenticated_channel_message: {
         Args: {
           p_channel_id: string;

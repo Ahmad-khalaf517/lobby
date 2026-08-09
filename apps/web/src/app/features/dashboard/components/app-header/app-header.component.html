@@ -67,15 +67,52 @@
         class="relative grid size-9 place-items-center rounded-xl text-app-muted transition hover:bg-surface-hover"
       >
         <app-icon name="bell" [size]="16" />
-        <span class="absolute right-2 top-2 size-1.5 rounded-full bg-destructive"></span>
+        @if (notificationUnreadCount() > 0) {
+          <span class="absolute right-2 top-2 size-1.5 rounded-full bg-destructive"></span>
+        }
       </button>
 
       @if (notificationsOpen()) {
         <div
           class="absolute right-0 top-[calc(100%+6px)] z-30 w-64 rounded-xl border border-[#171d2a] bg-[#0d121b] p-4 shadow-2xl"
         >
-          <p class="text-sm font-medium text-app-foreground">Notifications</p>
-          <p class="mt-2 text-xs text-app-muted">You're all caught up — nothing new yet.</p>
+          <div class="flex items-center justify-between gap-3">
+            <p class="text-sm font-medium text-app-foreground">Notifications</p>
+            @if (notificationUnreadCount() > 0) {
+              <button
+                type="button"
+                (click)="markAllNotificationsRead()"
+                class="text-[11px] text-primary hover:underline"
+              >
+                Mark all read
+              </button>
+            }
+          </div>
+          <div class="lobby-scrollbar mt-2 max-h-72 space-y-1 overflow-y-auto">
+            @if (notificationsLoading()) {
+              <p class="py-3 text-xs text-app-muted">Loading…</p>
+            } @else if (notificationsError()) {
+              <p class="py-3 text-xs text-destructive">{{ notificationsError() }}</p>
+            } @else {
+              @for (notification of notifications(); track notification.id) {
+                <button
+                  type="button"
+                  (click)="markNotificationRead(notification.id)"
+                  class="block w-full rounded-lg px-2 py-2 text-left transition hover:bg-surface-hover"
+                  [class.bg-primary/10]="!notification.is_read"
+                >
+                  <span class="block text-xs font-medium text-app-foreground">{{
+                    notification.title
+                  }}</span>
+                  <span class="mt-0.5 block text-[11px] leading-4 text-app-muted">{{
+                    notification.body
+                  }}</span>
+                </button>
+              } @empty {
+                <p class="py-3 text-xs text-app-muted">You're all caught up — nothing new yet.</p>
+              }
+            }
+          </div>
         </div>
       }
     </div>
@@ -289,6 +326,19 @@
         } @empty {
           <p class="px-2.5 py-6 text-center text-[12px] text-app-muted">No members to show yet.</p>
         }
+
+        <button
+          type="button"
+          (click)="leaveOrDeleteServer()"
+          [disabled]="serverLifecycleBusy()"
+          class="mt-4 w-full rounded-lg border border-destructive/30 px-3 py-2.5 text-left text-xs text-destructive transition hover:bg-destructive/10 disabled:opacity-50"
+        >
+          @if (isServerOwner()) {
+            {{ serverLifecycleBusy() ? 'Deleting…' : 'Delete space' }}
+          } @else {
+            {{ serverLifecycleBusy() ? 'Leaving…' : 'Leave space' }}
+          }
+        </button>
       </div>
     </aside>
   </div>

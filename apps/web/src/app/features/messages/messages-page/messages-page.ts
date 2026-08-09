@@ -82,6 +82,10 @@ export class MessagesPage {
     const friendId = this.selectedFriendId();
     return friendId ? this.service.messagesFor(friendId) : [];
   });
+  protected readonly historyHasMore = computed(() => {
+    const friendId = this.selectedFriendId();
+    return friendId ? (this.service.historyHasMoreRecord()[friendId] ?? false) : false;
+  });
 
   /** Whether the current user has blocked the selected partner. */
   protected readonly currentPartnerBlocked = computed<boolean>(() => {
@@ -182,7 +186,8 @@ export class MessagesPage {
           ? { messageId: reply.messageId, authorName: reply.authorName, text: reply.text }
           : undefined,
       )
-      .then(() => this.scrollToBottom());
+      .then(() => this.scrollToBottom())
+      .catch(() => this.openError.set('Could not send that message.'));
     this.draft.set('');
     this.pendingReply.set(null);
   }
@@ -226,7 +231,9 @@ export class MessagesPage {
     if (this.pendingReply()?.messageId === messageId) {
       this.pendingReply.set(null);
     }
-    this.service.deleteMessage(friendId, messageId);
+    void this.service
+      .deleteMessage(friendId, messageId)
+      .catch(() => this.openError.set('Could not delete that message.'));
   }
 
   protected onReact(payload: { messageId: string; emoji: string }): void {
@@ -254,6 +261,11 @@ export class MessagesPage {
   protected historyLoading(): boolean {
     const friendId = this.selectedFriendId();
     return friendId ? (this.service.historyLoadingRecord()[friendId] ?? false) : false;
+  }
+
+  protected loadOlder(): void {
+    const friendId = this.selectedFriendId();
+    if (friendId) void this.service.loadOlder(friendId);
   }
 
   protected statusLabel(person: Person): string {
@@ -301,7 +313,9 @@ export class MessagesPage {
     const friendId = this.selectedFriendId();
     this.headerMenuOpen.set(false);
     if (friendId) {
-      void this.service.clearChatHistory(friendId);
+      void this.service
+        .clearChatHistory(friendId)
+        .catch(() => this.openError.set('Could not clear this conversation.'));
     }
   }
 
