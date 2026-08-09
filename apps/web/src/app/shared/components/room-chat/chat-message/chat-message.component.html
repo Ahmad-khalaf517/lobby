@@ -57,13 +57,13 @@
           aria-haspopup="menu"
           aria-label="More message actions"
           [class]="
-            'grid size-8 shrink-0 place-items-center rounded-md outline-none transition-colors hover:bg-white/8 hover:text-white focus-visible:bg-white/8 focus-visible:text-white focus-visible:ring-1 focus-visible:ring-violet-400/70 ' +
+            'grid size-9 shrink-0 place-items-center rounded-md outline-none transition-colors hover:bg-white/8 hover:text-white focus-visible:bg-white/8 focus-visible:text-white focus-visible:ring-1 focus-visible:ring-violet-400/70 ' +
             (moreMenuOpen() ? 'bg-white/8 text-white' : 'text-[#929db0]')
           "
         >
           <svg
             aria-hidden="true"
-            class="size-3.5"
+            class="size-4.5"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -97,11 +97,11 @@
               type="button"
               role="menuitem"
               (click)="copyMessageText($event)"
-              class="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[11px] font-medium whitespace-nowrap text-[#b9c2d0] outline-none transition-colors hover:bg-white/6.5 hover:text-white focus-visible:bg-white/6.5 focus-visible:text-white"
+              class="flex h-9 w-full items-center gap-2 rounded-md px-2.5 text-left text-[11px] font-medium whitespace-nowrap text-[#b9c2d0] outline-none transition-colors hover:bg-white/6.5 hover:text-white focus-visible:bg-white/6.5 focus-visible:text-white"
             >
               <svg
                 aria-hidden="true"
-                class="size-3 shrink-0"
+                class="size-4 shrink-0"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -121,9 +121,9 @@
                 type="button"
                 role="menuitem"
                 (click)="onEditFromMenu($event)"
-                class="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[11px] font-medium whitespace-nowrap text-[#b9c2d0] outline-none transition-colors hover:bg-white/6.5 hover:text-white focus-visible:bg-white/6.5 focus-visible:text-white"
+                class="flex h-9 w-full items-center gap-2 rounded-md px-2.5 text-left text-[11px] font-medium whitespace-nowrap text-[#b9c2d0] outline-none transition-colors hover:bg-white/6.5 hover:text-white focus-visible:bg-white/6.5 focus-visible:text-white"
               >
-                <app-icon name="edit" aria-hidden="true" class="size-3 shrink-0" />
+                <app-icon name="edit" aria-hidden="true" class="size-4 shrink-0" [size]="16" />
                 <span>Edit message</span>
               </button>
 
@@ -133,9 +133,9 @@
                 type="button"
                 role="menuitem"
                 (click)="onDeleteFromMenu($event)"
-                class="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[11px] font-medium whitespace-nowrap text-rose-300 outline-none transition-colors hover:bg-rose-400/9 hover:text-rose-200 focus-visible:bg-rose-400/9 focus-visible:text-rose-200"
+                class="flex h-9 w-full items-center gap-2 rounded-md px-2.5 text-left text-[11px] font-medium whitespace-nowrap text-rose-300 outline-none transition-colors hover:bg-rose-400/9 hover:text-rose-200 focus-visible:bg-rose-400/9 focus-visible:text-rose-200"
               >
-                <app-icon name="delete" aria-hidden="true" class="size-3 shrink-0" />
+                <app-icon name="delete" aria-hidden="true" class="size-4 shrink-0" [size]="16" />
                 <span>Delete message</span>
               </button>
             }
