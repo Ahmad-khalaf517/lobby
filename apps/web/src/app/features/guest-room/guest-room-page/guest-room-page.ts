@@ -41,6 +41,7 @@ import {
 import { LobbyIconComponent } from '../../../shared/ui/icon/lobby-icon.component';
 import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
 import { guestDisplayNameSchema } from '../../../shared/validation/guest-channel.schema';
+import { AuthService } from '../../auth/services/auth';
 import { GuestChannelStore } from '../services/guest-channel.store';
 import { ShareRoomDialogComponent } from '../share-room-dialog/share-room-dialog.component';
 
@@ -78,6 +79,7 @@ export class GuestRoomPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly auth = inject(AuthService);
   protected readonly guest = inject(GuestChannelStore);
   protected readonly call = inject(LiveKitCallService);
   private readonly roomChat = viewChild(RoomChatComponent);
@@ -252,6 +254,13 @@ export class GuestRoomPage {
     });
 
     effect(() => {
+      const authStatus = this.auth.status();
+      if (authStatus === 'unauthenticated' || authStatus === 'error') {
+        this.stopCallStatusPolling();
+      }
+    });
+
+    effect(() => {
       const connectionState = this.call.connectionState();
       if (
         this.status() === 'ready' &&
@@ -263,7 +272,7 @@ export class GuestRoomPage {
 
     this.destroyRef.onDestroy(() => {
       this.destroyed = true;
-      if (this.callStatusIntervalId) clearInterval(this.callStatusIntervalId);
+      this.stopCallStatusPolling();
       if (this.clockIntervalId) clearInterval(this.clockIntervalId);
       this.pendingNavigationResolution?.(false);
       this.pendingNavigationResolution = null;
@@ -689,7 +698,12 @@ export class GuestRoomPage {
   }
 
   private startCallStatusPolling(): void {
-    if (this.callStatusIntervalId) clearInterval(this.callStatusIntervalId);
+    if (!this.hasAuthenticatedSession()) {
+      this.stopCallStatusPolling();
+      return;
+    }
+
+    this.stopCallStatusPolling();
 
     void this.refreshCallStatus();
     this.callStatusIntervalId = setInterval(
@@ -699,6 +713,11 @@ export class GuestRoomPage {
   }
 
   private async refreshCallStatus(): Promise<void> {
+    if (!this.hasAuthenticatedSession()) {
+      this.stopCallStatusPolling();
+      return;
+    }
+
     if (this.call.joined()) {
       const participantCount = this.call.participants().length;
       this.callStatusParticipantCount.set(participantCount);
@@ -727,6 +746,15 @@ export class GuestRoomPage {
     } finally {
       this.callStatusPollInFlight = false;
     }
+  }
+
+  private stopCallStatusPolling(): void {
+    if (this.callStatusIntervalId) clearInterval(this.callStatusIntervalId);
+    this.callStatusIntervalId = null;
+  }
+
+  private hasAuthenticatedSession(): boolean {
+    return this.auth.status() === 'anonymous' || this.auth.status() === 'authenticated';
   }
 
   private hasRememberedCallSession(): boolean {

@@ -7,10 +7,15 @@ export const REFRESH_TOKEN_COOKIE = 'refresh_token';
 const REFRESH_COOKIE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 function authCookieOptions(): CookieOptions {
+  const isProduction = process.env.NODE_ENV === 'production';
+
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProduction,
+    // The deployed Vercel UI and Render API are different sites. Credentialed
+    // browser requests can include these cookies only when production opts in
+    // to cross-site use; SameSite=None also requires Secure.
+    sameSite: isProduction ? 'none' : 'lax',
     path: '/',
   };
 }

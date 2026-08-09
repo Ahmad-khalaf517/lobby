@@ -38,6 +38,7 @@ export const authRefreshInterceptor: HttpInterceptorFn = (request, next) => {
         !(error instanceof HttpErrorResponse) ||
         error.status !== 401 ||
         !isNestApiRequest(request.url) ||
+        auth.status() === 'unauthenticated' ||
         request.context.get(SKIP_AUTH_REFRESH) ||
         request.context.get(AUTH_RETRY_ATTEMPTED) ||
         refreshExcludedPaths.has(requestPath(request.url));
