@@ -11,7 +11,7 @@
     <h2 class="mt-3 text-3xl font-semibold tracking-[-0.035em] text-white">
       Confirming your email
     </h2>
-    <p class="mx-auto mt-4 max-w-sm text-sm leading-6 text-[#9aa4b2]">
+    <p class="mx-auto mt-4 max-w-sm text-sm leading-6 text-app-muted">
       Please wait while Lobby completes your account verification.
     </p>
   } @else if (state() === 'success') {
@@ -25,7 +25,7 @@
       Verification complete
     </p>
     <h2 class="mt-3 text-3xl font-semibold tracking-[-0.035em] text-white">Email confirmed</h2>
-    <p class="mx-auto mt-4 max-w-sm text-sm leading-6 text-[#9aa4b2]">
+    <p class="mx-auto mt-4 max-w-sm text-sm leading-6 text-app-muted">
       Your email has been verified successfully. Your Lobby account is ready.
     </p>
     <a routerLink="/app" class="auth-submit mt-7">Continue to Lobby</a>
@@ -42,7 +42,7 @@
     <h2 class="mt-3 text-3xl font-semibold tracking-[-0.035em] text-white">
       We could not confirm your email
     </h2>
-    <p class="mx-auto mt-4 max-w-sm text-sm leading-6 text-[#9aa4b2]">
+    <p class="mx-auto mt-4 max-w-sm text-sm leading-6 text-app-muted">
       {{
         failureMessage() ??
           'The confirmation link may be invalid or expired. Try signing in or request a new email.'
@@ -51,18 +51,18 @@
     <a routerLink="/login" class="auth-submit mt-7">Go to sign in</a>
   } @else {
     <div
-      class="mx-auto grid size-14 place-items-center rounded-full border border-white/10 bg-white/4 text-xl text-[#9aa4b2]"
+      class="mx-auto grid size-14 place-items-center rounded-full border border-white/10 bg-white/4 text-xl text-app-muted"
       aria-hidden="true"
     >
       ?
     </div>
-    <p class="mt-6 text-sm font-semibold tracking-[0.16em] text-[#9aa4b2] uppercase">
+    <p class="mt-6 text-sm font-semibold tracking-[0.16em] text-app-muted uppercase">
       Confirmation unavailable
     </p>
     <h2 class="mt-3 text-3xl font-semibold tracking-[-0.035em] text-white">
       No confirmation details found
     </h2>
-    <p class="mx-auto mt-4 max-w-sm text-sm leading-6 text-[#9aa4b2]">
+    <p class="mx-auto mt-4 max-w-sm text-sm leading-6 text-app-muted">
       Open the confirmation link from your email, or sign in if your account is already verified.
     </p>
     <a routerLink="/login" class="auth-submit mt-7">Go to sign in</a>

@@ -1,199 +1,101 @@
-# Creating and Using a Channel
+# Creating and Using a Guest Channel
 
-This walks through the full lifecycle of a channel — creation, joining, chat, typing,
-presence, and leaving — from both the backend (NestJS) and frontend (Angular)
-implementation perspective. It reflects the actual working implementation in
-`apps/api/src/modules/channels` and `apps/api/src/modules/gateway`, verified end-to-end against a real
-Supabase project (see "How this was tested" at the bottom).
+Guest channels use Supabase Anonymous Auth, the `guest` schema, database RPCs, Row Level Security, and filtered Realtime subscriptions. The Angular client never uses the Supabase service-role key, and NestJS is not in the guest chat data path.
 
-Every payload shape referenced here is defined once in `packages/shared` and is not
-duplicated anywhere — see `docs/EVENT_CONTRACT.md` for the full reference table.
+See `docs/EVENT_CONTRACT.md` for the exact RPC and REST contracts and `docs/ARCHITECTURE.md` for the security boundaries.
 
-## 1. Creating a channel (REST)
+## 1. Establish an auth session
 
-**`POST /channels`** — `apps/api/src/modules/channels/channels.controller.ts` →
-`ChannelsController.create`
+The web app initializes auth once through NestJS. If no registered or anonymous session exists, it calls:
 
-```
-POST http://localhost:3000/channels
+```http
+POST /auth/anonymous
 Content-Type: application/json
 
-{ "name": "Test Room" }
+{}
 ```
 
-`name` is required by the API controller (`CreateChannelRequestSchema` in
-`packages/shared/src/schemas/channel.schema.ts` + a controller guard in
-`apps/api/src/modules/channels/channels.controller.ts`). If omitted, the API returns 400.
+NestJS creates a Supabase anonymous user, returns the short-lived access token in the response, and stores only the refresh token in an HttpOnly cookie. The web app supplies that access token to its singleton Supabase client and Realtime connection.
 
-Response (`CreateChannelResponseSchema` = `ChannelSchema`):
+## 2. Create or join
 
-```json
-{
-  "id": "8OghXWSA",
-  "name": "Test Room",
-  "createdAt": "2026-08-01T09:37:13.897809+00:00",
-  "expiresAt": "2026-08-02T09:37:13.188+00:00"
-}
-```
-
-- `id` is an 8-character `nanoid` — this **is** the shareable room code (e.g. the frontend
-  would build a link like `yourapp.com/channel/8OghXWSA`). There is no separate "join code".
-  Originally, knowing the `id` was the entire access-control model for this no-auth app;
-  **`GET /channels` (below) relaxes that** — any guest can now list and join open channels
-  without a link, to power the browse-and-join page at `apps/web`'s `/guests` route. If that
-  trade-off turns out to be wrong for a given deployment, restrict or remove the endpoint
-  rather than assuming links are still the only way in.
-- `expiresAt` defaults to 24 hours out (`ttlHours = 24` in `createChannel`); `null` means no
-  expiry. Nothing currently enforces expiry automatically — see `supabase/schema.sql`'s
-  `delete_expired_channels()` function, meant to be run as a scheduled job.
-- Note the `+00:00` timestamp suffix — Supabase/PostgREST serializes `timestamptz` this way,
-  not with a `Z` suffix, which is why `ChannelSchema`/`MessageSchema` use
-  `z.string().datetime({ offset: true })`.
-
-**Fetching a channel back**: `GET /channels/:id` → same shape, 404s
-(`{ "message": "Channel not found or expired", "error": "Not Found", "statusCode": 404 }`)
-if the `id` doesn't exist or was deleted.
-
-**Backfilling history**: `GET /channels/:id/messages` → `{ "messages": [...] }`
-(`MessageHistorySchema`), oldest first. Also 404s the same way for an unknown channel —
-this is what a frontend calls once, on first opening a channel, before connecting the
-socket, so a client that joins after messages already exist still sees the full history.
-
-**From the frontend**: this is a plain HTTP call — no socket involved yet. In Angular this
-would be an `HttpClient` call in a `ChannelService`, e.g.:
+Anonymous channel creation and all joining use security-definer RPCs:
 
 ```typescript
-createChannel(name?: string): Observable<Channel> {
-  return this.http.post<Channel>('/channels', { name } satisfies CreateChannelRequest);
-}
+await supabase.schema('guest').rpc('create_channel', {
+  p_name: 'Project review',
+  p_display_name: 'Alice', // omitted for registered users
+});
+
+await supabase.schema('guest').rpc('join_channel', {
+  p_code: 'ABC12345',
+  p_display_name: 'Bob', // omitted for registered users
+});
 ```
 
-(`Channel`/`CreateChannelRequest` imported from `@lobby/shared` — never hand-write this
-shape in `apps/web`.)
+Registered creators use the guarded NestJS endpoint so Zod and database validation both protect the advanced settings:
 
-## 2. Joining over the socket
+```http
+POST /guest/channels
+Content-Type: application/json
 
-Once a client has a channel `id` (from creating one, or from a link someone shared), it
-connects to the Socket.IO gateway and emits `joinChannel`:
-
-```typescript
-socket.emit(SOCKET_EVENTS.JOIN_CHANNEL, { channelId, name } satisfies JoinChannelPayload);
+{ "name": "Project review", "maxParticipants": 20, "lifetimeMinutes": 120 }
 ```
 
-Handled by `ChannelGateway.handleJoinChannel` (`apps/api/src/modules/gateway/channel.gateway.ts`):
+Anonymous creators do not submit these settings and retain the 8-participant, 60-minute defaults.
 
-1. Validates the payload against `JoinChannelPayloadSchema`.
-2. Confirms the channel actually exists via `ChannelsService.findChannel` — if it
-   doesn't (deleted/expired/typo'd id), the client receives a Socket.IO `exception` event:
-   `{ status: 'error', message: 'Channel not found or expired' }` (a `NotFoundException`
-   from the repository is caught and rethrown as a `WsException` specifically so the
-   message is meaningful instead of Nest's generic "Internal server error" fallback).
-3. Joins the underlying Socket.IO room (`client.join(channelId)`).
-4. Tracks the member in-memory (`channelMembers: Map<channelId, Map<socketId, name>>`) —
-   **not** persisted, see §4.
-5. Broadcasts to everyone _else_ already in the room: `userJoined` → `{ name, socketId }`.
-6. Broadcasts to the **whole room** (including the joiner): `memberList` →
-   `{ members: [{ name, socketId }, ...] }`.
+The database derives the authenticated user from `auth.uid()`. Registered-user display names come from the authoritative profile; anonymous users provide a validated guest display name. Each active membership receives a stable LiveKit identity.
 
-A socket belongs to one channel at a time — joining a new `channelId` implicitly runs the
-same cleanup as leaving the previous one first, so state never gets orphaned if a client
-switches channels without explicitly leaving.
+Direct navigation to `/guest/:inviteCode` restores the auth session, resolves the channel under RLS, restores an active membership, or calls `join_channel` when an authenticated registered user is eligible to join automatically.
 
-## 3. Chat flow
+## 3. Chat and reactions
 
-```typescript
-socket.emit(SOCKET_EVENTS.CHAT_MESSAGE, { channelId, name, text } satisfies ChatMessagePayload);
+The client reads only the active channel rows permitted by RLS and mutates data through these RPCs:
+
+- `create_message`
+- `edit_message`
+- `delete_message`
+- `toggle_message_reaction`
+
+Optimistic messages carry a `client_message_id`. The store reconciles them against returned/database rows by row ID or client ID, preserving stable order without duplicates. Reply relationships store the real `reply_to` message UUID. Deletes are soft deletes, and edited messages retain their edited state.
+
+## 4. Realtime membership and chat
+
+One filtered Supabase Realtime channel subscribes to changes for:
+
+- `guest.channels`
+- `guest.channel_members`
+- `guest.messages`
+- `guest.message_reactions`
+
+The store merges inserts, updates, and deletes into its local state and aggregates reactions by emoji and member ID. It removes the subscription when the room is destroyed or changes.
+
+## 5. Calls
+
+The web app requests a token from the protected NestJS endpoint:
+
+```http
+POST /livekit/token
+Authorization: Bearer <supabase-access-token>
+Content-Type: application/json
+
+{ "channelId": "<guest-channel-uuid>" }
 ```
 
-`ChannelGateway.handleChatMessage`:
+NestJS verifies the caller's active membership and the active, unexpired channel with its server-only Supabase client. It derives the display name, LiveKit identity, room name, and call capacity from authoritative rows, explicitly creates the LiveKit room with that `maxParticipants`, and then mints a short-lived, least-privilege token. Media flows directly between the browser and LiveKit.
 
-1. Validates against `ChatMessagePayloadSchema`.
-2. Persists via `ChannelsService.addMessage` (insert into Supabase `messages` table).
-3. Broadcasts the **stored row** (not a reshaping of the inbound payload) to the entire
-   room, including the sender:
+## 6. Leave and close
 
-```json
-{
-  "id": "f4029fb5-aa92-4597-8280-534ba832c031",
-  "channelId": "8OghXWSA",
-  "authorName": "Alice",
-  "text": "hello from Alice",
-  "createdAt": "2026-08-01T09:38:35.492069+00:00"
-}
+Members leave explicitly with `leave_channel`. Owners close a room with `close_channel`; the channel becomes inactive and clients render the ended state. Route destruction only removes local Realtime resources and does not silently mutate membership.
+
+## Verification
+
+Run the repository baseline plus focused tests:
+
+```bash
+pnpm lint
+pnpm --filter api exec tsc -p tsconfig.json --noEmit
+pnpm --filter api exec jest --runInBand
+pnpm --filter web exec vitest run src/app/features/guest-room/services/guest-channel.store.spec.ts
+pnpm build
 ```
-
-Every client — including the one who sent it — ends up displaying the same `id` and
-`createdAt` the database assigned, rather than trusting a locally-generated optimistic
-value. This is also why a client that calls `GET /channels/:id/messages` afterwards sees
-the identical row.
-
-## 4. Typing indicator & presence (in-memory only)
-
-```typescript
-socket.emit(SOCKET_EVENTS.TYPING, { channelId, name, isTyping } satisfies TypingPayload);
-```
-
-`ChannelGateway.handleTyping` broadcasts `{ name, isTyping }` to everyone else in the room
-(not back to the sender, and with no `channelId`/`socketId` in the payload — targeting is
-done via the Socket.IO room, not the payload).
-
-**Important**: typing state and the `channelMembers`/`socketChannel` maps in
-`ChannelGateway` are plain in-memory `Map`s — restarting the API wipes all of it. This is
-intentional (see `docs/PROJECT_PLAN.md`, risk #5) and mirrors the persistence split: only
-**channels and messages** survive a restart (Supabase); who's currently online and who's
-mid-keystroke does not.
-
-## 5. Leaving / disconnecting
-
-```typescript
-socket.emit(SOCKET_EVENTS.LEAVE_CHANNEL, { channelId } satisfies LeaveChannelPayload);
-```
-
-An explicit `leaveChannel` and an implicit disconnect (dropped connection, closed tab) go
-through the exact same cleanup path (`ChannelGateway.removeFromChannel`): remove the member
-from the in-memory map, broadcast `userLeft` → `{ name, socketId }`, and — if anyone's still
-in the room — an updated `memberList`. If the departing member was the last one in the
-room, no `memberList` is sent (there's no one left to send it to) and the channel's entry is
-dropped from the map entirely.
-
-## 6. Known MVP tradeoffs (deliberate, not oversights)
-
-- **Gateway CORS is permissive** (`cors: { origin: true }` in `channel.gateway.ts`) rather
-  than locked to `CORS_ORIGIN` like the REST layer (`main.ts`'s `enableCors`). This is
-  because `shipped/socket-dev-console.html` is opened via `file://`, which sends
-  `Origin: null` — Socket.IO enforces its own origin check independent of browser CORS, so
-  a locked-down origin would reject the dev console entirely. Sockets never carry the
-  Supabase service-role key or any secret, and "knowing the channel id" is already this
-  app's access-control model, so this is a narrow, deliberate relaxation. Tighten this once
-  `apps/web` (not the dev console) is the only real client.
-- **WS validation errors are generic** for anything other than the "channel not found" case
-  — a malformed payload (failing `.parse()`) surfaces to the client as Nest's default
-  `{ status: 'error', message: 'Internal server error' }` rather than the actual Zod error.
-  The real error is still logged server-side. Fine for MVP; revisit with a custom
-  `WsExceptionFilter` if better client-side validation feedback is needed later.
-
-## How this was tested
-
-With a real Supabase project (schema from `supabase/schema.sql` applied) and
-`apps/api/.env` filled in, `pnpm dev:api` boots cleanly and logs every route/gateway
-subscription. Verified via:
-
-- `curl`/`Invoke-RestMethod` against all three REST endpoints (create, get, get messages),
-  including the 404 paths.
-- Two simulated `socket.io-client` connections (Alice, Bob) exercising the full sequence:
-  join → `memberList`/`userJoined` → chat → persisted broadcast → typing on/off → explicit
-  leave → `userLeft`/`memberList` → disconnect cleanup — plus a bad-channel-id join
-  confirming the `exception` event fires with the right message.
-- A connection with an explicit `Origin: null` header (matching what
-  `shipped/socket-dev-console.html` sends when opened directly from disk), confirming the
-  gateway's CORS setting accepts it.
-
-You can re-run the same checks yourself:
-
-1. `pnpm dev:api` (needs `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` in `apps/api/.env`, and
-   `supabase/schema.sql` applied to that project).
-2. Create a channel with the `curl`/`Invoke-RestMethod` call in §1, note the `id`.
-3. Open `shipped/socket-dev-console.html` directly in two browser tabs, set the same
-   Channel ID in both with different display names, and click through Connect → Join
-   channel → the Quick Actions buttons (Send "hello", Typing on/off, Leave) in each tab,
-   watching the other tab's event log update in real time.

@@ -1,295 +1,1350 @@
 @switch (status()) {
   @case ('needs-name') {
     <main
-      class="relative flex min-h-screen items-center justify-center overflow-hidden bg-app-background px-4 py-12 text-app-foreground"
+      class="relative min-h-screen overflow-hidden bg-[#090c12] px-4 py-5 text-app-foreground sm:px-6 sm:py-6 lg:px-8"
     >
+      <!-- Background atmosphere -->
       <div
-        class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(124,92,252,0.16),transparent_38%)]"
+        class="lobby-noise pointer-events-none absolute inset-0 opacity-30"
         aria-hidden="true"
       ></div>
 
-      <div class="relative w-full max-w-sm">
-        <div class="mb-7 flex flex-col items-center gap-4 text-center">
+      <div
+        class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(124,92,252,0.18),transparent_32%),radial-gradient(circle_at_82%_76%,rgba(79,70,229,0.09),transparent_30%)]"
+        aria-hidden="true"
+      ></div>
+
+      <div
+        class="relative mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-6xl flex-col sm:min-h-[calc(100vh-3rem)]"
+      >
+        <!-- Header -->
+        <header class="flex shrink-0 items-center justify-between gap-4 py-2">
           <a
             routerLink="/"
-            class="inline-flex items-center gap-3"
+            class="inline-flex items-center gap-2.5 rounded-lg outline-none transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-violet-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#090c12]"
             aria-label="Return to Lobby home"
           >
-            <app-logo [size]="28" />
-            <span class="text-lg font-semibold tracking-[-0.02em] text-white">Lobby</span>
+            <app-logo [size]="26" />
+
+            <span class="text-sm font-semibold tracking-tight text-white sm:text-base">
+              Lobby
+            </span>
           </a>
-          <div class="space-y-1.5">
-            <h1 class="text-2xl font-semibold tracking-[-0.03em] text-white">One more thing</h1>
-            <p class="text-sm leading-6 text-[#a0a9b7]">What should we call you in this channel?</p>
-          </div>
-        </div>
 
-        <form
-          (submit)="$event.preventDefault(); submitName()"
-          class="rounded-2xl border border-white/10 bg-[#141821] p-5 shadow-[0_25px_70px_rgba(0,0,0,.34)]"
-        >
-          <label for="joinName" class="block text-xs font-medium text-[#737e8e]">
-            Display name
-          </label>
-          <input
-            id="joinName"
-            type="text"
-            [formControl]="nameControl"
-            [maxlength]="maxNameLength"
-            placeholder="e.g. Mohammad"
-            autocomplete="off"
-            class="mt-2 h-11 w-full rounded-xl border border-white/10 bg-[#1a1f2b] px-3.5 text-sm text-app-foreground placeholder:text-[#687282] outline-none focus:border-[#8f74ff]/60 focus:ring-2 focus:ring-[#8f74ff]/20"
-          />
-
-          <button
-            type="submit"
-            class="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-white shadow-[0_16px_38px_rgba(124,92,252,0.24)] transition hover:-translate-y-0.5 hover:bg-[#8b6dff]"
+          <span
+            class="hidden items-center gap-2 text-[10px] font-medium text-[#798598] sm:inline-flex"
           >
-            Join channel
-          </button>
-        </form>
+            <span class="size-1.5 rounded-full bg-emerald-400"></span>
+            Private guest room
+          </span>
+        </header>
+
+        <!-- Workspace -->
+        <div
+          class="grid flex-1 items-center gap-12 py-10 lg:grid-cols-[1fr_0.82fr] lg:gap-20 lg:py-14"
+        >
+          <!-- Context -->
+          <section class="mx-auto w-full max-w-xl lg:mx-0">
+            <span
+              class="inline-flex items-center gap-2 text-[10px] font-semibold tracking-[0.16em] text-[#b9acff] uppercase"
+            >
+              <span class="size-1.5 rounded-full bg-emerald-400"></span>
+              Private guest room
+            </span>
+
+            <h1
+              class="mt-5 text-4xl font-semibold leading-[1.05] tracking-tighter text-white sm:text-5xl lg:text-[3.5rem]"
+            >
+              One name. No account. Straight into the conversation.
+            </h1>
+
+            <p class="mt-5 max-w-lg text-sm leading-7 text-[#8f9bad] sm:text-base">
+              Your temporary identity is used for chat, audio, and screen sharing inside this room.
+            </p>
+
+            <!-- Capabilities -->
+            <div
+              class="mt-9 grid border-y border-white/[0.07] sm:grid-cols-3 sm:divide-x sm:divide-white/[0.07]"
+            >
+              <div
+                class="flex items-center justify-between border-b border-white/[0.07] py-4 sm:block sm:border-b-0 sm:px-4 sm:first:pl-0"
+              >
+                <div>
+                  <p class="text-sm font-semibold text-white">Audio</p>
+                  <p class="mt-1 text-[10px] text-[#707c90]">No camera</p>
+                </div>
+
+                <app-icon name="mic" aria-hidden="true" class="size-4 text-[#a995ff] sm:mt-3" />
+              </div>
+
+              <div
+                class="flex items-center justify-between border-b border-white/[0.07] py-4 sm:block sm:border-b-0 sm:px-4"
+              >
+                <div>
+                  <p class="text-sm font-semibold text-white">Live</p>
+                  <p class="mt-1 text-[10px] text-[#707c90]">Realtime chat</p>
+                </div>
+
+                <app-icon name="chat" aria-hidden="true" class="size-4 text-[#a995ff] sm:mt-3" />
+              </div>
+
+              <div class="flex items-center justify-between py-4 sm:block sm:px-4 sm:last:pr-0">
+                <div>
+                  <p class="text-sm font-semibold text-white">One presenter</p>
+                  <p class="mt-1 text-[10px] text-[#707c90]">Focused sharing</p>
+                </div>
+
+                <app-icon
+                  name="screen-share"
+                  aria-hidden="true"
+                  class="size-4 text-[#a995ff] sm:mt-3"
+                />
+              </div>
+            </div>
+          </section>
+
+          <!-- Name form -->
+          <section
+            aria-labelledby="guest-name-title"
+            class="relative mx-auto w-full max-w-md lg:mx-0"
+          >
+            <div
+              class="pointer-events-none absolute -top-24 right-0 size-64 rounded-full bg-primary/10 blur-[90px]"
+              aria-hidden="true"
+            ></div>
+
+            <div class="relative">
+              <p class="text-[10px] font-semibold tracking-[0.18em] text-[#8e7cff] uppercase">
+                Room {{ inviteCode }}
+              </p>
+
+              <h2
+                id="guest-name-title"
+                class="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white"
+              >
+                Choose your display name
+              </h2>
+
+              <p class="mt-3 text-sm leading-6 text-[#8995a8]">
+                This is how everyone in the room will recognize you.
+              </p>
+
+              <form (submit)="$event.preventDefault(); submitName()" class="mt-8" novalidate>
+                <div class="flex items-center justify-between gap-3">
+                  <label for="guestName" class="text-xs font-semibold text-[#cfd5e0]">
+                    Display name
+                  </label>
+
+                  <span class="text-[10px] tabular-nums text-[#5f6b7e]">
+                    {{ nameControl.value.length }}/{{ maxNameLength }}
+                  </span>
+                </div>
+
+                <input
+                  id="guestName"
+                  type="text"
+                  [formControl]="nameControl"
+                  [maxlength]="maxNameLength"
+                  placeholder="e.g. Mohammad"
+                  autocomplete="name"
+                  class="mt-2.5 h-12 w-full rounded-xl border border-white/9 bg-[#111722] px-3.5 text-sm text-white outline-none transition placeholder:text-[#536074] hover:border-white/15 focus:border-primary/50 focus:ring-4 focus:ring-primary/8"
+                  [class.auth-input-error]="nameFieldError()"
+                  [attr.aria-invalid]="nameFieldError() ? 'true' : null"
+                  [attr.aria-describedby]="nameFieldError() ? 'guest-name-error' : null"
+                  (blur)="validateNameField()"
+                  (input)="handleNameInput()"
+                />
+
+                @if (nameFieldError(); as error) {
+                  <p id="guest-name-error" class="auth-field-error">
+                    {{ error }}
+                  </p>
+                }
+
+                <button
+                  type="submit"
+                  class="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-white shadow-[0_18px_42px_rgba(124,92,252,0.26)] outline-none transition hover:-translate-y-0.5 hover:bg-[#8b6dff] focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#090c12]"
+                >
+                  Enter room
+
+                  <app-icon name="arrow-right" aria-hidden="true" class="size-4" />
+                </button>
+              </form>
+
+              <div class="mt-6 border-t border-white/[0.07] pt-4">
+                <p class="text-[10px] leading-5 text-[#657186]">
+                  Guest rooms are temporary. Messages disappear when the room closes.
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
     </main>
   }
 
   @case ('loading') {
     <main
-      class="flex min-h-screen items-center justify-center bg-app-background text-sm text-[#a0a9b7]"
+      class="relative grid min-h-screen place-items-center overflow-hidden bg-[#090c12] px-4 text-app-foreground"
     >
-      Connecting to channel…
+      <div
+        class="lobby-noise pointer-events-none absolute inset-0 opacity-25"
+        aria-hidden="true"
+      ></div>
+
+      <div
+        class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(124,92,252,0.15),transparent_34%)]"
+        aria-hidden="true"
+      ></div>
+
+      <div
+        class="relative flex max-w-sm flex-col items-center px-4 text-center"
+        role="status"
+        aria-live="polite"
+      >
+        <div class="relative grid size-20 place-items-center">
+          <span
+            class="absolute inset-0 animate-ping rounded-[1.65rem] border border-primary/15"
+            aria-hidden="true"
+          ></span>
+
+          <span
+            class="absolute inset-2 animate-pulse rounded-[1.35rem] bg-primary/8"
+            aria-hidden="true"
+          ></span>
+
+          <app-logo [size]="34" />
+        </div>
+
+        <p class="mt-6 text-sm font-semibold text-white">Opening your room</p>
+
+        <p class="mt-1.5 text-xs leading-5 text-[#748095]">Restoring your secure guest session…</p>
+
+        <div class="mt-6 flex items-center gap-1.5" aria-hidden="true">
+          <span class="size-1.5 animate-pulse rounded-full bg-primary"></span>
+          <span
+            class="size-1.5 animate-pulse rounded-full bg-primary/70 [animation-delay:150ms]"
+          ></span>
+          <span
+            class="size-1.5 animate-pulse rounded-full bg-primary/40 [animation-delay:300ms]"
+          ></span>
+        </div>
+      </div>
     </main>
   }
 
   @case ('not-found') {
     <main
-      class="flex min-h-screen flex-col items-center justify-center gap-4 bg-app-background px-4 text-center text-app-foreground"
+      class="relative grid min-h-screen place-items-center overflow-hidden bg-[#090c12] px-4 py-10 text-center text-app-foreground"
     >
-      <p class="text-sm font-semibold tracking-[0.22em] text-[#737e8e] uppercase">Error 404</p>
-      <h1 class="text-2xl font-semibold text-white">This channel doesn't exist or has expired.</h1>
-      <button
-        type="button"
-        (click)="goToGuests()"
-        class="mt-2 inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#8b6dff]"
-      >
-        Browse open channels
-      </button>
+      <div
+        class="lobby-noise pointer-events-none absolute inset-0 opacity-20"
+        aria-hidden="true"
+      ></div>
+
+      <div
+        class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(244,63,94,0.09),transparent_32%)]"
+        aria-hidden="true"
+      ></div>
+
+      <section class="relative w-full max-w-lg">
+        <span
+          class="mx-auto grid size-12 place-items-center rounded-xl bg-rose-400/8 text-rose-300"
+        >
+          <app-icon name="warning" aria-hidden="true" class="size-5" />
+        </span>
+
+        <p class="mt-5 text-[10px] font-semibold tracking-[0.18em] text-rose-300 uppercase">
+          Room unavailable
+        </p>
+
+        <h1 class="mt-3 text-2xl font-semibold tracking-[-0.03em] text-white sm:text-3xl">
+          This guest link is invalid or expired.
+        </h1>
+
+        <p class="mx-auto mt-3 max-w-md text-sm leading-6 text-[#7f8a9c]">
+          Ask the room owner for a fresh invite, or create another temporary room.
+        </p>
+
+        <div
+          class="mx-auto mt-7 flex max-w-sm flex-col gap-3 border-t border-white/[0.07] pt-6 sm:flex-row sm:justify-center"
+        >
+          <button
+            type="button"
+            (click)="goToGuests()"
+            class="inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary px-5 text-sm font-semibold text-white outline-none transition hover:-translate-y-0.5 hover:bg-[#8b6dff] focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#090c12] sm:w-auto"
+          >
+            Browse guest rooms
+          </button>
+
+          <a
+            routerLink="/"
+            class="inline-flex h-11 w-full items-center justify-center rounded-xl border border-white/9 bg-white/2.5 px-5 text-sm font-medium text-[#bec7d4] outline-none transition-colors hover:bg-white/6 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:w-auto"
+          >
+            Back home
+          </a>
+        </div>
+      </section>
     </main>
   }
 
   @case ('error') {
     <main
-      class="flex min-h-screen flex-col items-center justify-center gap-4 bg-app-background px-4 text-center text-app-foreground"
+      class="relative grid min-h-screen place-items-center overflow-hidden bg-[#090c12] px-4 py-10 text-center text-app-foreground"
     >
-      <p class="text-sm font-semibold tracking-[0.22em] text-destructive uppercase">
-        Connection lost
-      </p>
-      <h1 class="max-w-md text-lg font-medium text-white">
-        {{ errorMessage() || 'Something went wrong reaching this channel.' }}
-      </h1>
-      <button
-        type="button"
-        (click)="goToGuests()"
-        class="mt-2 inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] px-5 py-3 text-sm font-semibold text-[#e7eaf0] transition hover:border-white/20 hover:bg-white/6"
-      >
-        Back to channel list
-      </button>
+      <div
+        class="lobby-noise pointer-events-none absolute inset-0 opacity-20"
+        aria-hidden="true"
+      ></div>
+
+      <div
+        class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(245,158,11,0.08),transparent_32%)]"
+        aria-hidden="true"
+      ></div>
+
+      <section class="relative w-full max-w-lg">
+        <span
+          class="mx-auto grid size-12 place-items-center rounded-xl bg-amber-400/8 text-amber-300"
+        >
+          <app-icon name="refresh" aria-hidden="true" class="size-5" />
+        </span>
+
+        <p class="mt-5 text-[10px] font-semibold tracking-[0.18em] text-amber-300 uppercase">
+          Connection interrupted
+        </p>
+
+        <h1 class="mt-3 text-xl font-semibold leading-8 tracking-[-0.02em] text-white sm:text-2xl">
+          {{ errorMessage() || 'Something went wrong reaching this room.' }}
+        </h1>
+
+        <p class="mx-auto mt-3 max-w-md text-sm leading-6 text-[#7f8a9c]">
+          The room may still be available. Return to guest access and try opening it again.
+        </p>
+
+        <div
+          class="mx-auto mt-7 flex max-w-sm flex-col gap-3 border-t border-white/[0.07] pt-6 sm:flex-row sm:justify-center"
+        >
+          <button
+            type="button"
+            (click)="goToGuests()"
+            class="inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary px-5 text-sm font-semibold text-white outline-none transition hover:-translate-y-0.5 hover:bg-[#8b6dff] focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#090c12] sm:w-auto"
+          >
+            Back to guest access
+          </button>
+
+          <button
+            type="button"
+            (click)="goToGuests()"
+            class="inline-flex h-11 w-full items-center justify-center rounded-xl border border-white/9 bg-white/2.5 px-5 text-sm font-medium text-[#bec7d4] outline-none transition-colors hover:bg-white/6 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:w-auto"
+          >
+            Try again
+          </button>
+        </div>
+      </section>
     </main>
   }
 
   @case ('ready') {
-    <main class="flex h-screen flex-col bg-app-background text-app-foreground">
-      <!-- New-message toasts -->
-      @if (toasts().length > 0) {
-        <div
-          class="pointer-events-none fixed inset-x-4 top-4 z-50 flex flex-col items-start gap-2 sm:inset-x-auto sm:left-4"
+    <main
+      class="relative flex h-dvh min-h-0 flex-col overflow-hidden bg-[#080b11] text-app-foreground lg:min-h-[620px]"
+    >
+      <div
+        class="lobby-noise pointer-events-none absolute inset-0 opacity-25"
+        aria-hidden="true"
+      ></div>
+      <div
+        class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_-10%,rgba(124,92,252,0.17),transparent_35%),radial-gradient(circle_at_85%_80%,rgba(79,70,229,0.07),transparent_26%)]"
+        aria-hidden="true"
+      ></div>
+
+      <header
+        class="relative z-20 flex h-14 shrink-0 items-center gap-2.5 border-b border-white/[0.07] bg-[#0c1018]/90 px-2.5 backdrop-blur-xl sm:h-16 sm:gap-3 sm:px-5 max-lg:landscape:h-12"
+      >
+        <!-- Brand -->
+        <a
+          routerLink="/"
+          aria-label="Return to Lobby home"
+          class="inline-flex shrink-0 items-center gap-2 rounded-lg outline-none transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-violet-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1018]"
         >
-          @for (toast of toasts(); track toast.id) {
-            <div
-              class="toast-slide-in pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl border border-white/10 bg-[#141821] p-3.5 shadow-[0_20px_50px_rgba(0,0,0,.4)]"
+          <app-logo [size]="22" />
+
+          <span
+            class="hidden text-sm font-semibold leading-none tracking-tight text-white sm:inline"
+          >
+            Lobby
+          </span>
+        </a>
+
+        <!-- Brand separator -->
+        <span aria-hidden="true" class="hidden h-7 w-px shrink-0 bg-white/8 sm:block"></span>
+
+        <!-- Room information -->
+        <div class="min-w-0 flex-1">
+          <h1 class="truncate text-sm font-semibold leading-5 text-white sm:text-[15px]">
+            {{ channel()?.name ?? 'Guest room' }}
+          </h1>
+
+          <div
+            class="mt-0.5 flex min-w-0 items-center gap-1.5 text-[10px] font-medium leading-none text-[#7f8a9d]"
+          >
+            <span class="truncate">
+              {{ expiresInLabel() }}
+            </span>
+
+            <span aria-hidden="true" class="hidden text-white/20 sm:inline"> · </span>
+
+            <span
+              role="status"
+              aria-live="polite"
+              class="hidden items-center gap-1.5 sm:inline-flex"
             >
               <span
-                class="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-[10px] font-semibold text-white"
-              >
-                {{ initials(toast.name) }}
-              </span>
+                aria-hidden="true"
+                class="size-1.5 shrink-0 rounded-full"
+                [class.bg-emerald-400]="connected()"
+                [class.bg-amber-400]="!connected()"
+              ></span>
 
-              <div class="min-w-0 flex-1">
-                <p class="text-xs font-semibold text-[#edf0f4]">{{ toast.name }}</p>
-                <p class="mt-0.5 truncate text-xs text-[#a0a9b7]">{{ toast.text }}</p>
+              {{ connected() ? 'Connected' : 'Reconnecting' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Header actions -->
+        <nav aria-label="Room actions" class="flex shrink-0 items-center gap-2">
+          <!-- Sharing -->
+          <button
+            type="button"
+            (click)="shareRoomOpen.set(true)"
+            aria-label="Share room"
+            class="inline-flex size-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-primary/25 bg-primary/9 text-xs font-semibold leading-none text-[#d8d0ff] outline-none transition-colors hover:border-primary/40 hover:bg-primary/16 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-9 sm:w-auto sm:px-3"
+          >
+            <app-icon name="qr" aria-hidden="true" class="size-3.5" />
+            <span class="hidden sm:inline">Share room</span>
+          </button>
+
+          <!-- Members -->
+          <button
+            type="button"
+            (click)="membersPanelOpen.set(true)"
+            [attr.aria-label]="'Show room members, ' + roomMemberCount() + ' members'"
+            class="inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/8 bg-white/[0.035] px-2.5 text-xs font-medium leading-none text-[#b8c1ce] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-9 sm:min-w-9"
+          >
+            <app-icon name="users" aria-hidden="true" class="size-3.5 shrink-0" />
+
+            <span class="tabular-nums">
+              {{ roomMemberCount() }}
+            </span>
+          </button>
+
+          <!-- Destructive action separator -->
+          <span aria-hidden="true" class="hidden h-6 w-px shrink-0 bg-white/8 sm:block"></span>
+
+          <!-- Close or leave room -->
+          <button
+            type="button"
+            (click)="requestRoomExit()"
+            [attr.aria-label]="isOwner() ? 'Close room' : 'Leave room'"
+            class="inline-flex size-10 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-white/8 bg-white/[0.035] text-xs font-medium leading-none text-[#b8c1ce] outline-none transition-colors hover:border-rose-400/25 hover:bg-rose-400/8 hover:text-rose-200 focus-visible:ring-2 focus-visible:ring-rose-400/50 sm:h-9 sm:w-auto sm:px-3"
+          >
+            <app-icon name="logout" aria-hidden="true" class="size-3.5 shrink-0" />
+
+            <span class="hidden sm:inline">
+              {{ isOwner() ? 'Close room' : 'Leave room' }}
+            </span>
+          </button>
+        </nav>
+      </header>
+
+      @if (actionNotice(); as notice) {
+        <div
+          class="relative z-30 flex shrink-0 items-center gap-3 border-b border-amber-300/15 bg-amber-300/8 px-4 py-2.5 text-xs text-amber-100"
+        >
+          <span
+            class="grid size-7 shrink-0 place-items-center rounded-lg bg-amber-300/10 text-amber-300"
+          >
+            <app-icon name="warning" class="size-4" />
+          </span>
+          <span class="min-w-0 flex-1">{{ notice }}</span>
+          <button
+            type="button"
+            (click)="dismissNotice()"
+            class="grid size-7 place-items-center rounded-lg text-amber-100/60 transition hover:bg-white/6 hover:text-amber-50"
+            aria-label="Dismiss notice"
+          >
+            <app-icon name="close" class="size-4" />
+          </button>
+        </div>
+      }
+
+      <div class="relative z-10 flex min-h-0 flex-1">
+        <section
+          class="relative min-w-0 flex-1 overflow-hidden bg-[linear-gradient(180deg,rgba(14,19,29,0.72),rgba(8,12,18,0.9))]"
+        >
+          @if (call.joined()) {
+            <div
+              class="relative flex h-full min-h-0 flex-col pb-[calc(4.75rem+env(safe-area-inset-bottom))] sm:pb-24 max-lg:landscape:pb-[calc(4.25rem+env(safe-area-inset-bottom))]"
+            >
+              @if (callJoining() && !call.connected()) {
+                <div
+                  class="absolute inset-0 z-40 grid place-items-center bg-[#0a0f17]/82 backdrop-blur-md"
+                >
+                  <div class="flex flex-col items-center text-center">
+                    <span
+                      class="size-7 animate-spin rounded-full border-2 border-white/15 border-t-primary"
+                    ></span>
+                    <p class="mt-4 text-sm font-semibold text-white">Joining the audio room…</p>
+                    <p class="mt-1 text-[11px] text-[#758195]">
+                      Preparing your microphone and encrypted session
+                    </p>
+                  </div>
+                </div>
+              }
+
+              <div
+                class="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-white/7 px-3 sm:h-14 sm:px-5 max-lg:landscape:h-10"
+              >
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="relative flex size-2 shrink-0"
+                      ><span
+                        class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-50"
+                      ></span
+                      ><span class="relative inline-flex size-2 rounded-full bg-emerald-400"></span
+                    ></span>
+                    <p class="truncate text-xs font-semibold text-white">Audio room connected</p>
+                  </div>
+                  <p
+                    class="mt-0.5 max-w-[70vw] truncate text-[9px] text-[#707c90] sm:mt-1 sm:max-w-none sm:text-[10px] max-lg:landscape:hidden"
+                  >
+                    {{ callParticipantCount() }} / {{ callCapacity() }} participants ·
+                    {{ call.roomName() }}
+                  </p>
+                </div>
+                <span
+                  class="hidden rounded-full border border-white/8 bg-white/[0.035] px-3 py-1 text-[10px] font-medium text-[#9ba6b8] sm:inline-flex"
+                  >Audio + screen share</span
+                >
+              </div>
+
+              @if (call.activeScreenShare().track !== null) {
+                <div
+                  class="flex min-h-0 flex-1 flex-col gap-2 p-2 sm:gap-3 sm:p-4 lg:grid lg:grid-cols-[minmax(0,1fr)_clamp(13rem,20vw,17rem)] lg:gap-4 max-lg:landscape:grid max-lg:landscape:grid-cols-[minmax(0,1fr)_8.5rem] max-lg:landscape:gap-2"
+                >
+                  <div class="flex min-h-0 min-w-0 flex-1 lg:h-full">
+                    <app-call-stage
+                      [isLocalSharing]="call.activeScreenShare().isLocal"
+                      [sharerName]="call.activeScreenShare().sharerName"
+                      [screenShareTrack]="call.activeScreenShare().track"
+                    />
+                  </div>
+
+                  <aside
+                    aria-label="Call participants"
+                    class="lobby-scrollbar flex max-h-18 shrink-0 gap-2 overflow-x-auto border-t border-white/7 pt-2 lg:max-h-none lg:min-h-0 lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto lg:border-t-0 lg:border-l lg:pt-0 lg:pl-3 max-lg:landscape:max-h-none max-lg:landscape:min-h-0 max-lg:landscape:flex-col max-lg:landscape:overflow-x-hidden max-lg:landscape:overflow-y-auto max-lg:landscape:border-t-0 max-lg:landscape:border-l max-lg:landscape:pt-0 max-lg:landscape:pl-2"
+                  >
+                    @for (participant of callParticipants(); track participant.id) {
+                      <div
+                        class="min-w-40 shrink-0 lg:w-full lg:min-w-0 max-lg:landscape:w-full max-lg:landscape:min-w-0"
+                      >
+                        <app-voice-participant-tile [participant]="participant" [compact]="true" />
+                      </div>
+                    }
+                  </aside>
+                </div>
+              } @else {
+                <div class="lobby-scrollbar min-h-0 flex-1 overflow-y-auto p-3 sm:p-6">
+                  <div
+                    class="mx-auto grid max-w-5xl auto-rows-min grid-cols-2 gap-2.5 sm:gap-3 xl:grid-cols-3 max-lg:landscape:grid-cols-[repeat(auto-fit,minmax(7.5rem,1fr))]"
+                  >
+                    @for (
+                      participant of callParticipants();
+                      track participant.id;
+                      let isLast = $last
+                    ) {
+                      <div
+                        [class]="
+                          callParticipants().length === 1
+                            ? 'col-span-2 mx-auto w-full max-w-60 lg:col-span-1 lg:max-w-none max-lg:landscape:col-span-1'
+                            : isLast && callParticipants().length % 2 === 1
+                              ? 'col-span-2 mx-auto w-[calc(50%-0.3125rem)] lg:col-span-1 lg:mx-0 lg:w-auto max-lg:landscape:col-span-1 max-lg:landscape:mx-0 max-lg:landscape:w-auto'
+                              : ''
+                        "
+                      >
+                        <app-voice-participant-tile [participant]="participant" />
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              <app-call-control-bar
+                [currentUserName]="displayName()"
+                [enabled]="call.connected()"
+                [micEnabled]="call.micEnabled()"
+                [micPending]="call.micPending()"
+                [screenShareActive]="call.screenShareActive()"
+                [screenSharePending]="call.screenSharePending()"
+                [screenShareSupported]="call.screenShareSupported()"
+                [screenShareDisabled]="
+                  !call.screenShareSupported() || call.anotherParticipantSharing()
+                "
+                [screenShareDisabledReason]="call.screenShareDisabledReason()"
+                [participantCount]="callParticipantCount()"
+                [chatOpen]="chatOpen()"
+                (toggleMic)="toggleMic()"
+                (toggleScreenShare)="toggleScreenShare()"
+                (toggleChat)="toggleRoomChatAccess()"
+                (toggleParticipants)="membersPanelOpen.set(true)"
+                (leave)="leaveCall()"
+              />
+            </div>
+          } @else {
+            <div class="lobby-scrollbar relative h-full min-h-0 overflow-y-auto">
+              <!-- The whole call workspace changes state; there is no nested card container. -->
+              @if (callStatusLoading() || restoringCallSession()) {
+                <div
+                  aria-hidden="true"
+                  class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_48%_30%,rgba(56,189,248,0.09),transparent_42%)]"
+                ></div>
+              } @else if (callActive()) {
+                <div
+                  aria-hidden="true"
+                  class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_48%_30%,rgba(52,211,153,0.10),transparent_42%)]"
+                ></div>
+              } @else {
+                <div
+                  aria-hidden="true"
+                  class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_48%_30%,rgba(124,92,252,0.10),transparent_42%)]"
+                ></div>
+              }
+
+              <div
+                aria-hidden="true"
+                class="pointer-events-none absolute inset-0 opacity-40 bg-[linear-gradient(rgba(255,255,255,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.018)_1px,transparent_1px)] bg-size-[42px_42px] mask-[linear-gradient(to_bottom,black,transparent_78%)]"
+              ></div>
+
+              <div
+                class="relative z-10 mx-auto flex min-h-full w-full max-w-6xl flex-col justify-center px-4 py-6 sm:px-7 sm:py-8 lg:px-10 lg:py-10"
+              >
+                @if (callStatusLoading() || restoringCallSession()) {
+                  <!-- Loading / restoring state -->
+                  <section
+                    role="status"
+                    aria-live="polite"
+                    class="grid w-full items-center gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-14"
+                  >
+                    <div class="min-w-0">
+                      <span
+                        class="inline-flex items-center gap-2 rounded-full border border-sky-300/20 bg-sky-300/[0.07] px-3 py-1.5 text-[10px] font-semibold tracking-wider text-sky-200"
+                      >
+                        <span
+                          aria-hidden="true"
+                          class="size-3.5 animate-spin rounded-full border-2 border-sky-200/20 border-t-sky-200"
+                        ></span>
+
+                        {{
+                          restoringCallSession()
+                            ? 'RESTORING YOUR LIVE CALL'
+                            : 'CHECKING CALL STATUS'
+                        }}
+                      </span>
+
+                      <h2
+                        class="mt-5 max-w-2xl text-2xl font-semibold leading-[1.08] tracking-[-0.035em] text-white sm:text-3xl lg:text-4xl"
+                      >
+                        {{
+                          restoringCallSession()
+                            ? 'Rejoining the conversation…'
+                            : 'Checking what is happening in this room…'
+                        }}
+                      </h2>
+
+                      <p
+                        class="mt-3 max-w-xl text-xs leading-6 text-[#929daf] sm:mt-4 sm:text-sm sm:leading-7"
+                      >
+                        @if (restoringCallSession()) {
+                          You were in this call before the page refreshed. Lobby is requesting a
+                          fresh secure session and reconnecting you automatically.
+                        } @else {
+                          Lobby is confirming whether an audio call is already live before showing
+                          you the correct action.
+                        }
+                      </p>
+
+                      <div class="mt-6 flex max-w-xl items-center gap-3">
+                        <span
+                          class="grid size-10 shrink-0 place-items-center rounded-xl bg-sky-300/8 text-sky-200 sm:size-11"
+                        >
+                          <app-icon
+                            [name]="restoringCallSession() ? 'call' : 'refresh'"
+                            aria-hidden="true"
+                            class="size-4"
+                          />
+                        </span>
+
+                        <div class="min-w-0 flex-1">
+                          <div
+                            class="h-2.5 w-32 max-w-full animate-pulse rounded-full bg-white/9"
+                          ></div>
+                          <div
+                            class="mt-2 h-2 w-48 max-w-[82%] animate-pulse rounded-full bg-white/5.5"
+                          ></div>
+                        </div>
+
+                        <span
+                          class="hidden shrink-0 text-[10px] font-medium text-[#7d899c] sm:inline"
+                        >
+                          Please wait
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        (click)="toggleRoomChatAccess()"
+                        [attr.aria-label]="chatOpen() ? 'Hide room chat' : 'Open room chat'"
+                        [attr.aria-pressed]="chatOpen()"
+                        class="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/9 bg-white/[0.035] px-4 text-xs font-medium text-[#c8d0dc] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:w-auto"
+                        [class.border-primary/35]="chatOpen()"
+                        [class.bg-primary/10]="chatOpen()"
+                      >
+                        <app-icon name="chat" aria-hidden="true" class="size-4" />
+                        {{ chatOpen() ? 'Hide chat' : 'Open chat while waiting' }}
+                      </button>
+                    </div>
+
+                    <div
+                      class="relative mx-auto hidden aspect-square w-full max-w-68 sm:block"
+                      aria-hidden="true"
+                    >
+                      <div
+                        class="absolute inset-[3%] animate-[spin_26s_linear_infinite] rounded-full border border-dashed border-sky-300/15"
+                      ></div>
+                      <div
+                        class="absolute inset-[17%] rounded-full border border-white/[0.07]"
+                      ></div>
+                      <div
+                        class="absolute inset-[31%] rounded-full bg-sky-300/[0.035] shadow-[0_0_85px_rgba(56,189,248,0.12)]"
+                      ></div>
+
+                      <span
+                        class="absolute top-1/2 left-1/2 grid size-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-3xl bg-[#121827]/90 shadow-[0_20px_60px_rgba(0,0,0,0.38)]"
+                      >
+                        <span
+                          class="size-7 animate-spin rounded-full border-2 border-white/10 border-t-sky-300"
+                        ></span>
+                      </span>
+
+                      <span
+                        class="absolute top-[13%] left-[15%] size-2.5 animate-pulse rounded-full bg-sky-300/70 shadow-[0_0_16px_rgba(125,211,252,0.5)]"
+                      ></span>
+                      <span
+                        class="absolute right-[10%] bottom-[20%] size-2 animate-pulse rounded-full bg-violet-300/60"
+                      ></span>
+                    </div>
+                  </section>
+                } @else if (callActive()) {
+                  <!-- A call is already live: this state must be immediately noticeable. -->
+                  <section
+                    class="grid w-full items-center gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-14"
+                  >
+                    <div class="min-w-0">
+                      <div
+                        role="status"
+                        aria-live="polite"
+                        class="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/8 px-3 py-1.5 text-[10px] font-semibold tracking-wider text-emerald-200"
+                        [class.border-amber-300/25]="callFull()"
+                        [class.bg-amber-300/8]="callFull()"
+                        [class.text-amber-100]="callFull()"
+                      >
+                        <span class="relative flex size-2 shrink-0">
+                          <span
+                            class="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-50"
+                          ></span>
+                          <span
+                            class="relative inline-flex size-2 rounded-full bg-emerald-400"
+                          ></span>
+                        </span>
+
+                        {{ callFull() ? 'CALL FULL' : 'CALL ACTIVE' }} ·
+                        {{ callParticipantCount() }}/{{ callCapacity() }}
+                      </div>
+
+                      <h2
+                        class="mt-5 max-w-2xl text-2xl font-semibold leading-[1.08] tracking-[-0.035em] text-white sm:text-3xl lg:text-4xl"
+                      >
+                        {{
+                          callFull()
+                            ? 'The audio call is full right now.'
+                            : 'People are already talking in this room.'
+                        }}
+                      </h2>
+
+                      <p
+                        class="mt-3 max-w-xl text-xs leading-6 text-[#929daf] sm:mt-4 sm:text-sm sm:leading-7"
+                      >
+                        @if (callFull()) {
+                          Stay in the room and keep using chat while you wait. Joining becomes
+                          available automatically when someone leaves the call.
+                        } @else {
+                          Join the live audio conversation now. Your chat remains available while
+                          you listen, speak, or share your screen.
+                        }
+                      </p>
+
+                      <div class="mt-6 flex items-center gap-3">
+                        <span
+                          class="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-400/10 text-emerald-200 sm:size-11"
+                        >
+                          <app-icon name="call" aria-hidden="true" class="size-4" />
+                        </span>
+
+                        <div class="min-w-0">
+                          <p class="text-xs font-semibold text-white sm:text-sm">
+                            {{ callFull() ? 'Call full' : 'Audio room is live' }}
+                          </p>
+                          <p class="mt-0.5 text-[10px] text-[#82918b] sm:text-[11px]">
+                            {{ callParticipantCount() }} of {{ callCapacity() }} participants
+                            currently connected
+                          </p>
+                        </div>
+                      </div>
+
+                      <div class="mt-6 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3">
+                        <button
+                          type="button"
+                          (click)="joinCall()"
+                          [disabled]="callJoining() || callFull()"
+                          [attr.aria-describedby]="callFull() ? 'call-full-reason' : null"
+                          [attr.title]="
+                            callFull()
+                              ? 'Call full — ' +
+                                callParticipantCount() +
+                                ' of ' +
+                                callCapacity() +
+                                ' participants are currently in the call.'
+                              : null
+                          "
+                          class="group relative isolate inline-flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-emerald-300 px-5 text-sm font-semibold text-[#07130d] shadow-[0_18px_45px_rgba(52,211,153,0.22)] outline-none transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-200 hover:shadow-[0_22px_55px_rgba(52,211,153,0.3)] focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0f17] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 sm:w-auto sm:min-w-44"
+                        >
+                          <span
+                            aria-hidden="true"
+                            class="absolute inset-y-0 -left-20 w-16 -skew-x-12 bg-white/25 blur-md transition-transform duration-700 group-hover:translate-x-72"
+                          ></span>
+
+                          @if (callFull()) {
+                            <app-icon name="users" aria-hidden="true" class="size-4" />
+                            <span>Call full</span>
+                          } @else if (callJoining()) {
+                            <span
+                              aria-hidden="true"
+                              class="size-4 animate-spin rounded-full border-2 border-[#07130d]/25 border-t-[#07130d]"
+                            ></span>
+                            <span>Joining call…</span>
+                          } @else {
+                            <span class="relative flex size-4 shrink-0 items-center justify-center">
+                              <span
+                                class="absolute size-3 animate-ping rounded-full bg-[#07130d]/15"
+                              ></span>
+                              <app-icon name="call" aria-hidden="true" class="relative size-4" />
+                            </span>
+                            <span>Join live call</span>
+                          }
+                        </button>
+
+                        <button
+                          type="button"
+                          (click)="toggleRoomChatAccess()"
+                          [attr.aria-label]="chatOpen() ? 'Hide room chat' : 'Open room chat'"
+                          [attr.aria-pressed]="chatOpen()"
+                          class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/9 bg-white/[0.035] px-4 text-xs font-medium text-[#c8d0dc] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-12 sm:w-auto"
+                          [class.border-primary/35]="chatOpen()"
+                          [class.bg-primary/10]="chatOpen()"
+                        >
+                          <app-icon name="chat" aria-hidden="true" class="size-4" />
+                          {{ chatOpen() ? 'Hide chat' : 'Open chat' }}
+                        </button>
+                      </div>
+
+                      @if (callFull()) {
+                        <p id="call-full-reason" class="mt-3 text-xs leading-5 text-amber-100/80">
+                          Call full — {{ callParticipantCount() }} of {{ callCapacity() }}
+                          participants are currently in the call.
+                        </p>
+                      }
+                    </div>
+
+                    <div
+                      class="relative mx-auto hidden aspect-square w-full max-w-68 sm:block"
+                      aria-hidden="true"
+                    >
+                      <div
+                        class="absolute inset-[3%] animate-[spin_24s_linear_infinite] rounded-full border border-dashed border-emerald-400/20"
+                      ></div>
+                      <div
+                        class="absolute inset-[17%] rounded-full border border-emerald-400/20"
+                      ></div>
+                      <div
+                        class="absolute inset-[31%] rounded-full bg-emerald-400/5.5 shadow-[0_0_85px_rgba(52,211,153,0.16)]"
+                      ></div>
+
+                      <span
+                        class="absolute top-[10%] left-[12%] grid size-11 place-items-center rounded-xl bg-[#171d2a]/90 text-[#cbd3de] shadow-xl sm:size-12"
+                      >
+                        <app-icon name="mic" class="size-4" />
+                      </span>
+                      <span
+                        class="absolute right-[7%] bottom-[16%] grid size-11 place-items-center rounded-xl bg-[#171d2a]/90 text-[#cbd3de] shadow-xl sm:size-12"
+                      >
+                        <app-icon name="screen-share" class="size-4" />
+                      </span>
+                      <span
+                        class="absolute right-[10%] top-[22%] size-3 rounded-full border-2 border-[#121827] bg-emerald-400 shadow-[0_0_14px_rgba(52,211,153,0.65)]"
+                      ></span>
+
+                      <div
+                        class="absolute top-1/2 left-1/2 flex size-20 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-3xl bg-[#121827]/90 shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
+                      >
+                        <span class="text-xl font-semibold tabular-nums text-white">
+                          {{ callParticipantCount() }}/{{ callCapacity() }}
+                        </span>
+                        <span
+                          class="mt-0.5 text-[8px] font-semibold tracking-widest text-emerald-300 uppercase"
+                        >
+                          {{ callFull() ? 'Full' : 'Live' }}
+                        </span>
+                      </div>
+                    </div>
+                  </section>
+                } @else {
+                  <!-- No call is active: calm start state. -->
+                  <section
+                    class="grid w-full items-center gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-14"
+                  >
+                    <div class="min-w-0">
+                      <span
+                        class="inline-flex items-center gap-2 rounded-full border border-white/9 bg-white/4.5 px-3 py-1.5 text-[10px] font-semibold text-[#c3cad6]"
+                      >
+                        <span class="size-1.5 rounded-full bg-primary"></span>
+                        Ready · 0/{{ callCapacity() }}
+                      </span>
+
+                      <h2
+                        class="mt-5 max-w-2xl text-2xl font-semibold leading-[1.08] tracking-[-0.035em] text-white sm:text-3xl lg:text-4xl"
+                      >
+                        Talk naturally. Share the screen. Keep the chat moving.
+                      </h2>
+
+                      <p
+                        class="mt-3 max-w-xl text-xs leading-6 text-[#8d99ac] sm:mt-4 sm:text-sm sm:leading-7"
+                      >
+                        Start an audio room without leaving this dashboard. Messages, replies, and
+                        reactions remain available beside the call.
+                      </p>
+
+                      <div class="mt-6 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3">
+                        <button
+                          type="button"
+                          (click)="joinCall()"
+                          [disabled]="callJoining()"
+                          class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(124,92,252,0.28)] outline-none transition hover:-translate-y-0.5 hover:bg-[#8b6dff] focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0f17] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 sm:w-auto"
+                        >
+                          @if (callJoining()) {
+                            <span
+                              aria-hidden="true"
+                              class="size-4 animate-spin rounded-full border-2 border-white/25 border-t-white"
+                            ></span>
+                            Connecting…
+                          } @else {
+                            <app-icon name="call" aria-hidden="true" class="size-4" />
+                            Start audio call
+                          }
+                        </button>
+
+                        <button
+                          type="button"
+                          (click)="toggleRoomChatAccess()"
+                          [attr.aria-label]="chatOpen() ? 'Hide room chat' : 'Open room chat'"
+                          [attr.aria-pressed]="chatOpen()"
+                          class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/9 bg-white/[0.035] px-4 text-xs font-medium text-[#c8d0dc] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-12 sm:w-auto"
+                          [class.border-primary/35]="chatOpen()"
+                          [class.bg-primary/10]="chatOpen()"
+                        >
+                          <app-icon name="chat" aria-hidden="true" class="size-4" />
+                          {{ chatOpen() ? 'Hide chat' : 'Open chat' }}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div
+                      class="relative mx-auto hidden aspect-square w-full max-w-68 sm:block"
+                      aria-hidden="true"
+                    >
+                      <div class="absolute inset-[4%] rounded-full border border-primary/15"></div>
+                      <div class="absolute inset-[18%] rounded-full border border-primary/20"></div>
+                      <div
+                        class="absolute inset-[32%] rounded-full bg-primary/[0.07] shadow-[0_0_85px_rgba(124,92,252,0.18)]"
+                      ></div>
+                      <div
+                        class="absolute inset-0 animate-[spin_22s_linear_infinite] rounded-full border border-dashed border-white/8"
+                      ></div>
+
+                      <span
+                        class="absolute top-[12%] left-[14%] grid size-11 place-items-center rounded-xl bg-[#171d2a]/90 text-[#c9d0dc] shadow-xl sm:size-12"
+                      >
+                        <app-icon name="mic" class="size-4" />
+                      </span>
+                      <span
+                        class="absolute right-[8%] bottom-[18%] grid size-11 place-items-center rounded-xl bg-[#171d2a]/90 text-[#c9d0dc] shadow-xl sm:size-12"
+                      >
+                        <app-icon name="screen-share" class="size-4" />
+                      </span>
+                      <span
+                        class="absolute top-1/2 left-1/2 grid size-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-3xl bg-[#121827]/90 shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
+                      >
+                        <app-logo [size]="36" />
+                      </span>
+                    </div>
+                  </section>
+                }
+
+                <!-- Shared capabilities: presented as part of the workspace, not as cards. -->
+                <div
+                  class="mt-8 grid gap-4 border-t border-white/6.5 pt-5 sm:mt-10 sm:grid-cols-3 sm:gap-0 sm:pt-6"
+                >
+                  <div class="flex items-start gap-3 sm:pr-5">
+                    <span
+                      class="grid size-8 shrink-0 place-items-center rounded-lg bg-white/[0.035] text-[#a995ff]"
+                    >
+                      <app-icon name="mic" aria-hidden="true" class="size-3.5" />
+                    </span>
+                    <div class="min-w-0">
+                      <p class="text-xs font-semibold text-white">Audio first</p>
+                      <p
+                        class="mt-1 text-[10px] leading-4 text-[#718095] sm:text-[11px] sm:leading-5"
+                      >
+                        No camera controls or video permissions.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div class="flex items-start gap-3 sm:border-l sm:border-white/6.5 sm:px-5">
+                    <span
+                      class="grid size-8 shrink-0 place-items-center rounded-lg bg-white/[0.035] text-[#a995ff]"
+                    >
+                      <app-icon name="screen-share" aria-hidden="true" class="size-3.5" />
+                    </span>
+                    <div class="min-w-0">
+                      <p class="text-xs font-semibold text-white">One presenter</p>
+                      <p
+                        class="mt-1 text-[10px] leading-4 text-[#718095] sm:text-[11px] sm:leading-5"
+                      >
+                        Sharing is disabled while someone presents.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div class="flex items-start gap-3 sm:border-l sm:border-white/6.5 sm:pl-5">
+                    <span
+                      class="grid size-8 shrink-0 place-items-center rounded-lg bg-white/[0.035] text-[#a995ff]"
+                    >
+                      <app-icon name="chat" aria-hidden="true" class="size-3.5" />
+                    </span>
+                    <div class="min-w-0">
+                      <p class="text-xs font-semibold text-white">Chat stays open</p>
+                      <p
+                        class="mt-1 text-[10px] leading-4 text-[#718095] sm:text-[11px] sm:leading-5"
+                      >
+                        Keep writing before, during, and after calls.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+        </section>
+
+        @if (!chatCollapsed()) {
+          <aside
+            class="hidden min-h-0 w-[min(36vw,390px)] min-w-[330px] shrink-0 border-l border-white/7 bg-[#0d121b]/78 backdrop-blur-xl lg:flex"
+          >
+            <app-room-chat
+              [title]="'Room chat'"
+              [subtitle]="roomMemberCount() + ' member' + (roomMemberCount() === 1 ? '' : 's')"
+              [infoBannerText]="null"
+              [messages]="chatMessages()"
+              [currentUserId]="currentUser().id"
+              [memberNames]="memberNames()"
+              [placeholder]="'Message ' + (channel()?.name ?? 'the room')"
+              [disabled]="!connected()"
+              [showCloseButton]="false"
+              (sendMessage)="onSendMessage($event)"
+              (reactToMessage)="onReact($event)"
+              (deleteMessage)="onDelete($event)"
+              (editMessage)="onEdit($event)"
+            >
+              <ng-container chat-header-extra>
+                <span
+                  class="flex items-center gap-1.5 rounded-full border border-white/8 bg-white/[0.035] px-2.5 py-1 text-[9px] font-semibold text-[#8f9bad]"
+                >
+                  <span
+                    [class]="
+                      'size-1.5 rounded-full ' + (connected() ? 'bg-emerald-400' : 'bg-amber-400')
+                    "
+                  ></span>
+                  {{ connected() ? 'LIVE' : 'SYNCING' }}
+                </span>
+              </ng-container>
+            </app-room-chat>
+          </aside>
+        }
+      </div>
+
+      @if (membersPanelOpen()) {
+        <div class="fixed inset-0 z-50">
+          <!-- Backdrop -->
+          <button
+            type="button"
+            class="absolute inset-0 cursor-default bg-black/65 backdrop-blur-[2px]"
+            (click)="membersPanelOpen.set(false)"
+            aria-label="Close room members panel"
+          ></button>
+
+          <!-- Members drawer -->
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="members-panel-title"
+            class="absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col overflow-hidden rounded-t-2xl border-t border-white/8 bg-[#0d121b] pb-[env(safe-area-inset-bottom)] shadow-[0_-24px_70px_rgba(0,0,0,0.48)] lg:inset-y-0 lg:right-0 lg:left-auto lg:max-h-none lg:w-[min(92vw,23.5rem)] lg:rounded-none lg:border-t-0 lg:border-l lg:pb-0 lg:shadow-[-24px_0_70px_rgba(0,0,0,0.48)]"
+          >
+            <!-- Drawer header -->
+            <header
+              class="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-white/[0.07] px-4"
+            >
+              <div class="flex min-w-0 items-center gap-3">
+                <div
+                  class="grid size-9 shrink-0 place-items-center rounded-lg border border-white/8 bg-white/[0.035] text-[#aeb8c8]"
+                >
+                  <app-icon name="users" aria-hidden="true" class="size-4" />
+                </div>
+
+                <div class="min-w-0">
+                  <div class="flex min-w-0 items-center gap-2">
+                    <h2
+                      id="members-panel-title"
+                      class="truncate text-sm font-semibold leading-5 text-white"
+                    >
+                      Room members
+                    </h2>
+
+                    <span
+                      class="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-md bg-white/5.5 px-1.5 text-[10px] font-medium tabular-nums text-[#bcc5d2]"
+                      [attr.aria-label]="roomMemberCount() + ' members currently present'"
+                    >
+                      {{ roomMemberCount() }}
+                    </span>
+                  </div>
+
+                  <p class="mt-0.5 truncate text-[10px] leading-4 text-[#707c90]">
+                    People currently present
+                  </p>
+                </div>
               </div>
 
               <button
                 type="button"
-                (click)="dismissToast(toast.id)"
-                aria-label="Dismiss notification"
-                class="shrink-0 rounded-md p-1 text-[#687282] transition hover:bg-white/6 hover:text-white"
+                (click)="membersPanelOpen.set(false)"
+                aria-label="Close members panel"
+                class="grid size-9 shrink-0 place-items-center rounded-lg border border-white/8 bg-white/3 text-[#9ca7b8] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60"
               >
-                <svg viewBox="0 0 20 20" class="size-3.5" fill="none" aria-hidden="true">
-                  <path
-                    d="m5 5 10 10M15 5 5 15"
-                    stroke="currentColor"
-                    stroke-width="1.6"
-                    stroke-linecap="round"
-                  />
-                </svg>
+                <app-icon name="close" aria-hidden="true" class="size-3.5" />
               </button>
+            </header>
+
+            <!-- Invite section -->
+            <section
+              aria-labelledby="drawer-invite-title"
+              class="shrink-0 border-b border-white/[0.07] px-4 py-4"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <h3
+                    id="drawer-invite-title"
+                    class="text-[10px] font-semibold tracking-[0.12em] text-[#8994a6] uppercase"
+                  >
+                    Room sharing
+                  </h3>
+
+                  <p class="mt-0.5 truncate text-[10px] text-[#626e82]">
+                    Link, QR code, download, and native share
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                (click)="shareRoomOpen.set(true); membersPanelOpen.set(false)"
+                class="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-primary/25 bg-primary/9 px-4 text-xs font-semibold text-[#d9d2ff] outline-none transition hover:border-primary/40 hover:bg-primary/16 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60"
+              >
+                <app-icon name="qr" aria-hidden="true" class="size-4" />
+                Share room
+              </button>
+            </section>
+
+            <!-- Updated participants sidebar -->
+            <div class="flex min-h-0 flex-1 flex-col px-3 py-4">
+              <app-call-participants-sidebar
+                class="flex min-h-0 flex-1 flex-col"
+                [participants]="roomParticipants()"
+                [title]="'People'"
+                [emptyText]="'Waiting for someone to join…'"
+                [canManage]="isOwner()"
+                (kickParticipant)="requestModeration('kick', $event)"
+                (blockParticipant)="requestModeration('block', $event)"
+              />
             </div>
-          }
+          </aside>
         </div>
       }
 
-      <!-- Header -->
-      <header
-        class="flex shrink-0 items-center justify-between gap-3 border-b border-white/7 bg-[#141821] px-4 py-3 sm:px-6"
-      >
-        <div class="flex min-w-0 items-center gap-3">
-          <a routerLink="/" aria-label="Return to Lobby home">
-            <app-logo [size]="24" />
-          </a>
-          <div class="min-w-0">
-            <p class="truncate text-sm font-semibold text-white">
-              {{ channel()?.name }}
-            </p>
-            <p class="font-mono text-[10px] text-[#687282]">{{ channelId }}</p>
-          </div>
-        </div>
-
+      @if (mobileChatOpen()) {
         <div
-          class="flex shrink-0 items-center gap-1.5 rounded-full border border-white/8 bg-white/[0.03] px-2.5 py-1 text-[10px] text-[#a0a9b7]"
+          class="fixed inset-0 z-50 flex h-dvh flex-col bg-[#0b0f17] pb-[env(safe-area-inset-bottom)] lg:hidden"
         >
-          <span
-            [class]="'size-1.5 rounded-full ' + (connected() ? 'bg-online' : 'bg-[#687282]')"
-          ></span>
-          {{ connected() ? 'Live' : 'Reconnecting…' }}
+          <app-room-chat
+            [title]="channel()?.name ?? 'Room chat'"
+            [subtitle]="'Chat stays active during calls'"
+            [infoBannerText]="null"
+            [messages]="chatMessages()"
+            [currentUserId]="currentUser().id"
+            [memberNames]="memberNames()"
+            [placeholder]="'Message ' + (channel()?.name ?? 'the room')"
+            [disabled]="!connected()"
+            [showCloseButton]="true"
+            (sendMessage)="onSendMessage($event)"
+            (reactToMessage)="onReact($event)"
+            (deleteMessage)="onDelete($event)"
+            (editMessage)="onEdit($event)"
+            (close)="mobileChatOpen.set(false)"
+          ></app-room-chat>
         </div>
-      </header>
+      }
 
-      <!-- Messages -->
-      <div class="lobby-scrollbar flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
-        @if (messages().length === 0) {
-          <p class="py-10 text-center text-sm text-[#687282]">
-            No messages yet — say hello to get the conversation started.
-          </p>
-        }
-
-        @for (message of messages(); track message.id) {
-          <div
-            [class]="
-              'flex w-full items-end gap-2.5 ' + (!isOwnMessage(message) ? 'flex-row-reverse' : '')
-            "
-          >
-            <div
-              class="grid size-8 shrink-0 place-items-center rounded-full border text-[10px] font-semibold tracking-[0.08em] shadow-[0_10px_28px_rgba(0,0,0,0.22)]"
-              [style.background]="avatarBackground(message.authorName)"
-              [style.borderColor]="avatarBorder(message.authorName)"
-              [style.color]="avatarText(message.authorName)"
-              [style.boxShadow]="'0 10px 28px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.10)'"
-              aria-hidden="true"
-            >
-              {{ initials(message.authorName) }}
-            </div>
-
-            <div class="min-w-0 max-w-[75%] sm:max-w-[65%]">
-              <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                <p class="text-xs font-semibold text-[#edf0f4]">
-                  {{ message.authorName }}
-                </p>
-                @if (isOwnMessage(message)) {
-                  <span class="text-[10px] font-medium text-[#8f74ff]">You</span>
-                }
-              </div>
-              <p
-                [class]="
-                  'mt-1 inline-flex gap-2 items-end rounded-2xl px-3.5 py-2 text-sm leading-5 wrap-break-word ' +
-                  (isOwnMessage(message)
-                    ? 'rounded-tr-sm bg-primary text-white'
-                    : 'rounded-tl-sm bg-[#1f2531] text-[#c4cad4]')
-                "
-              >
-                {{ message.text }}
-                <span
-                  [class]="
-                    'text-[10px] ' + (isOwnMessage(message) ? 'text-white' : 'text-[#687282]')
-                  "
-                  >{{ messageTime(message) }}</span
-                >
-              </p>
-            </div>
-          </div>
-        }
-
-        <div #scrollAnchor></div>
-      </div>
-
-      <!-- Composer -->
-      <form
-        (submit)="$event.preventDefault(); sendMessage()"
-        class="flex shrink-0 items-end gap-2 border-t border-white/7 bg-[#141821] p-3 sm:p-4"
-      >
-        <input
-          #composerInput
-          type="text"
-          [formControl]="messageControl"
-          [maxlength]="maxMessageLength"
-          [placeholder]="'Message #' + (channel()?.name ?? '')"
-          autocomplete="off"
-          class="h-11 flex-1 rounded-xl border border-white/10 bg-[#1a1f2b] px-3.5 text-sm text-app-foreground placeholder:text-[#687282] outline-none focus:border-[#8f74ff]/60 focus:ring-2 focus:ring-[#8f74ff]/20"
+      @if (shareRoomOpen()) {
+        <app-share-room-dialog
+          [inviteUrl]="guestInviteLink()"
+          [inviteCode]="inviteCode"
+          [roomName]="channel()?.name ?? 'Guest room'"
+          (close)="shareRoomOpen.set(false)"
         />
+      }
 
-        <div #emojiPickerHost class="relative">
+      @if (confirmation(); as dialog) {
+        <div class="fixed inset-0 z-70 grid place-items-center px-4 py-6">
           <button
             type="button"
-            (click)="toggleEmojiPicker()"
-            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/12 bg-white/[0.045] text-[#c8cfdb] transition hover:border-white/22 hover:bg-white/10 hover:text-white"
-            aria-label="Open emoji picker"
-            [attr.aria-expanded]="emojiPickerOpen()"
-            aria-haspopup="true"
-          >
-            <svg viewBox="0 0 24 24" class="size-5" fill="none" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
-              <path
-                d="M9.2 10.5a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4ZM14.8 10.5a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4Z"
-                fill="currentColor"
-              />
-              <path
-                d="M8.2 14.2c.9 1.3 2.2 2 3.8 2s2.9-.7 3.8-2"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-              />
-            </svg>
-          </button>
+            class="absolute inset-0 cursor-default bg-black/70 backdrop-blur-sm"
+            (click)="cancelConfirmation()"
+            aria-label="Cancel confirmation"
+          ></button>
 
-          @if (emojiPickerOpen()) {
-            <div
-              class="absolute right-0 bottom-[calc(100%+0.6rem)] z-20 w-56 rounded-xl border border-white/12 bg-[#1a1f2b] p-2 shadow-[0_24px_50px_rgba(0,0,0,0.45)]"
-              role="menu"
-              aria-label="Emoji picker"
-            >
-              <div class="grid grid-cols-6 gap-1">
-                @for (emoji of emojis; track emoji) {
-                  <button
-                    type="button"
-                    (click)="selectEmoji(emoji)"
-                    class="flex h-8 w-8 items-center justify-center rounded-lg text-lg transition hover:bg-white/10"
-                    [attr.aria-label]="'Insert emoji ' + emoji"
-                  >
-                    {{ emoji }}
-                  </button>
-                }
+          <section
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="room-confirmation-title"
+            aria-describedby="room-confirmation-description"
+            class="relative w-full max-w-md rounded-2xl border border-white/9 bg-[#0f141d] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.58)] sm:p-6"
+          >
+            <div class="flex items-start gap-3.5">
+              <span
+                [class]="
+                  'grid size-10 shrink-0 place-items-center rounded-xl ' +
+                  (confirmationIsDestructive()
+                    ? 'bg-rose-400/10 text-rose-300'
+                    : 'bg-primary/12 text-[#b9adff]')
+                "
+              >
+                <app-icon
+                  [name]="
+                    dialog.kind === 'block'
+                      ? 'ban'
+                      : dialog.kind === 'kick'
+                        ? 'user-minus'
+                        : 'logout'
+                  "
+                  aria-hidden="true"
+                  class="size-4.5"
+                />
+              </span>
+
+              <div class="min-w-0 flex-1">
+                <h2
+                  id="room-confirmation-title"
+                  class="text-base font-semibold tracking-[-0.015em] text-white"
+                >
+                  {{ confirmationTitle() }}
+                </h2>
+                <p id="room-confirmation-description" class="mt-2 text-xs leading-5 text-[#8e99aa]">
+                  {{ confirmationDescription() }}
+                </p>
               </div>
             </div>
-          }
-        </div>
 
-        <button
-          type="submit"
-          [disabled]="messageControl.invalid || !connected()"
-          class="flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-white transition hover:bg-[#8b6dff] disabled:pointer-events-none disabled:opacity-40"
-        >
-          Send
-        </button>
-      </form>
+            @if (confirmationUsesReason()) {
+              <div class="mt-5">
+                <div class="flex items-center justify-between gap-3">
+                  <label for="moderationReason" class="text-xs font-medium text-[#cbd2dd]">
+                    Moderation reason <span class="font-normal text-[#677386]">(optional)</span>
+                  </label>
+                  <span class="text-[10px] tabular-nums text-[#667286]">
+                    {{ moderationReasonControl.value.length }}/{{ maxModerationReasonLength }}
+                  </span>
+                </div>
+                <input
+                  id="moderationReason"
+                  type="text"
+                  [formControl]="moderationReasonControl"
+                  [maxlength]="maxModerationReasonLength"
+                  placeholder="Briefly explain why"
+                  class="mt-2.5 h-10 w-full rounded-lg border border-white/9 bg-[#090d14] px-3 text-xs text-white outline-none transition placeholder:text-[#536074] hover:border-white/[0.14] focus:border-primary/45 focus:ring-3 focus:ring-primary/8"
+                />
+              </div>
+            }
+
+            <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                (click)="cancelConfirmation()"
+                [disabled]="confirmationPending()"
+                class="inline-flex h-10 items-center justify-center rounded-lg border border-white/8 bg-white/3 px-4 text-xs font-semibold text-[#c3ccd8] outline-none transition hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/55 disabled:cursor-not-allowed disabled:opacity-50"
+                autofocus
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                (click)="confirmAction()"
+                [disabled]="confirmationPending()"
+                [class]="
+                  'inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-xs font-semibold outline-none transition disabled:cursor-not-allowed disabled:opacity-55 ' +
+                  (confirmationIsDestructive()
+                    ? 'bg-rose-500 text-white hover:bg-rose-400 focus-visible:ring-2 focus-visible:ring-rose-400/70'
+                    : 'bg-primary text-white hover:bg-[#896aff] focus-visible:ring-2 focus-visible:ring-violet-400/70')
+                "
+              >
+                @if (confirmationPending()) {
+                  <span
+                    aria-hidden="true"
+                    class="size-3.5 animate-spin rounded-full border-2 border-white/25 border-t-white"
+                  ></span>
+                }
+                {{ confirmationActionLabel() }}
+              </button>
+            </div>
+          </section>
+        </div>
+      }
     </main>
   }
 }

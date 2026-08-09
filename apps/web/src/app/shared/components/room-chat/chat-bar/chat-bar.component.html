@@ -1,0 +1,106 @@
+<form
+  (submit)="onSubmit($event)"
+  class="shrink-0 border-t border-white/6 bg-[#0e131d]/96 px-3 pb-3 pt-2.5 backdrop-blur-xl sm:px-4"
+>
+  <div class="relative mx-auto w-full max-w-5xl">
+    @if (mentionQuery() !== null && mentionSuggestions().length > 0) {
+      <div
+        class="absolute right-0 bottom-[calc(100%+0.55rem)] left-0 z-30 overflow-hidden rounded-xl border border-white/9 bg-[#171e2a]/98 py-1.5 shadow-[0_24px_55px_rgba(0,0,0,0.48)] backdrop-blur-xl"
+        role="listbox"
+        aria-label="Mention a member"
+      >
+        @for (
+          suggestion of mentionSuggestions();
+          track suggestion.kind + suggestion.name;
+          let i = $index
+        ) {
+          <button
+            type="button"
+            role="option"
+            (mousedown)="$event.preventDefault()"
+            (click)="insertMention(suggestion.name)"
+            [attr.aria-selected]="i === mentionHighlightIndex()"
+            [class]="
+              'flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs transition-colors ' +
+              (i === mentionHighlightIndex()
+                ? 'bg-primary/12 text-white'
+                : 'text-[#c8cfdb] hover:bg-white/4.5')
+            "
+          >
+            <app-chat-avatar
+              [name]="suggestion.kind === 'all' ? 'all' : suggestion.name"
+              size="xs"
+              [initialsOverride]="suggestion.kind === 'all' ? 'ALL' : null"
+              [backgroundOverride]="suggestion.kind === 'all' ? 'rgba(143,116,255,0.2)' : null"
+              [borderColorOverride]="suggestion.kind === 'all' ? 'rgba(143,116,255,0.4)' : null"
+              [textColorOverride]="suggestion.kind === 'all' ? '#c9bbff' : null"
+            />
+            <span>{{ suggestion.kind === 'all' ? 'All members' : '@' + suggestion.name }}</span>
+          </button>
+        }
+      </div>
+    }
+
+    <div
+      class="flex min-h-11 items-center gap-1 rounded-xl border border-white/9 bg-[#171d29] px-2 shadow-[0_8px_24px_rgba(0,0,0,0.16)] transition-colors hover:border-white/13 focus-within:border-primary/45 focus-within:ring-4 focus-within:ring-primary/[0.07]"
+    >
+      <input
+        #composerInput
+        type="text"
+        [formControl]="control"
+        [maxlength]="maxLength()"
+        [placeholder]="placeholder()"
+        autocomplete="off"
+        (input)="onComposerInput()"
+        (keydown)="onMentionKeydown($event)"
+        (blur)="onComposerBlur()"
+        class="h-10 min-w-0 flex-1 bg-transparent px-2 text-[13px] leading-none text-[#eef1f6] outline-none placeholder:text-[#626f82]"
+      />
+
+      <div #emojiPickerHost class="relative flex shrink-0">
+        <button
+          type="button"
+          (click)="toggleEmojiPicker()"
+          class="grid size-8 place-items-center rounded-lg text-[#8f9bad] outline-none transition-colors hover:bg-white/6.5 hover:text-white focus-visible:bg-white/6.5 focus-visible:text-white"
+          aria-label="Open emoji picker"
+          title="Emoji"
+          [attr.aria-expanded]="emojiPickerOpen()"
+          aria-haspopup="true"
+        >
+          <app-icon name="smile" class="size-4" />
+        </button>
+
+        @if (emojiPickerOpen()) {
+          <div
+            class="absolute right-0 bottom-[calc(100%+0.7rem)] z-30 w-56 rounded-xl border border-white/9 bg-[#171e2a]/98 p-2 shadow-[0_24px_55px_rgba(0,0,0,0.48)] backdrop-blur-xl"
+            role="menu"
+            aria-label="Emoji picker"
+          >
+            <div class="grid grid-cols-6 gap-1">
+              @for (emoji of emojis(); track emoji) {
+                <button
+                  type="button"
+                  (click)="selectEmoji(emoji)"
+                  class="grid size-8 place-items-center rounded-lg text-base transition-colors hover:bg-white/8"
+                  [attr.aria-label]="'Insert emoji ' + emoji"
+                >
+                  {{ emoji }}
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <button
+        type="submit"
+        [disabled]="!canSend()"
+        class="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-white shadow-[0_8px_18px_rgba(124,92,252,0.22)] outline-none transition-colors hover:bg-[#8b6dff] focus-visible:ring-2 focus-visible:ring-violet-300/60 disabled:pointer-events-none disabled:bg-white/5.5 disabled:text-[#687487] disabled:shadow-none"
+        aria-label="Send message"
+        title="Send"
+      >
+        <app-icon name="send" class="size-3.5" />
+      </button>
+    </div>
+  </div>
+</form>

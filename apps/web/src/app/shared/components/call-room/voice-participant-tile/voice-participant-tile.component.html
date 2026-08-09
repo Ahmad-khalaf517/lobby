@@ -1,0 +1,164 @@
+@if (compact()) {
+  <article
+    role="group"
+    [attr.aria-label]="participant().name + ' call participant'"
+    [class]="
+      'flex h-14 w-full items-center gap-2 rounded-xl border bg-app-background px-2.5 py-2 transition-colors lg:h-auto lg:min-h-16 lg:gap-3 lg:px-3 lg:py-2.5 ' +
+      (participant().screenShareTrack
+        ? 'border-primary/35 bg-primary/5.5'
+        : participant().isSpeaking
+          ? 'border-emerald-400/35 bg-emerald-400/[0.035]'
+          : 'border-white/6.5 hover:border-white/11 hover:bg-[#141820]')
+    "
+  >
+    <div
+      [class]="
+        'shrink-0 rounded-full ring-offset-2 ring-offset-app-background ' +
+        (participant().isSpeaking ? 'ring-2 ring-emerald-400/70' : '')
+      "
+    >
+      <app-chat-avatar [name]="participant().name" size="sm" />
+    </div>
+
+    <div class="min-w-0 flex-1">
+      <div class="flex min-w-0 items-center gap-1">
+        <p class="truncate text-xs font-semibold text-[#eef1f5]">{{ participant().name }}</p>
+        @if (participant().screenShareTrack) {
+          <app-icon name="screen-share" aria-hidden="true" class="size-3 shrink-0 text-[#b9adff]" />
+        }
+      </div>
+
+      <p
+        [class]="
+          'mt-0.5 flex min-w-0 items-center gap-1 truncate text-[9px] lg:text-[10px] ' +
+          (participant().isSpeaking ? 'text-emerald-300' : 'text-[#747f91]')
+        "
+      >
+        @if (participant().isLocal) {
+          <span class="shrink-0 font-semibold text-[#9f94df]">YOU</span>
+        }
+        @if (participant().isLocal && participant().isOwner) {
+          <span aria-hidden="true" class="text-white/25">·</span>
+        }
+        @if (participant().isOwner) {
+          <span class="shrink-0 font-semibold text-[#aeb6c4]">OWNER</span>
+        }
+        @if (!participant().isLocal && !participant().isOwner) {
+          <span>{{ participant().isSpeaking ? 'Speaking' : 'In the call' }}</span>
+        }
+      </p>
+    </div>
+
+    <span
+      [class]="
+        'grid size-7 shrink-0 place-items-center rounded-lg ' +
+        (participant().isMicMuted ? 'bg-rose-400/10 text-rose-300' : 'bg-white/5 text-[#9ca6b5]')
+      "
+      [attr.aria-label]="
+        participant().isMicMuted
+          ? participant().name + ' is muted'
+          : participant().name + ' microphone is active'
+      "
+      [attr.title]="participant().isMicMuted ? 'Microphone off' : 'Microphone active'"
+    >
+      <app-icon
+        [name]="participant().isMicMuted ? 'mic-off' : 'mic'"
+        aria-hidden="true"
+        class="size-3.5"
+      />
+    </span>
+  </article>
+} @else {
+  <article
+    role="group"
+    [attr.aria-label]="participant().name + ' call participant'"
+    [class]="
+      'flex aspect-4/3 min-h-28 flex-col justify-between rounded-xl border bg-app-background p-3 transition-colors lg:aspect-auto lg:min-h-36 lg:rounded-2xl lg:p-5 max-lg:landscape:aspect-auto max-lg:landscape:p-2 ' +
+      (participant().isSpeaking
+        ? 'border-emerald-400/35 bg-emerald-400/3'
+        : 'border-white/6.5 hover:border-white/11 hover:bg-[#13171e]')
+    "
+  >
+    <div class="flex items-start justify-between gap-3">
+      <div
+        class="lg:hidden"
+        [class.ring-2]="participant().isSpeaking"
+        [class.ring-emerald-400]="participant().isSpeaking"
+        [class.ring-offset-2]="participant().isSpeaking"
+        [class.ring-offset-app-background]="participant().isSpeaking"
+      >
+        <app-chat-avatar [name]="participant().name" size="md" />
+      </div>
+
+      <div
+        [class]="
+          'hidden rounded-full ring-offset-3 ring-offset-app-background lg:block ' +
+          (participant().isSpeaking ? 'ring-2 ring-emerald-400/70' : '')
+        "
+      >
+        <app-chat-avatar [name]="participant().name" size="lg" />
+      </div>
+
+      <div class="flex items-center gap-1.5">
+        @if (participant().screenShareTrack) {
+          <span
+            class="grid size-7 place-items-center rounded-lg bg-primary/12 text-[#c6bdff] lg:inline-flex lg:w-auto lg:gap-1.5 lg:px-2"
+            [attr.aria-label]="participant().name + ' is sharing their screen'"
+          >
+            <app-icon name="screen-share" aria-hidden="true" class="size-3" />
+            <span class="hidden text-[9px] font-semibold lg:inline">SHARING</span>
+          </span>
+        }
+        <span
+          [class]="
+            'grid size-7 place-items-center rounded-lg ' +
+            (participant().isMicMuted
+              ? 'bg-rose-400/10 text-rose-300'
+              : 'bg-white/5 text-[#a3adbb]')
+          "
+          [attr.aria-label]="
+            participant().isMicMuted
+              ? participant().name + ' is muted'
+              : participant().name + ' microphone is active'
+          "
+        >
+          <app-icon
+            [name]="participant().isMicMuted ? 'mic-off' : 'mic'"
+            aria-hidden="true"
+            class="size-3.5"
+          />
+        </span>
+      </div>
+    </div>
+
+    <div class="mt-3 min-w-0 lg:mt-5">
+      <div class="flex min-w-0 flex-wrap items-center gap-1 lg:gap-2">
+        <p class="w-full truncate text-xs font-semibold text-[#f1f3f6] lg:w-auto lg:text-sm">
+          {{ participant().name }}
+        </p>
+        @if (participant().isLocal) {
+          <span class="rounded bg-primary/10 px-1.5 py-0.5 text-[8px] font-semibold text-[#b9adff]">
+            YOU
+          </span>
+        }
+        @if (participant().isOwner) {
+          <span class="rounded bg-white/5.5 px-1.5 py-0.5 text-[8px] font-semibold text-[#aeb7c5]">
+            OWNER
+          </span>
+        }
+      </div>
+      <div class="mt-1 flex items-center gap-1.5 text-[9px] lg:mt-1.5 lg:text-[10px]">
+        <span
+          aria-hidden="true"
+          [class]="
+            'size-1.5 rounded-full ' +
+            (participant().isSpeaking ? 'bg-emerald-400' : 'bg-[#596475]')
+          "
+        ></span>
+        <span [class.text-emerald-300]="participant().isSpeaking" class="text-[#778294]">
+          {{ participant().isSpeaking ? 'Speaking' : 'Connected to audio' }}
+        </span>
+      </div>
+    </div>
+  </article>
+}

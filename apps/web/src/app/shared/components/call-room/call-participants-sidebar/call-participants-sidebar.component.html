@@ -1,0 +1,176 @@
+<section class="flex min-h-0 flex-1 flex-col">
+  <!-- Section header -->
+  <header class="mb-2 flex h-10 shrink-0 items-center justify-between gap-3 px-2">
+    <div class="min-w-0">
+      <div class="flex min-w-0 items-center gap-2">
+        <h2 class="truncate text-[11px] font-semibold tracking-[0.12em] text-[#8d98aa] uppercase">
+          {{ title() }}
+        </h2>
+
+        @if (showCount()) {
+          <span
+            class="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-md bg-white/5.5 px-1.5 text-[10px] font-medium tabular-nums text-[#b8c1cf]"
+            [attr.aria-label]="participants().length + ' participants'"
+          >
+            {{ participants().length }}
+          </span>
+        }
+      </div>
+
+      <p class="mt-0.5 truncate text-[10px] leading-none text-[#657186]">Present in this room</p>
+    </div>
+  </header>
+
+  <!-- Participant list -->
+  <div
+    class="lobby-scrollbar min-h-0 flex-1 overflow-y-auto pr-1"
+    role="list"
+    aria-label="Room participants"
+  >
+    @if (participants().length === 0) {
+      <div
+        class="mx-1 mt-1 flex min-h-24 flex-col items-center justify-center rounded-xl border border-dashed border-white/9 bg-white/[0.018] px-4 py-5 text-center"
+      >
+        <app-icon name="users" aria-hidden="true" class="mb-2 size-4 text-[#596579]" />
+
+        <p class="text-xs leading-5 text-[#778397]">
+          {{ emptyText() }}
+        </p>
+      </div>
+    }
+
+    @for (participant of participants(); track participant.id) {
+      <article
+        role="listitem"
+        class="group/participant relative flex min-h-14 items-center gap-3 rounded-xl px-2.5 py-2 transition-colors duration-150 hover:bg-white/[0.035] focus-within:bg-white/[0.035]"
+      >
+        <!-- Avatar and activity -->
+        <div
+          class="relative shrink-0 rounded-full ring-offset-2 ring-offset-[#10151f]"
+          [class.ring-2]="participant.isSpeaking"
+          [class.ring-emerald-400]="participant.isSpeaking"
+        >
+          <app-chat-avatar [name]="participant.name" size="sm" status="online" />
+
+          @if (participant.isSpeaking) {
+            <span
+              aria-hidden="true"
+              class="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full border-2 border-[#10151f] bg-emerald-400"
+            ></span>
+          }
+        </div>
+
+        <!-- Participant information -->
+        <div class="min-w-0 flex-1">
+          <div class="flex min-w-0 items-center gap-1.5">
+            <p class="truncate text-[13px] font-medium leading-5 text-[#e7ebf2]">
+              {{ participant.name }}
+            </p>
+
+            @if (participant.isLocal) {
+              <span
+                class="shrink-0 rounded bg-violet-400/9 px-1 py-0.5 text-[8px] font-semibold leading-none tracking-[0.08em] text-[#b8a9ff]"
+              >
+                YOU
+              </span>
+            }
+
+            @if (participant.isOwner) {
+              <span
+                class="hidden shrink-0 rounded bg-amber-300/8 px-1.5 py-0.5 text-[8px] font-semibold leading-none tracking-[0.06em] text-amber-200/80 xl:inline"
+              >
+                OWNER
+              </span>
+            }
+          </div>
+
+          <div class="mt-0.5 flex min-w-0 items-center gap-1.5 text-[10px] leading-4">
+            <span
+              aria-hidden="true"
+              class="size-1.5 shrink-0 rounded-full"
+              [class.bg-emerald-400]="participant.isSpeaking"
+              [class.bg-violet-400]="participant.inCall && !participant.isSpeaking"
+              [class.bg-[#596579]]="!participant.inCall"
+            ></span>
+
+            <span
+              class="truncate"
+              [class.text-emerald-300]="participant.isSpeaking"
+              [class.text-[#707c90]]="!participant.isSpeaking"
+            >
+              @if (participant.isSpeaking) {
+                Speaking
+              } @else if (participant.screenShareTrack) {
+                Sharing screen
+              } @else if (participant.inCall && participant.isMicMuted) {
+                In call · Muted
+              } @else if (participant.inCall) {
+                In audio call
+              } @else if (participant.isOwner) {
+                Room owner
+              } @else {
+                In the room
+              }
+            </span>
+          </div>
+        </div>
+
+        <!-- Participant state -->
+        <div class="flex shrink-0 items-center gap-1">
+          @if (participant.inCall && participant.isMicMuted) {
+            <span
+              class="grid size-8 place-items-center rounded-lg text-[#697588]"
+              [attr.aria-label]="participant.name + ' is muted'"
+              title="Microphone muted"
+            >
+              <app-icon name="mic-off" aria-hidden="true" class="size-3.5" />
+            </span>
+          }
+
+          <!-- Management action -->
+          @if (canManage() && !participant.isLocal && !participant.isOwner) {
+            <div class="relative">
+              <button
+                type="button"
+                (click)="toggleManagementMenu($event, participant.id)"
+                [attr.aria-expanded]="openMenuParticipantId() === participant.id"
+                aria-haspopup="menu"
+                class="grid size-8 translate-x-1 place-items-center rounded-lg text-[#707c90] opacity-0 outline-none transition duration-150 hover:bg-white/[0.07] hover:text-white focus-visible:translate-x-0 focus-visible:bg-white/[0.07] focus-visible:text-white focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-violet-400/50 group-hover/participant:translate-x-0 group-hover/participant:opacity-100"
+                [attr.aria-label]="'Moderate ' + participant.name"
+              >
+                <app-icon name="more" aria-hidden="true" class="size-3.5" />
+              </button>
+
+              @if (openMenuParticipantId() === participant.id) {
+                <div
+                  role="menu"
+                  class="absolute top-[calc(100%+0.35rem)] right-0 z-50 min-w-40 rounded-lg border border-white/8 bg-[#151a24] p-1 shadow-[0_16px_38px_rgba(0,0,0,0.42)]"
+                  (click)="$event.stopPropagation()"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    (click)="requestKick($event, participant)"
+                    class="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[11px] font-medium whitespace-nowrap text-[#cbd3df] outline-none transition hover:bg-white/6 hover:text-white focus-visible:bg-white/6 focus-visible:text-white"
+                  >
+                    <app-icon name="user-minus" aria-hidden="true" class="size-3.5" />
+                    Kick member
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    (click)="requestBlock($event, participant)"
+                    class="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[11px] font-medium whitespace-nowrap text-rose-300 outline-none transition hover:bg-rose-400/8 hover:text-rose-200 focus-visible:bg-rose-400/8 focus-visible:text-rose-200"
+                  >
+                    <app-icon name="ban" aria-hidden="true" class="size-3.5" />
+                    Block from room
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </article>
+    }
+  </div>
+</section>

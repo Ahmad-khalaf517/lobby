@@ -1,9 +1,7 @@
 import {
-  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
-  DestroyRef,
   ElementRef,
   HostListener,
   inject,
@@ -11,7 +9,6 @@ import {
   viewChild,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import type { User } from '@supabase/supabase-js';
 
 import { AuthService } from '../../auth/services/auth';
 import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
@@ -26,19 +23,19 @@ import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
 export class LandingNavbar {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
-  private readonly destroyRef = inject(DestroyRef);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly profileButton = viewChild<ElementRef<HTMLButtonElement>>('profileButton');
 
-  protected readonly user = signal<User | null>(null);
+  protected readonly user = this.auth.user;
+  protected readonly authStatus = this.auth.status;
   protected readonly dropdownOpen = signal(false);
   protected readonly isLoggingOut = signal(false);
   protected readonly logoutError = signal<string | null>(null);
 
   protected readonly displayName = computed(() => {
     const user = this.user();
-    const metadataName = user?.user_metadata['name'];
-    const metadataFullName = user?.user_metadata['full_name'];
+    const metadataName = user?.userMetadata['name'];
+    const metadataFullName = user?.userMetadata['full_name'];
 
     if (typeof metadataName === 'string' && metadataName.trim()) {
       return metadataName.trim();
@@ -60,21 +57,6 @@ export class LandingNavbar {
     this.displayName().charAt(0).toLocaleUpperCase(),
   );
 
-  constructor() {
-    afterNextRender(() => {
-      const subscription = this.auth.onAuthStateChange((session) => {
-        this.user.set(session?.user ?? null);
-
-        if (!session) {
-          this.closeDropdown();
-        }
-      });
-
-      this.destroyRef.onDestroy(() => subscription.unsubscribe());
-      void this.loadSession();
-    });
-  }
-
   protected toggleDropdown(): void {
     this.logoutError.set(null);
     this.dropdownOpen.update((open) => !open);
@@ -94,14 +76,7 @@ export class LandingNavbar {
     this.logoutError.set(null);
 
     try {
-      const { error } = await this.auth.logout();
-
-      if (error) {
-        this.logoutError.set('We could not sign you out. Please try again.');
-        return;
-      }
-
-      this.user.set(null);
+      await this.auth.logout();
       this.closeDropdown();
       await this.router.navigateByUrl('/');
     } catch {
@@ -131,14 +106,5 @@ export class LandingNavbar {
 
     this.closeDropdown();
     this.profileButton()?.nativeElement.focus();
-  }
-
-  private async loadSession(): Promise<void> {
-    try {
-      const { data, error } = await this.auth.getSession();
-      this.user.set(error ? null : (data.session?.user ?? null));
-    } catch {
-      this.user.set(null);
-    }
   }
 }

@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { guestGuard } from './features/auth/guards/guest-guard';
 import { authGuard } from './features/auth/guards/auth-guard';
+import { pendingRoomExitGuard } from './features/guest-room/guards/pending-room-exit.guard';
 
 export const routes: Routes = [
   {
@@ -47,7 +48,7 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'auth/confirm',
+        path: 'confirm-email',
         title: 'Confirm Email | Lobby',
         loadComponent: () =>
           import('./features/auth/pages/confirm-email-page/confirm-email-page').then(
@@ -55,12 +56,22 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'auth/reset-password',
+        path: 'reset-password',
         title: 'Reset Password | Lobby',
         loadComponent: () =>
           import('./features/auth/pages/reset-password-page/reset-password-page').then(
             (component) => component.ResetPasswordPage,
           ),
+      },
+      {
+        path: 'auth/confirm',
+        pathMatch: 'full',
+        redirectTo: 'confirm-email',
+      },
+      {
+        path: 'auth/reset-password',
+        pathMatch: 'full',
+        redirectTo: 'reset-password',
       },
     ],
   },
@@ -73,6 +84,7 @@ export const routes: Routes = [
   {
     path: 'guest/:inviteCode',
     title: 'Guest Room | Lobby',
+    canDeactivate: [pendingRoomExitGuard],
     loadComponent: () =>
       import('./features/guest-room/guest-room-page/guest-room-page').then(
         (component) => component.GuestRoomPage,

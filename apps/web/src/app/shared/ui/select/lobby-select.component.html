@@ -1,0 +1,106 @@
+<div>
+  @if (label(); as fieldLabel) {
+    <label
+      [id]="labelId"
+      [for]="triggerId"
+      class="block text-[10px] font-semibold tracking-[0.12em] text-[#778295] uppercase"
+    >
+      {{ fieldLabel }}
+      @if (required()) {
+        <span class="text-[#aa9cff]" aria-hidden="true">*</span>
+      }
+    </label>
+  }
+
+  <button
+    #trigger
+    type="button"
+    role="combobox"
+    aria-haspopup="listbox"
+    [id]="triggerId"
+    [disabled]="isDisabled()"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="listboxId"
+    [attr.aria-activedescendant]="activeOptionId()"
+    [attr.aria-required]="required()"
+    [attr.aria-invalid]="isInvalid() ? 'true' : null"
+    [attr.aria-describedby]="describedBy()"
+    [class.mt-2]="label()"
+    [class]="
+      'flex h-10 w-full items-center justify-between gap-3 rounded-lg border bg-[#111722] px-3 text-left text-xs outline-none ring-0 transition disabled:cursor-not-allowed disabled:opacity-45 ' +
+      (isInvalid()
+        ? 'border-destructive/65 hover:border-destructive/75 focus-visible:border-destructive/75 focus-visible:ring-3 focus-visible:ring-destructive/14 ' +
+          (open() ? 'ring-3 ring-destructive/14' : '')
+        : open()
+          ? 'border-primary/55 ring-3 ring-primary/10'
+          : 'border-white/9 hover:border-white/16 focus-visible:border-primary/55 focus-visible:ring-3 focus-visible:ring-primary/9')
+    "
+    (click)="toggleMenu()"
+    (keydown)="handleKeydown($event)"
+    (blur)="handleBlur()"
+  >
+    <span
+      [id]="valueId"
+      [class]="'min-w-0 flex-1 truncate ' + (selectedOption() ? 'text-white' : 'text-[#596579]')"
+    >
+      {{ selectedOption()?.label ?? placeholder() }}
+    </span>
+
+    <app-icon
+      name="chevron-down"
+      aria-hidden="true"
+      class="size-3.5 shrink-0 text-[#778398] transition-transform duration-150"
+      [class.rotate-180]="open()"
+    />
+  </button>
+
+  @if (open()) {
+    <div
+      #menu
+      [id]="listboxId"
+      role="listbox"
+      [attr.aria-labelledby]="label() ? labelId : null"
+      [style.max-height.px]="menuMaxHeight()"
+      [class]="
+        'lobby-scrollbar absolute z-60 w-full min-w-0 overflow-y-auto rounded-xl border border-white/10 bg-[#111722]/98 p-1.5 shadow-[0_18px_48px_rgba(0,0,0,0.52)] backdrop-blur-xl ' +
+        (opensUpward() ? 'bottom-full mb-2' : 'top-full mt-2')
+      "
+    >
+      @for (option of options(); track option.value; let index = $index) {
+        <div
+          #optionElement
+          role="option"
+          [id]="optionId(index)"
+          [attr.aria-selected]="isSelected(option)"
+          [attr.aria-disabled]="option.disabled ? 'true' : null"
+          [class]="
+            'flex min-h-9 items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-xs outline-none transition-colors ' +
+            (option.disabled
+              ? 'cursor-not-allowed text-[#6f7a8c] opacity-40'
+              : 'cursor-pointer hover:bg-white/5.5 hover:text-white ') +
+            (isSelected(option)
+              ? 'bg-primary/14 text-[#e1dcff]'
+              : activeIndex() === index && !option.disabled
+                ? 'bg-primary/8 text-white'
+                : 'text-[#b7c0cd]')
+          "
+          (pointerenter)="activateOption(index)"
+          (pointerdown)="$event.preventDefault()"
+          (click)="selectOption(option)"
+        >
+          <span class="min-w-0 flex-1 truncate">{{ option.label }}</span>
+
+          @if (isSelected(option)) {
+            <app-icon name="check" aria-hidden="true" class="size-3.5 shrink-0 text-[#aa9cff]" />
+          }
+        </div>
+      } @empty {
+        <p class="px-2.5 py-2 text-xs text-[#6f7b8f]">No options available</p>
+      }
+    </div>
+  }
+
+  @if (errorMessage(); as error) {
+    <p [id]="errorId" class="auth-field-error">{{ error }}</p>
+  }
+</div>

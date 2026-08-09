@@ -21,6 +21,7 @@
     "test": "pnpm -r test",
     "prepare": "husky",
     "web:ng": "docker compose exec web pnpm --dir apps/web exec ng",
+    "api:pnpm": "docker compose exec api pnpm --dir apps/api",
     "web:pnpm": "docker compose exec web pnpm --dir apps/web"
   },
   "devDependencies": {

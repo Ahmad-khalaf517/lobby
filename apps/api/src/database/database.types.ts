@@ -1,10 +1,67 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+/**
+ * A channel membership — one row per join (guest or authenticated). Rows are
+ * never deleted, only closed via `left_at`, so `messages.sender_id` always
+ * resolves even after someone leaves. `livekit_identity` is required by the
+ * live schema (NOT NULL, no default) — apps/api mints one per join so a
+ * LiveKit token endpoint has a stable identity to bind to.
+ */
+export type ChannelMemberRow = {
+  id: string;
+  channel_id: string;
+  user_id: string | null;
+  guest_name: string | null;
+  role: string;
+  livekit_identity: string;
+  joined_at: string;
+  left_at: string | null;
+};
 
+export type MessageReactionRow = {
+  id: string;
+  message_id: string;
+  channel_member_id: string;
+  emoji: string;
+  created_at: string;
+  updated_at: string;
+  channel_members: ChannelMemberRow;
+};
+
+export type MessageReactionInsert = {
+  message_id: string;
+  channel_member_id: string;
+  emoji: string;
+};
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: '14.15';
+  };
+  graphql_public: {
+    Tables: {
+      [_ in never]: never;
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json;
+          operationName?: string;
+          query?: string;
+          variables?: Json;
+        };
+        Returns: Json;
+      };
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
   };
   public: {
     Tables: {
@@ -62,20 +119,125 @@ export type Database = {
           expires_at: string | null;
           id: string;
           name: string;
+          server_id: string | null;
         };
         Insert: {
           created_at?: string;
           expires_at?: string | null;
           id: string;
           name: string;
+          server_id?: string | null;
         };
         Update: {
           created_at?: string;
           expires_at?: string | null;
           id?: string;
           name?: string;
+          server_id?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'channels_server_id_fkey';
+            columns: ['server_id'];
+            isOneToOne: false;
+            referencedRelation: 'servers';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      friendships: {
+        Row: {
+          addressee_id: string;
+          blocked_by: string | null;
+          created_at: string;
+          id: string;
+          requester_id: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          addressee_id: string;
+          blocked_by?: string | null;
+          created_at?: string;
+          id?: string;
+          requester_id: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          addressee_id?: string;
+          blocked_by?: string | null;
+          created_at?: string;
+          id?: string;
+          requester_id?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'friendships_addressee_id_fkey';
+            columns: ['addressee_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'friendships_blocked_by_fkey';
+            columns: ['blocked_by'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'friendships_requester_id_fkey';
+            columns: ['requester_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      message_reactions: {
+        Row: {
+          channel_member_id: string;
+          created_at: string;
+          emoji: string;
+          id: string;
+          message_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          channel_member_id: string;
+          created_at?: string;
+          emoji: string;
+          id?: string;
+          message_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          channel_member_id?: string;
+          created_at?: string;
+          emoji?: string;
+          id?: string;
+          message_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'message_reactions_channel_member_id_fkey';
+            columns: ['channel_member_id'];
+            isOneToOne: false;
+            referencedRelation: 'channel_members';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'message_reactions_message_id_fkey';
+            columns: ['message_id'];
+            isOneToOne: false;
+            referencedRelation: 'messages';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       messages: {
         Row: {
@@ -189,19 +351,28 @@ export type Database = {
       };
       users: {
         Row: {
+          avatar_url: string | null;
+          bio: string | null;
           created_at: string;
           id: string;
           name: string;
+          user_name: string;
         };
         Insert: {
+          avatar_url?: string | null;
+          bio?: string | null;
           created_at?: string;
           id: string;
           name: string;
+          user_name: string;
         };
         Update: {
+          avatar_url?: string | null;
+          bio?: string | null;
           created_at?: string;
           id?: string;
           name?: string;
+          user_name?: string;
         };
         Relationships: [];
       };
@@ -335,6 +506,9 @@ export type CompositeTypes<
     : never;
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       guest_room_end_reason: ['expired', 'closed_by_owner', 'empty', 'moderation'],

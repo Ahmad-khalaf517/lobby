@@ -8,32 +8,29 @@ The goal is consistent, safe changes regardless of which assistant is used.
 
 1. Read `README.md` for project scope and ownership boundaries.
 2. Read `CLAUDE.md` for non-negotiable rules in this repo.
-3. Read `docs/EVENT_CONTRACT.md` before changing any API/socket payloads.
+3. Read `docs/EVENT_CONTRACT.md` before changing any API or RPC payloads.
 4. Read `docs/ARCHITECTURE.md` before touching chat/call data flows.
 
 ## 2) Shared Contract Rules (Critical)
 
 1. `packages/shared` is the single source of truth for cross-boundary payloads.
 2. Do not duplicate shared types in `apps/api` or `apps/web`.
-3. Do not hardcode socket event names; use `SOCKET_EVENTS`.
-4. If you add/change an event name, update in the same change:
-   - `packages/shared/src/constants/socket-events.ts`
-   - `docs/EVENT_CONTRACT.md`
-   - all call sites in backend and frontend
+3. Guest chat has no Socket.IO path; do not add one without an explicit architecture change.
+4. If you add or change an endpoint/RPC contract, update `docs/EVENT_CONTRACT.md` and all call sites in the same change.
 5. If you change a shared schema shape, clearly call it out in your final summary.
 
 ## 3) Backend Boundaries
 
-1. `apps/api` handles REST + Socket.IO app events + Supabase access.
+1. `apps/api` handles authentication, privileged REST operations, and LiveKit token minting.
 2. LiveKit media does not pass through `apps/api`; backend only mints short-lived tokens.
-3. No user auth system (no login/JWT session flow) unless explicitly requested.
-4. Keep Supabase access server-side only; never add Supabase client usage in `apps/web`.
-5. Map DB snake_case rows to camelCase contract objects via feature-local mappers (for channels: `apps/api/src/modules/channels/channels.mappers.ts`).
+3. Registered and anonymous Supabase sessions are restored through NestJS HttpOnly cookies.
+4. Service-role Supabase access stays server-side. The browser may use its public key and user JWT for the `guest` schema only.
+5. Map DB snake_case rows to camelCase contract objects via feature-local mappers when data crosses a NestJS contract boundary.
 
 ## 4) Frontend Boundaries
 
-1. `apps/web` talks to `apps/api`, not directly to Supabase.
-2. Validate/shape payloads against shared schemas before emitting/processing.
+1. `apps/web` uses NestJS for auth/privileged operations and the user-scoped Supabase client for guest reads, RPCs, and Realtime.
+2. Validate API payloads against shared schemas and use generated database types for guest data.
 3. Keep call UI on LiveKit client SDK; do not build custom WebRTC signaling.
 
 ## 5) Folder Conventions

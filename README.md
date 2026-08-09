@@ -1,14 +1,14 @@
 # Lobby
 
-**Drop in, talk, drop out.** A lightweight, no-auth, link-to-join chat + voice + screen-share app — rooms are temporary and expire on their own. NestJS backend, Angular frontend, shared contracts between them, built as a pnpm monorepo.
+**Drop in, talk, drop out.** A lightweight link-to-join chat + voice + screen-share app. Guests use Supabase Anonymous Auth, registered users keep their existing account, and temporary rooms expire automatically.
 
 ## Stack
 
-- **Backend:** NestJS (REST + Socket.IO gateway)
+- **Backend:** NestJS (authentication + privileged REST operations)
 - **Frontend:** Angular
-- **Real-time chat/presence:** Socket.IO (chat, presence, typing — calls do NOT go through this)
+- **Real-time guest data:** Supabase Realtime under guest-schema RLS
 - **Voice + screen share:** [LiveKit](https://livekit.io) (open-source SFU) — Cloud free tier
-- **DB:** Supabase (Postgres), via `@supabase/supabase-js` — channels + message history
+- **DB:** Supabase Postgres via user-scoped browser RPC/RLS for guest data and service-role NestJS access for privileged operations
 - **Shared contracts:** Zod schemas in `packages/shared`, used by both apps
 - **Package manager:** pnpm (workspaces)
 - **Code quality:** ESLint (flat config) + Prettier + Husky + lint-staged, enforced on commit

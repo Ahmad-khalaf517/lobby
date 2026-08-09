@@ -1,77 +1,54 @@
 # Event & Endpoint Contract
 
-This is the contract between `apps/api` and `apps/web`. Every event/endpoint here has a matching Zod schema in `packages/shared/src/schemas`. Runtime guards may be stricter than schema minimums for product behavior. **Don't add or change an event/endpoint here without updating the corresponding schema in the same change, and vice versa.**
+This is the active contract between `apps/api` and `apps/web`. Cross-boundary payloads are defined by Zod schemas in `packages/shared`.
 
-Lock this before parallel work starts (Day 1 morning) — see the project plan.
+## Authentication REST endpoints
 
-Calls (voice + screen share) are **not** part of the Socket.IO contract below — see the "Calls" section at the bottom.
+| Method and path                  | Request                                      | Response                           | Shared schema                                               |
+| -------------------------------- | -------------------------------------------- | ---------------------------------- | ----------------------------------------------------------- |
+| `POST /auth/login`               | `{ email, password }`                        | `{ user, accessToken, expiresAt }` | `LoginRequestSchema` / `AuthSessionResponseSchema`          |
+| `POST /auth/anonymous`           | `{ captchaToken? }`                          | `{ user, accessToken, expiresAt }` | `AnonymousAuthRequestSchema` / `AuthSessionResponseSchema`  |
+| `GET /auth/me`                   | HttpOnly auth cookies                        | `{ user, accessToken, expiresAt }` | `CurrentUserResponseSchema`                                 |
+| `POST /auth/refresh`             | HttpOnly refresh cookie                      | `{ user, accessToken, expiresAt }` | `AuthSessionResponseSchema`                                 |
+| `POST /auth/logout`              | HttpOnly auth cookies                        | `{ message }`                      | `AuthMessageResponseSchema`                                 |
+| `POST /auth/register`            | `{ name, email, password, confirmPassword }` | `{ message, user? }`               | `RegisterRequestSchema` / `RegistrationResponseSchema`      |
+| `POST /auth/confirm-email`       | `{ tokenHash, type: 'email' }`               | `{ user, accessToken, expiresAt }` | `ConfirmEmailRequestSchema` / `AuthSessionResponseSchema`   |
+| `POST /auth/resend-confirmation` | `{ email }`                                  | `{ message }`                      | `EmailRequestSchema` / `AuthMessageResponseSchema`          |
+| `POST /auth/forgot-password`     | `{ email }`                                  | `{ message }`                      | `EmailRequestSchema` / `AuthMessageResponseSchema`          |
+| `POST /auth/verify-recovery`     | `{ tokenHash }`                              | `{ user, accessToken, expiresAt }` | `VerifyRecoveryRequestSchema` / `AuthSessionResponseSchema` |
+| `POST /auth/reset-password`      | `{ password, confirmPassword }`              | `{ message }`                      | `ResetPasswordRequestSchema` / `AuthMessageResponseSchema`  |
 
-## REST
+`accessToken` is held only in Angular memory. The refresh token is never returned to JavaScript and remains in an HttpOnly cookie. `user.isAnonymous` distinguishes anonymous and registered sessions.
 
-| Method & Path                           | Request                                                     | Response                                                               | Schema                                                                          |
-| --------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `POST /channels`                        | `{ name }`                                                  | `{ id, name, createdAt, expiresAt }`                                   | `CreateChannelRequestSchema` + controller guard / `CreateChannelResponseSchema` |
-| `GET /channels/:id`                     | —                                                           | `{ id, name, createdAt, expiresAt }`                                   | `ChannelSchema`                                                                 |
-| `GET /channels/:id/messages`            | —                                                           | `{ messages: [...] }`                                                  | `MessageHistorySchema`                                                          |
-| `POST /channels/:id/call-token`         | `{ name }`                                                  | `{ token, livekitUrl, roomName }`                                      | `CallTokenRequestSchema` / `CallTokenResponseSchema`                            |
-| `GET /users/:userId/profile`            | —                                                           | `{ userId, displayName, ... }`                                         | `UserProfileSchema`                                                             |
-| `PATCH /users/:userId/profile`          | profile fields to update                                    | `{ userId, displayName, ... }`                                         | `UpdateUserProfileRequestSchema` / `UpdateUserProfileResponseSchema`            |
-| `GET /users/:userId/account-settings`   | —                                                           | `{ userId, emailNotificationsEnabled, pushNotificationsEnabled, ... }` | `AccountSettingsSchema`                                                         |
-| `PATCH /users/:userId/account-settings` | `{ emailNotificationsEnabled?, pushNotificationsEnabled? }` | `{ userId, emailNotificationsEnabled, pushNotificationsEnabled, ... }` | `UpdateAccountSettingsRequestSchema` / `UpdateAccountSettingsResponseSchema`    |
+## LiveKit REST endpoints
 
-## Socket.IO — Client → Server
+| Method and path                        | Request                     | Response                                    | Shared schema                                                                  |
+| -------------------------------------- | --------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------ |
+| `POST /livekit/token`                  | `{ channelId }`             | `{ token, livekitUrl, roomName }`           | `CallTokenRequestSchema` / `CallTokenResponseSchema`                           |
+| `GET /channels/:channelId/call-status` | authenticated member cookie | `{ active, participants, maxParticipants }` | `CallStatusResponseSchema`                                                     |
+| `POST /livekit/remove-participant`     | `{ channelId, memberId }`   | `{ removed }`                               | `CallParticipantRemovalRequestSchema` / `CallParticipantRemovalResponseSchema` |
 
-| Event          | Payload                         | Schema                      |
-| -------------- | ------------------------------- | --------------------------- |
-| `joinChannel`  | `{ channelId, name }`           | `JoinChannelPayloadSchema`  |
-| `chatMessage`  | `{ channelId, name, text }`     | `ChatMessagePayloadSchema`  |
-| `typing`       | `{ channelId, name, isTyping }` | `TypingPayloadSchema`       |
-| `leaveChannel` | `{ channelId }`                 | `LeaveChannelPayloadSchema` |
+NestJS resolves the member display name, LiveKit identity, room name, configured call capacity, and membership authority from the `guest` schema. Before minting a token, it explicitly creates the LiveKit room with the stored `maxParticipants`; the browser must not submit these values.
 
-## Socket.IO — Server → Client
+## Registered guest-channel creation
 
-| Event         | Payload                                          | Schema                       |
-| ------------- | ------------------------------------------------ | ---------------------------- |
-| `userJoined`  | `{ name, socketId }`                             | `UserPresenceSchema`         |
-| `userLeft`    | `{ name, socketId }`                             | `UserPresenceSchema`         |
-| `chatMessage` | `{ id, channelId, authorName, text, createdAt }` | `ChatMessageBroadcastSchema` |
-| `typing`      | `{ name, isTyping }`                             | `TypingBroadcastSchema`      |
-| `memberList`  | `{ members: [...] }`                             | `MemberListSchema`           |
+| Method and path        | Request                                      | Response              | Shared schema                                                          |
+| ---------------------- | -------------------------------------------- | --------------------- | ---------------------------------------------------------------------- |
+| `POST /guest/channels` | `{ name, maxParticipants, lifetimeMinutes }` | `{ channelId, code }` | `GuestChannelCreateRequestSchema` / `GuestChannelCreateResponseSchema` |
 
-Import event names from `SOCKET_EVENTS` (`packages/shared/src/constants/socket-events.ts`) — never hardcode the string literal.
+This endpoint accepts registered Supabase users only. NestJS derives the creator from the HttpOnly-cookie session and calls the existing `guest.create_channel` RPC with that user's JWT. Anonymous creators continue to call the RPC with only the room and display names, receiving the existing defaults of 8 call participants and 60 minutes.
 
-## Calls (voice + screen share) — not a socket event
+## Guest database contract
 
-There is intentionally **no** `joinCall`/`webrtcSignal`/etc. socket event. The flow is:
+Guest reads and most mutations do not cross the NestJS REST or Socket.IO boundary. Angular uses its user-scoped Supabase JWT with:
 
-1. Frontend calls `POST /channels/:id/call-token` (above) to get a LiveKit token.
-2. Frontend connects directly to LiveKit Cloud with that token, using `livekit-client`.
+- RLS-protected reads from `guest.channels`, `guest.channel_members`, `guest.messages`, and `guest.message_reactions`.
+- RPC mutations: `guest.create_channel`, `guest.join_channel`, `guest.create_message`, `guest.edit_message`, `guest.delete_message`, `guest.toggle_message_reaction`, `guest.leave_channel`, and `guest.close_channel`. Registered creation is routed through NestJS so advanced configuration receives Zod validation; anonymous creation remains a browser RPC using database defaults.
+- Owner moderation RPCs: `guest.kick_channel_member` and `guest.block_channel_member`. Blocks are stored in `guest.channel_blocks` and enforced by `guest.join_channel`.
+- One filtered Supabase Realtime subscription per active guest channel.
 
-Socket.IO and `apps/api`'s gateway are not involved in the call path at all past minting the token. See `docs/ARCHITECTURE.md` for the full flow diagram and reasoning.
+The old public-channel REST controllers and `ChannelGateway` have been removed. There is no Socket.IO guest chat contract.
 
-## Validation on both ends
+## Calls
 
-```typescript
-// apps/api — inside the gateway handler
-@SubscribeMessage(SOCKET_EVENTS.CHAT_MESSAGE)
-handleChatMessage(@MessageBody() payload: unknown) {
-  const data = ChatMessagePayloadSchema.parse(payload); // throws on invalid shape
-  // ...
-}
-```
-
-```typescript
-// apps/web — inside the chat service, before emitting
-sendMessage(payload: ChatMessagePayload) {
-  ChatMessagePayloadSchema.parse(payload); // fail fast on the client too
-  this.socket.emit(SOCKET_EVENTS.CHAT_MESSAGE, payload);
-}
-```
-
-## Adding a new event or endpoint
-
-1. Add the Zod schema to `packages/shared/src/schemas`.
-2. Export it from `packages/shared/src/index.ts`.
-3. If it's a socket event, add the name to `packages/shared/src/constants/socket-events.ts`.
-4. Add a row to the appropriate table above.
-5. Only then wire it up in `apps/api` and `apps/web`.
+Voice and screen sharing are not application events. Angular requests a restricted token from NestJS and connects directly to LiveKit. NestJS never handles media.

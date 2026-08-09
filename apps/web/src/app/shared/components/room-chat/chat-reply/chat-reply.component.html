@@ -1,0 +1,33 @@
+@if (preview(); as preview) {
+  <div class="border-t border-white/6 bg-[#101621]/96 px-3 pt-2.5 sm:px-4">
+    <div
+      class="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 rounded-t-lg border-l-2 border-primary/60 bg-white/2.5 px-3 py-2"
+    >
+      <div class="min-w-0">
+        <p class="text-[10px] font-semibold leading-4 text-[#aa9cff]">
+          Replying to {{ preview.authorName }}
+        </p>
+        <p class="truncate text-[11px] leading-4 text-[#7f8b9e]">{{ preview.text }}</p>
+      </div>
+
+      <button
+        type="button"
+        (click)="cancelReply.emit()"
+        class="grid size-7 shrink-0 place-items-center rounded-md text-[#7d8898] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:bg-white/[0.07] focus-visible:text-white"
+        aria-label="Cancel reply"
+        title="Cancel reply"
+      >
+        <app-icon name="close" class="size-3.5" />
+      </button>
+    </div>
+  </div>
+} @else {
+  <button
+    type="button"
+    (click)="onReply()"
+    aria-label="Reply to message"
+    class="grid size-8 shrink-0 place-items-center rounded-md text-[#929db0] outline-none transition-colors hover:bg-white/8 hover:text-white focus-visible:bg-white/8 focus-visible:text-white focus-visible:ring-1 focus-visible:ring-violet-400/70"
+  >
+    <app-icon name="reply" aria-hidden="true" class="size-3.5" />
+  </button>
+}
