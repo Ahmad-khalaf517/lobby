@@ -12,7 +12,8 @@
       "Bash(grep -iE \"^LucideLayoutGrid$|^LucideGrid2x2$|^LucideBookmark$|^LucideLayoutDashboard$\")",
       "Bash(pnpm lint *)",
       "Bash(echo \"EXIT_CODE=$?\")",
-      "Bash(pnpm --filter web build)"
+      "Bash(pnpm --filter web build)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:3000/)"
     ]
   }
 }

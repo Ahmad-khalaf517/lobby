@@ -59,6 +59,9 @@ importers:
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1
+      express:
+        specifier: ^5.2.1
+        version: 5.2.1(supports-color@8.1.1)
       livekit-server-sdk:
         specifier: ^2.17.0
         version: 2.17.0
