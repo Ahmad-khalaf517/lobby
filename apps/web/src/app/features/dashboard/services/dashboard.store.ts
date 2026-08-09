@@ -13,6 +13,8 @@ export type ActiveCallContext = {
   serverName: string;
 };
 
+const AUTHENTICATED_CALL_SESSION_KEY_PREFIX = 'lobby:authenticated-call:';
+
 /** A server_members row decorated with the profile fields the roster UI needs. */
 export type ServerMemberWithProfile = ServerMember & {
   name: string;
@@ -52,9 +54,11 @@ export class DashboardStore {
   readonly createModalOpen = this._createModalOpen.asReadonly();
   readonly joinModalOpen = this._joinModalOpen.asReadonly();
   readonly channelsByServer = this._channelsByServer.asReadonly();
+  readonly activeCall = this._activeCall.asReadonly();
   readonly membersByServer = this._membersByServer.asReadonly();
 
   private loaded = false;
+  private activeCallStorageKey: string | null = null;
 
   constructor() {
     this.sessionScope.registerCleanup(() => this.reset());
@@ -136,6 +140,67 @@ export class DashboardStore {
     return this._channelsByServer()[serverId]?.[0]?.id ?? null;
   }
 
+  setActiveCall(context: ActiveCallContext): void {
+    this._activeCall.set(context);
+    const key = this.callStorageKey();
+    this.activeCallStorageKey = key;
+    if (!key || typeof window === 'undefined') return;
+
+    try {
+      window.sessionStorage.setItem(key, JSON.stringify(context));
+    } catch {
+      // Call restoration is optional; the connected LiveKit room remains active.
+    }
+  }
+
+  restoreActiveCall(): ActiveCallContext | null {
+    const current = this._activeCall();
+    if (current) return current;
+
+    const key = this.callStorageKey();
+    this.activeCallStorageKey = key;
+    if (!key || typeof window === 'undefined') return null;
+
+    try {
+      const raw = window.sessionStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as Partial<ActiveCallContext>;
+      if (
+        typeof parsed.serverId !== 'string' ||
+        typeof parsed.channelId !== 'string' ||
+        typeof parsed.channelName !== 'string' ||
+        typeof parsed.serverName !== 'string'
+      ) {
+        window.sessionStorage.removeItem(key);
+        return null;
+      }
+
+      const context: ActiveCallContext = {
+        serverId: parsed.serverId,
+        channelId: parsed.channelId,
+        channelName: parsed.channelName,
+        serverName: parsed.serverName,
+      };
+      this._activeCall.set(context);
+      return context;
+    } catch {
+      return null;
+    }
+  }
+
+  clearActiveCall(): void {
+    this._activeCall.set(null);
+    const key = this.activeCallStorageKey ?? this.callStorageKey();
+    this.activeCallStorageKey = null;
+    if (!key || typeof window === 'undefined') return;
+
+    try {
+      window.sessionStorage.removeItem(key);
+    } catch {
+      // Storage restrictions must not prevent an explicit LiveKit disconnect.
+    }
+  }
+
   membersFor(serverId: string): ServerMemberWithProfile[] {
     return this._membersByServer()[serverId] ?? [];
   }
@@ -199,6 +264,7 @@ export class DashboardStore {
   }
 
   reset(): void {
+    this.clearActiveCall();
     this.loaded = false;
     this.membersLoading.clear();
     this._servers.set([]);
@@ -207,8 +273,12 @@ export class DashboardStore {
     this._createModalOpen.set(false);
     this._joinModalOpen.set(false);
     this._channelsByServer.set({});
-    this._activeCall.set(null);
     this._membersByServer.set({});
+  }
+
+  private callStorageKey(): string | null {
+    const userId = this.sessionScope.userId();
+    return userId ? `${AUTHENTICATED_CALL_SESSION_KEY_PREFIX}${userId}` : null;
   }
 
   private requireScope(): SessionScope {

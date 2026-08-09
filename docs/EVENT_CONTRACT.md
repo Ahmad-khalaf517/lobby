@@ -25,13 +25,17 @@ Unsafe cookie-authenticated requests (`POST`, `PUT`, `PATCH`, and `DELETE`) must
 
 ## LiveKit REST endpoints
 
-| Method and path                        | Request                     | Response                                    | Shared schema                                                                  |
-| -------------------------------------- | --------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| `POST /livekit/token`                  | `{ channelId }`             | `{ token, livekitUrl, roomName }`           | `CallTokenRequestSchema` / `CallTokenResponseSchema`                           |
-| `GET /channels/:channelId/call-status` | authenticated member cookie | `{ active, participants, maxParticipants }` | `CallStatusResponseSchema`                                                     |
-| `POST /livekit/remove-participant`     | `{ channelId, memberId }`   | `{ removed }`                               | `CallParticipantRemovalRequestSchema` / `CallParticipantRemovalResponseSchema` |
+| Method and path                               | Request                              | Response                                    | Shared schema                                                                  |
+| --------------------------------------------- | ------------------------------------ | ------------------------------------------- | ------------------------------------------------------------------------------ |
+| `POST /livekit/token`                         | `{ channelId }`                      | `{ token, livekitUrl, roomName }`           | `CallTokenRequestSchema` / `CallTokenResponseSchema`                           |
+| `GET /channels/:channelId/call-status`        | authenticated member cookie          | `{ active, participants, maxParticipants }` | `CallStatusResponseSchema`                                                     |
+| `POST /livekit/remove-participant`            | `{ channelId, memberId }`            | `{ removed }`                               | `CallParticipantRemovalRequestSchema` / `CallParticipantRemovalResponseSchema` |
+| `POST /server-channels/:channelId/call-token` | empty body; registered member cookie | `{ token, livekitUrl, roomName }`           | `CallTokenResponseSchema`                                                      |
+| `GET /server-channels/:channelId/call-status` | registered member cookie             | `{ active, participants, maxParticipants }` | `CallStatusResponseSchema`                                                     |
 
 NestJS resolves the member display name, LiveKit identity, room name, configured call capacity, and membership authority from the `guest` schema. Before minting a token, it explicitly creates the LiveKit room with the stored `maxParticipants`; the browser must not submit these values.
+
+The server-channel routes stack `RegisteredUserGuard` after cookie authentication. NestJS resolves the submitted channel UUID to its server, requires current `server_members` access, and rejects any left or removed `channel_members` row. The token endpoint lazily creates a missing eligible channel membership, matching authenticated chat access; the status GET remains read-only. NestJS derives the LiveKit room (`server-channel:<channel UUID>`), participant identity, display name, grants, and capacity. The browser cannot choose a server, room, member identity, or publishing grants. Guest routes and their anonymous access remain unchanged.
 
 ## Registered guest-channel creation
 

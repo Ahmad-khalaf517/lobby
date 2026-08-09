@@ -62,11 +62,24 @@ NestJS -- restricted short-lived token --> Angular
 Angular <---------------- audio/screen share ----------------> LiveKit Cloud
 ```
 
+Authenticated server channels use parallel registered-only REST routes:
+
+```text
+Angular -- POST /server-channels/:channelId/call-token --> NestJS
+NestJS -- RegisteredUserGuard + server/channel membership --> public schema
+NestJS -- derives server-channel room + member identity --> LiveKit token
+Angular <---------------- audio/screen share ----------------> LiveKit Cloud
+```
+
 NestJS reads the authoritative `livekit_identity`, `display_name`, and `livekit_room_name`. Ordinary members receive join, subscribe, microphone, and screen-share grants only. Camera publishing and room-administrator privileges are not granted.
+
+For authenticated channels, NestJS derives the room name from the validated channel UUID and derives the LiveKit participant identity from the normalized `channel_members` row. The Angular dashboard reuses the same `LiveKitCallService` and shared call-stage/control/participant components as Guest Dashboard. A user-scoped session marker restores an interrupted page refresh with a fresh token; account transition cleanup removes that marker and disconnects LiveKit before stale work can reattach. The rail keeps explicit mute/leave controls available while navigating between server channels.
 
 `guest.channels.max_call_participants` is independent of the guest-channel membership limit. NestJS explicitly creates each LiveKit room with this stored value before issuing a token. LiveKit is the final capacity enforcement layer; the token endpoint's participant check and Angular's status display are user-experience safeguards only. Registered creators may configure a capacity up to 50 and a lifetime up to three hours through the guarded NestJS creation endpoint. Anonymous creators keep the database defaults.
 
 Remote audio tracks are attached in Angular. Active-speaker, mute, screen-share, reconnection, and participant connection state come from LiveKit events and are never written continuously to Supabase.
+
+The shared call service disables a new share while a remote participant is presenting. If two participants start in the same instant, all clients select the same identity deterministically and the losing local publisher stops its screen track, restoring the single-presenter state without application media signaling.
 
 Owner kick/block actions remain authenticated guest-schema RPCs. Their membership update is distributed through Supabase Realtime. After the database commits the removal, Angular asks the guarded NestJS LiveKit endpoint to disconnect that already-removed media identity and revoke its current token; NestJS independently verifies the owner and removal record first.
 
@@ -84,7 +97,7 @@ The public-schema channel repository remains in source for possible non-guest mi
 - Profile rows are provisioned after successful registered authentication. Profile GET is read-only and returns 404 when a row is missing.
 - Direct browser table writes are not granted; guest and authenticated-chat mutations use narrow security-definer RPCs with `auth.uid()` checks.
 - Realtime and direct reads are constrained by schema-specific membership RLS.
-- LiveKit tokens require an active, unremoved membership and an active, unexpired channel.
+- Guest LiveKit tokens require an active, unremoved membership and an active, unexpired guest channel. Authenticated server-channel tokens require a registered account, current server membership, and active channel access.
 
 ## Validation
 

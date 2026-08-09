@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Req, UseGuards } from '@nestjs/common';
 import {
   CallParticipantRemovalRequestSchema,
   CallTokenRequestSchema,
@@ -13,6 +13,7 @@ import {
   SupabaseAuthGuard,
   type AuthenticatedRequest,
 } from '../../common/guards/supabase-auth.guard';
+import { RegisteredUserGuard } from '../../common/guards/registered-user.guard';
 import { ZodValidationPipe } from '../../zod-validation.pipe';
 import { CallsService } from './calls.service';
 
@@ -35,6 +36,24 @@ export class CallsController {
     @Param('channelId') channelId: string,
   ): Promise<CallStatusResponse> {
     return this.callsService.getCallStatus(request.user.id, channelId);
+  }
+
+  @Post('server-channels/:channelId/call-token')
+  @UseGuards(RegisteredUserGuard)
+  createServerCallToken(
+    @Req() request: AuthenticatedRequest,
+    @Param('channelId', new ParseUUIDPipe()) channelId: string,
+  ): Promise<CallTokenResponse> {
+    return this.callsService.createServerCallToken(request.user.id, channelId);
+  }
+
+  @Get('server-channels/:channelId/call-status')
+  @UseGuards(RegisteredUserGuard)
+  getServerCallStatus(
+    @Req() request: AuthenticatedRequest,
+    @Param('channelId', new ParseUUIDPipe()) channelId: string,
+  ): Promise<CallStatusResponse> {
+    return this.callsService.getServerCallStatus(request.user.id, channelId);
   }
 
   @Post('livekit/remove-participant')
