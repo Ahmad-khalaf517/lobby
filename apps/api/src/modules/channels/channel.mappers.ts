@@ -8,7 +8,7 @@ export function toChannel(row: ChannelRow): Channel {
     createdAt: row.created_at,
     created_by: row.created_by,
     server_id: row.server_id,
-    updatedAt: row.updated_at,
+    updatedAt: row.updated_at ?? undefined,
   };
 }
 

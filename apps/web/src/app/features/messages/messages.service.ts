@@ -487,9 +487,7 @@ export class DirectMessagesService {
         'postgres_changes',
         { event: 'DELETE', schema: 'public', table: 'dm_messages' },
         (payload) =>
-          this.ngZone.run(() =>
-            this.handleMessageDeleted(payload.old as { id: string; conversation_id: string }),
-          ),
+          this.ngZone.run(() => this.handleMessageDeleted(payload.old as { id: string })),
       )
       .on(
         'postgres_changes',
@@ -575,16 +573,23 @@ export class DirectMessagesService {
     });
   }
 
-  private handleMessageDeleted(old: { id: string; conversation_id: string }): void {
-    const conversation = this.conversationsSignal().find(
-      (c) => c.conversationId === old.conversation_id,
+  private handleMessageDeleted(old: { id: string }): void {
+    // With RLS enabled, Supabase DELETE payloads may contain only the primary
+    // key even when replica identity is FULL. Remove the globally unique
+    // message id from every loaded conversation instead of depending on an
+    // unavailable conversation_id or exposing full deleted rows to Realtime.
+    this.messagesSignal.update((store) =>
+      Object.fromEntries(
+        Object.entries(store).map(([userId, messages]) => [
+          userId,
+          messages.filter((message) => message.id !== old.id),
+        ]),
+      ),
     );
-    if (!conversation) return;
-    const userId = conversation.friendId;
-    this.messagesSignal.update((store) => ({
-      ...store,
-      [userId]: (store[userId] ?? []).filter((message) => message.id !== old.id),
-    }));
+
+    // Refresh sidebar previews because the deleted message may have been the
+    // most recent message in its conversation.
+    void this.loadConversations().catch(() => undefined);
   }
 
   private async handleNewConversation(row: DmConversationRow): Promise<void> {
