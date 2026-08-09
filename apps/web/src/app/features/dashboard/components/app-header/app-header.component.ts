@@ -11,11 +11,19 @@ import {
   signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { MAX_SERVER_NAME_LENGTH, type Server, type UserProfile } from '@lobby/shared';
+import {
+  MAX_SERVER_NAME_LENGTH,
+  type Notification,
+  type Server,
+  type UserProfile,
+} from '@lobby/shared';
 
 import { AuthService } from '../../../auth/services/auth';
 import { ChatAvatarComponent } from '../../../../shared/components/room-chat';
-import { LobbyIconComponent } from '../../../../shared/ui/icon/lobby-icon.component';
+import {
+  LobbyIconComponent,
+  type LobbyIconName,
+} from '../../../../shared/ui/icon/lobby-icon.component';
 import { LogoComponent } from '../../../../shared/ui/logo/lobby-logo.component';
 import { ToastService } from '../../../../core/toast/toast.service';
 import { ProfilePopupService } from '../../../profile/services/profile-popup.service';
@@ -60,11 +68,14 @@ export class AppHeaderComponent {
   private readonly toast = inject(ToastService);
   // Not read directly here — injecting forces these singletons to construct
   // (and start their realtime subscriptions) as soon as the dashboard shell
-  // mounts, so a DM/friend-request toast can fire from any page in /app.
+  // mounts, so a DM toast can fire from any page in /app.
   private readonly directMessages = inject(DirectMessagesService);
-  private readonly notificationsRealtime = inject(NotificationsService);
+  private readonly notificationsService = inject(NotificationsService);
   protected readonly notificationsOpen = signal(false);
   protected readonly accountMenuOpen = signal(false);
+  protected readonly notifications = this.notificationsService.notifications;
+  protected readonly notificationsLoading = this.notificationsService.loading;
+  protected readonly unreadCount = this.notificationsService.unreadCount;
 
   protected readonly myProfile = signal<UserProfile | null>(null);
   protected readonly currentUserId = computed(() => this.auth.user()?.id ?? '');
@@ -250,6 +261,44 @@ export class AppHeaderComponent {
     );
   }
 
+  protected notificationIcon(type: Notification['type']): LobbyIconName {
+    switch (type) {
+      case 'friend_request':
+        return 'user-plus';
+      case 'friend_accept':
+        return 'check';
+      case 'message':
+        return 'chat';
+      default:
+        return 'bell';
+    }
+  }
+
+  protected notificationTime(createdAt: string): string {
+    const minutes = Math.floor((Date.now() - new Date(createdAt).getTime()) / 60_000);
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+  }
+
+  protected markNotificationsRead(): void {
+    void this.notificationsService.markAllRead();
+  }
+
+  protected openNotification(notification: Notification): void {
+    this.notificationsOpen.set(false);
+    if (notification.type === 'friend_request') {
+      // Jump straight to the pending tab so the request can be acted on.
+      void this.router.navigate(['/app/friends'], { queryParams: { tab: 'pending' } });
+    } else if (notification.type === 'friend_accept') {
+      void this.router.navigate(['/app/friends']);
+    } else if (notification.type === 'message') {
+      void this.router.navigate(['/app/messages']);
+    }
+  }
+
   protected openMyProfile(): void {
     this.accountMenuOpen.set(false);
     const userId = this.currentUserId();
@@ -264,6 +313,10 @@ export class AppHeaderComponent {
   protected toggleNotifications(): void {
     this.accountMenuOpen.set(false);
     this.notificationsOpen.update((value) => !value);
+    if (this.notificationsOpen()) {
+      // Opening the panel is the user acknowledging the items — mark them read.
+      void this.notificationsService.markAllRead();
+    }
   }
 
   protected toggleAccountMenu(): void {

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import type { DmConversation, DmMessage } from '@lobby/shared';
 import { FriendshipsService } from '../friendships/friendships.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { UsersService } from '../users/users.service';
 import type { DmConversationRow } from './dms.mappers';
 import { toDmMessage } from './dms.mappers';
@@ -17,6 +18,7 @@ export class DmsService {
     private readonly repo: DmsRepository,
     private readonly users: UsersService,
     private readonly friendships: FriendshipsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /** Idempotent get-or-create: DMing someone reuses the existing conversation. */
@@ -115,6 +117,12 @@ export class DmsService {
     }
 
     const created = await this.repo.insertMessage(row.id, currentUserId, body, replyToMessageId);
+
+    // A 'message' notification for the other participant so the DM shows up in
+    // their notification inbox too (alongside the live Realtime toast).
+    const sender = await this.users.getProfile(currentUserId);
+    void this.notifications.notifyDmMessage(otherUserId, sender.displayName, body);
+
     return toDmMessage(created);
   }
 

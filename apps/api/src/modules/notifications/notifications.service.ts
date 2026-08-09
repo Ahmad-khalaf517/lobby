@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
+import type { Notification } from '@lobby/shared';
 import { NotificationsRepository } from './notifications.repository';
+import { toNotification } from './notifications.mappers';
 
 @Injectable()
 export class NotificationsService {
@@ -25,6 +27,32 @@ export class NotificationsService {
       title: 'Friend request accepted',
       body: `${accepterName} accepted your friend request.`,
     });
+  }
+
+  /** A DM message arrived — notify the recipient so it shows in their inbox. */
+  async notifyDmMessage(
+    recipientId: string,
+    senderName: string,
+    messageBody: string,
+  ): Promise<void> {
+    await this.safeCreate({
+      user_id: recipientId,
+      type: 'message',
+      title: `New message from ${senderName}`,
+      body: messageBody,
+      // message_id intentionally left null — the FK points at the channel
+      // `messages` table, so a DM message id would violate it.
+    });
+  }
+
+  /** The signed-in user's notifications, newest first. */
+  async listForUser(userId: string): Promise<Notification[]> {
+    const rows = await this.repo.listForUser(userId);
+    return rows.map(toNotification);
+  }
+
+  async markAllRead(userId: string): Promise<void> {
+    await this.repo.markAllRead(userId);
   }
 
   /**

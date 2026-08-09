@@ -44,7 +44,7 @@
           <p class="text-sm font-semibold text-app-foreground">Direct messages</p>
         </div>
         <div class="lobby-scrollbar flex-1 space-y-1 overflow-y-auto p-2.5">
-          @if (conversationsLoading()) {
+          @if (conversationsLoading() && conversationRows().length === 0) {
             <div class="space-y-2 p-1 pt-2">
               @for (skeleton of skeletonRows; track skeleton) {
                 <div class="flex items-center gap-2.5 px-1.5 py-1.5">
@@ -56,7 +56,7 @@
                 </div>
               }
             </div>
-          } @else if (conversationsError()) {
+          } @else if (conversationsError() && conversationRows().length === 0) {
             <p class="px-3 py-6 text-center text-sm text-[#f0a6ad]">{{ conversationsError() }}</p>
           } @else {
             @for (row of conversationRows(); track row.friendId) {
@@ -276,11 +276,25 @@
               />
             } @empty {
               @if (historyLoading()) {
-                <div class="flex h-full flex-col items-center justify-center gap-2.5 text-center">
-                  <div
-                    class="size-5 animate-spin rounded-full border-2 border-white/10 border-t-primary"
-                  ></div>
-                  <p class="text-sm text-[#687282]">Loading messages…</p>
+                <div class="space-y-4 pt-2">
+                  @for (skeleton of skeletonMessages; track skeleton) {
+                    @if (skeleton % 2 === 0) {
+                      <div class="flex items-end gap-2.5">
+                        <div class="size-8 shrink-0 animate-pulse rounded-full bg-white/8"></div>
+                        <div class="space-y-2 rounded-2xl rounded-bl-md bg-white/[0.04] p-3.5">
+                          <div class="h-2.5 w-32 animate-pulse rounded-full bg-white/8"></div>
+                          <div class="h-2.5 w-24 animate-pulse rounded-full bg-white/6"></div>
+                        </div>
+                      </div>
+                    } @else {
+                      <div class="flex items-end justify-end">
+                        <div class="space-y-2 rounded-2xl rounded-br-md bg-primary/[0.1] p-3.5">
+                          <div class="h-2.5 w-36 animate-pulse rounded-full bg-white/8"></div>
+                          <div class="h-2.5 w-28 animate-pulse rounded-full bg-white/6"></div>
+                        </div>
+                      </div>
+                    }
+                  }
                 </div>
               } @else if (openError()) {
                 <div class="flex h-full flex-col items-center justify-center gap-1 text-center">
@@ -313,43 +327,77 @@
                 You blocked {{ partner.name }} — unblock to send messages
               </div>
             } @else {
-              <div
-                class="overflow-hidden rounded-2xl border border-white/10 bg-[#141821] transition focus-within:border-primary/40"
-              >
-                @if (pendingReply(); as reply) {
-                  <app-chat-reply
-                    [preview]="reply"
-                    [docked]="true"
-                    (cancelReply)="onCancelReply()"
-                  />
-                }
-                <div class="flex h-12 items-center gap-2.5 pl-4 pr-2">
-                  <input
-                    #composerInput
-                    type="text"
-                    [value]="draft()"
-                    (input)="onDraftInput($event)"
-                    (keydown.enter)="$event.preventDefault(); send()"
-                    [placeholder]="'Message ' + partner.name"
-                    class="h-full min-w-0 flex-1 bg-transparent text-sm text-app-foreground outline-none placeholder:text-[#687282]"
-                  />
-                  <button
-                    type="button"
-                    (click)="send()"
-                    aria-label="Send message"
-                    class="grid size-9 shrink-0 place-items-center rounded-[10px] bg-primary text-white transition hover:bg-[#8b6dff]"
-                  >
-                    <svg viewBox="0 0 24 24" class="size-4" fill="none" aria-hidden="true">
-                      <path
-                        d="M12 19V5M5 12l7-7 7 7"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                  </button>
+              <div data-emoji-picker class="relative">
+                <div
+                  class="overflow-hidden rounded-2xl border border-white/10 bg-[#141821] transition focus-within:border-primary/40"
+                >
+                  @if (pendingReply(); as reply) {
+                    <app-chat-reply
+                      [preview]="reply"
+                      [docked]="true"
+                      (cancelReply)="onCancelReply()"
+                    />
+                  }
+                  <div class="flex h-12 items-center gap-2.5 pl-4 pr-2">
+                    <input
+                      #composerInput
+                      type="text"
+                      [value]="draft()"
+                      (input)="onDraftInput($event)"
+                      (keydown.enter)="$event.preventDefault(); send()"
+                      [placeholder]="'Message ' + partner.name"
+                      class="h-full min-w-0 flex-1 bg-transparent text-sm text-app-foreground outline-none placeholder:text-[#687282]"
+                    />
+                    <button
+                      type="button"
+                      (click)="toggleEmojiPicker()"
+                      aria-label="Open emoji picker"
+                      title="Emoji"
+                      aria-haspopup="true"
+                      [attr.aria-expanded]="emojiPickerOpen()"
+                      class="grid size-9 shrink-0 place-items-center rounded-[10px] text-[#9aa4b2] transition hover:bg-white/6 hover:text-[#f4f7fb]"
+                    >
+                      <app-icon name="smile" [size]="16" />
+                    </button>
+                    <button
+                      type="button"
+                      (click)="send()"
+                      aria-label="Send message"
+                      class="grid size-9 shrink-0 place-items-center rounded-[10px] bg-primary text-white transition hover:bg-[#8b6dff]"
+                    >
+                      <svg viewBox="0 0 24 24" class="size-4" fill="none" aria-hidden="true">
+                        <path
+                          d="M12 19V5M5 12l7-7 7 7"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
+
+                @if (emojiPickerOpen()) {
+                  <div
+                    class="absolute bottom-[calc(100%+0.6rem)] right-2 z-30 w-56 rounded-xl border border-white/[0.09] bg-[#141821] p-2 shadow-[0_24px_55px_rgba(0,0,0,0.48)]"
+                    role="menu"
+                    aria-label="Emoji picker"
+                  >
+                    <div class="grid grid-cols-6 gap-1">
+                      @for (emoji of emojis; track emoji) {
+                        <button
+                          type="button"
+                          (click)="selectEmoji(emoji)"
+                          class="grid size-8 place-items-center rounded-lg text-base transition-colors hover:bg-white/[0.08]"
+                          [attr.aria-label]="'Insert emoji ' + emoji"
+                        >
+                          {{ emoji }}
+                        </button>
+                      }
+                    </div>
+                  </div>
+                }
               </div>
             }
           </div>

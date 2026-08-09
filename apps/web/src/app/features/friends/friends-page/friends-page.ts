@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, HostListener, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import type { UserProfile } from '@lobby/shared';
 import { AuthService } from '../../auth/services/auth';
 import { DirectMessagesService } from '../../messages/messages.service';
@@ -34,6 +34,7 @@ export class FriendsPage {
   private readonly profilePopup = inject(ProfilePopupService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly friends = this.friendsService.friends;
   protected readonly pendingIncoming = this.friendsService.pendingIncoming;
@@ -55,6 +56,17 @@ export class FriendsPage {
 
   constructor() {
     void this.friendsService.load();
+
+    // Deep-link support: /app/friends?tab=pending (sent by notification clicks)
+    // opens the matching tab instead of always landing on "All friends".
+    this.route.queryParamMap.subscribe((params) => this.applyTabParam(params.get('tab')));
+    this.applyTabParam(this.route.snapshot.queryParamMap.get('tab'));
+  }
+
+  private applyTabParam(tab: string | null): void {
+    if (tab === 'all' || tab === 'pending' || tab === 'blocked') {
+      this.activeTab.set(tab);
+    }
   }
 
   protected setTab(tab: FriendsTab): void {

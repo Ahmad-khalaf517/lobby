@@ -28,7 +28,9 @@ import type { Conversation } from './messages.models';
  * Direct messages feature state — backed by the DMs REST API for
  * reads/writes, plus a Supabase Realtime subscription (mirroring
  * GuestChannelStore's pattern) so messages/conversations from the other
- * participant show up live instead of only on next fetch.
+ * participant show up live instead of only on next fetch. The subscription
+ * relies on RLS SELECT policies on dm_messages/dm_conversations — events are
+ * only delivered for conversations the signed-in user participates in.
  */
 @Injectable({ providedIn: 'root' })
 export class DirectMessagesService {
@@ -422,29 +424,9 @@ export class DirectMessagesService {
   private subscribeRealtime(): void {
     if (this.realtimeChannel) return;
 
-    // Realtime silently delivers nothing if direct reads aren't actually
-    // permitted (missing RLS policy or GRANT SELECT) — this is the same
-    // prerequisite postgres_changes needs, so it's a fast, direct way to
-    // confirm that root cause instead of guessing from silence alone.
-    void this.supabaseSession.client
-      .from('dm_messages')
-      .select('id')
-      .limit(1)
-      .then(({ error }) => {
-        if (error) {
-          console.error(
-            '[DirectMessagesService] Direct read of dm_messages failed — realtime needs the ' +
-              'same access. Check RLS SELECT policies and GRANT SELECT ... TO authenticated.',
-            error,
-          );
-        }
-      });
-
     // Supabase Realtime's WebSocket may fire its callbacks outside Angular's
-    // zone (depending on when the client's socket was constructed relative to
-    // zone.js patching it) — wrapping in ngZone.run() guarantees change
-    // detection actually runs after these signal writes instead of silently
-    // leaving the view stale until some unrelated zone-tracked event happens.
+    // zone — wrapping in ngZone.run() guarantees change detection actually
+    // runs after these signal writes instead of leaving the view stale.
     this.realtimeChannel = this.supabaseSession.client
       .channel(`dms:${this.currentUserId()}`)
       .on(
@@ -452,6 +434,11 @@ export class DirectMessagesService {
         { event: 'INSERT', schema: 'public', table: 'dm_messages' },
         (payload) =>
           this.ngZone.run(() => void this.handleIncomingMessage(payload.new as DmMessageRow)),
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'dm_messages' },
+        (payload) => this.ngZone.run(() => this.handleMessageUpdated(payload.new as DmMessageRow)),
       )
       .on(
         'postgres_changes',
@@ -467,16 +454,7 @@ export class DirectMessagesService {
         (payload) =>
           this.ngZone.run(() => void this.handleNewConversation(payload.new as DmConversationRow)),
       )
-      .subscribe((status, error) => {
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error(
-            `[DirectMessagesService] Realtime subscription failed (${status}). ` +
-              'Check that RLS SELECT policies exist on dm_messages/dm_conversations for the ' +
-              'authenticated role — enabling the realtime publication alone is not enough.',
-            error,
-          );
-        }
-      });
+      .subscribe();
   }
 
   private unsubscribeRealtime(): void {
@@ -490,7 +468,7 @@ export class DirectMessagesService {
   }
 
   private async handleIncomingMessage(row: DmMessageRow): Promise<void> {
-    if (row.sender_id === this.currentUserId()) return; // my own send already applied it optimistically
+    if (row.sender_id === this.currentUserId()) return; // my own send already applied it locally
 
     let conversation = this.conversationsSignal().find(
       (c) => c.conversationId === row.conversation_id,
@@ -534,6 +512,37 @@ export class DirectMessagesService {
       avatarUrl: author.avatarUrl,
       onClick: () => void this.router.navigate(['/app/messages', userId]),
     });
+  }
+
+  /**
+   * Live edits + reaction changes (the API updates content / reaction_emoji on
+   * the same dm_messages row). Applies both without clobbering the local
+   * user's own reaction state.
+   */
+  private handleMessageUpdated(row: DmMessageRow): void {
+    const conversation = this.conversationsSignal().find(
+      (c) => c.conversationId === row.conversation_id,
+    );
+    if (!conversation) return;
+    const userId = conversation.friendId;
+    const dmMessage = dmMessageFromRow(row);
+
+    this.messagesSignal.update((store) => ({
+      ...store,
+      [userId]: (store[userId] ?? []).map((entry) =>
+        entry.id === row.id ? applyDmUpdate(entry, dmMessage) : entry,
+      ),
+    }));
+
+    // If the edited message was the last in the thread, refresh the preview.
+    const list = this.messagesSignal()[userId] ?? [];
+    if (list[list.length - 1]?.id === row.id) {
+      this.conversationsSignal.update((rows) =>
+        rows.map((entry) =>
+          entry.friendId === userId ? { ...entry, preview: dmMessage.body } : entry,
+        ),
+      );
+    }
   }
 
   private handleMessageDeleted(old: { id: string; conversation_id: string }): void {
@@ -598,6 +607,28 @@ function dmMessageFromRow(row: DmMessageRow): DmMessage {
     reactionEmoji: row.reaction_emoji,
     replyToMessageId: row.reply_to,
     createdAt: row.created_at,
+  };
+}
+
+/**
+ * Apply a live dm_messages UPDATE to a locally-held message. Edits change the
+ * text (and set the edited flag when it differs); reaction changes update the
+ * reactions list without clobbering the local user's own reaction.
+ */
+function applyDmUpdate(message: ChatMessage, updated: DmMessage): ChatMessage {
+  return {
+    ...message,
+    text: updated.body,
+    edited: message.edited || updated.body !== message.text,
+    reactions: updated.reactionEmoji
+      ? [
+          {
+            emoji: updated.reactionEmoji,
+            count: 1,
+            reactedByMe: message.ownReaction === updated.reactionEmoji,
+          },
+        ]
+      : [],
   };
 }
 

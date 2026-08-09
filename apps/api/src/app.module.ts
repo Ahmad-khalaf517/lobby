@@ -10,6 +10,7 @@ import { UsersModule } from './modules/users/users.module';
 import { AccountSettingsModule } from './modules/account-settings/account-settings.module';
 import { FriendshipsModule } from './modules/friendships/friendships.module';
 import { DmsModule } from './modules/dms/dms.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { DmsModule } from './modules/dms/dms.module';
     AccountSettingsModule,
     FriendshipsModule,
     DmsModule,
+    NotificationsModule,
   ],
   providers: [
     {
