@@ -41,7 +41,7 @@ export class ChannelMessagesController {
   constructor(private readonly channelMessages: ChannelMessagesService) {}
 
   @Get()
-  list(
+  async list(
     @Req() request: AuthenticatedRequest,
     @Param('serverId') serverId: string,
     @Param('channelId') channelId: string,
@@ -49,7 +49,14 @@ export class ChannelMessagesController {
     @Query('before') before?: string,
   ) {
     const parsed = limit ? Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200) : 50;
-    return this.channelMessages.listMessages(serverId, channelId, request.user.id, parsed, before);
+    const messages = await this.channelMessages.listMessages(
+      serverId,
+      channelId,
+      request.user.id,
+      parsed,
+      before,
+    );
+    return { messages };
   }
 
   /** Full-text-ish search within a single channel. */
