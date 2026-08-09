@@ -13,7 +13,7 @@ If your agent supports only one instruction file, treat this file as the entry p
 
 ## Non-Negotiables
 
-1. Do not invent socket event names; use `packages/shared/src/constants/socket-events.ts`.
+1. Guest chat has no Socket.IO transport; do not add guest socket events without an explicit contract and architecture change.
 2. Do not duplicate shared payload types outside `packages/shared`.
 3. Do not access Supabase directly from `apps/web`.
 4. Do not expose server secrets (especially `SUPABASE_SERVICE_ROLE_KEY`).

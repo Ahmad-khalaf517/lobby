@@ -8,6 +8,7 @@ import {
   viewChild,
   type ElementRef,
 } from '@angular/core';
+import { LobbyIconComponent } from '../../../ui/icon/lobby-icon.component';
 import { ChatBarComponent } from '../chat-bar/chat-bar.component';
 import { ChatMessageComponent } from '../chat-message/chat-message.component';
 import { ChatReplyComponent } from '../chat-reply/chat-reply.component';
@@ -30,7 +31,7 @@ import {
 @Component({
   selector: 'app-chat-sidebar',
   standalone: true,
-  imports: [ChatMessageComponent, ChatReplyComponent, ChatBarComponent],
+  imports: [LobbyIconComponent, ChatMessageComponent, ChatReplyComponent, ChatBarComponent],
   templateUrl: './chat-sidebar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -39,6 +40,11 @@ import {
 })
 export class ChatSidebarComponent {
   infoBannerText = input<string | null>(null);
+  emptyStateVariant = input<'centered' | 'channel'>('centered');
+  emptyStateTitle = input<string>('Start the conversation');
+  emptyStateSubtitle = input<string>(
+    'Messages, replies, and reactions will appear here in realtime.',
+  );
   messages = input<ChatMessage[]>([]);
   currentUserId = input<string>('');
   memberNames = input<string[]>([]);
@@ -53,6 +59,7 @@ export class ChatSidebarComponent {
   readonly toggleReactionMenu = output<string>();
   readonly react = output<{ messageId: string; emoji: string }>();
   readonly delete = output<string>();
+  readonly edit = output<ChatMessage>();
   readonly cancelReply = output<void>();
 
   private readonly messagesContainer = viewChild<ElementRef<HTMLDivElement>>('messagesContainer');

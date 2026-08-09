@@ -1,4 +1,13 @@
-{{ initials() }}
+@if (showImage()) {
+  <img
+    [src]="avatarUrl()"
+    alt=""
+    class="absolute inset-0 h-full w-full rounded-[inherit] object-cover"
+    (error)="onImageError()"
+  />
+} @else {
+  {{ initials() }}
+}
 @if (status(); as s) {
   <span
     class="pointer-events-none"

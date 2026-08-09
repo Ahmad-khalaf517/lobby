@@ -11,6 +11,7 @@ import { isNestApiRequest } from './api-credentials.interceptor';
 
 const apiUrl = environment.apiUrl.replace(/\/$/, '');
 const refreshExcludedPaths = new Set([
+  '/auth/anonymous',
   '/auth/login',
   '/auth/register',
   '/auth/confirm-email',
@@ -48,7 +49,7 @@ export const authRefreshInterceptor: HttpInterceptorFn = (request, next) => {
       if (!refreshRequest$) {
         refreshRequest$ = from(auth.refreshSession()).pipe(
           catchError((refreshError: unknown) => {
-            auth.markUnauthenticated();
+            void auth.markUnauthenticated();
             void router.navigate(['/login'], {
               queryParams: { returnUrl: router.url },
             });

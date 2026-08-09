@@ -6,7 +6,7 @@ import {
   input,
   signal,
 } from '@angular/core';
-import { CallIconComponent } from '../../room-chat/call-icon/call-icon.component';
+import { LobbyIconComponent } from '../../../ui/icon/lobby-icon.component';
 
 /**
  * A small card showing a room code / invite link with a copy button that
@@ -16,7 +16,7 @@ import { CallIconComponent } from '../../room-chat/call-icon/call-icon.component
 @Component({
   selector: 'app-call-room-code-card',
   standalone: true,
-  imports: [CallIconComponent],
+  imports: [LobbyIconComponent],
   templateUrl: './call-room-code-card.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

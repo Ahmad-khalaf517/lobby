@@ -1,4 +1,5 @@
 import type {
+  AnonymousAuthRequest,
   AuthMessageResponse,
   AuthSessionResponse,
   ConfirmEmailRequest,
@@ -11,6 +12,7 @@ import type {
   VerifyRecoveryRequest,
 } from '@lobby/shared';
 import {
+  AnonymousAuthRequestSchema,
   ConfirmEmailRequestSchema,
   EmailRequestSchema,
   LoginRequestSchema,
@@ -40,6 +42,51 @@ export class AuthController {
 
     return {
       user: toAuthUser(result.user),
+      accessToken: result.session.access_token,
+      expiresAt: result.session.expires_at ?? null,
+    };
+  }
+
+  @Post('anonymous')
+  async anonymous(
+    @Body(new ZodValidationPipe(AnonymousAuthRequestSchema)) dto: AnonymousAuthRequest,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<AuthSessionResponse> {
+    const { accessToken, refreshToken } = readAuthCookies(request);
+
+    if (accessToken) {
+      try {
+        const current = await this.authService.getCurrentUser(accessToken);
+        return {
+          user: toAuthUser(current.user),
+          accessToken,
+          expiresAt: this.authService.tokenExpiresAt(accessToken),
+        };
+      } catch {
+        // The refresh token below may still restore this account.
+      }
+    }
+
+    if (refreshToken) {
+      try {
+        const restored = await this.authService.refreshSession(refreshToken);
+        setAuthCookies(response, restored.session);
+        return {
+          user: toAuthUser(restored.user),
+          accessToken: restored.session.access_token,
+          expiresAt: restored.session.expires_at ?? null,
+        };
+      } catch {
+        clearAuthCookies(response);
+      }
+    }
+
+    const result = await this.authService.signInAnonymously(dto);
+    setAuthCookies(response, result.session);
+    return {
+      user: toAuthUser(result.user),
+      accessToken: result.session.access_token,
       expiresAt: result.session.expires_at ?? null,
     };
   }
@@ -69,7 +116,11 @@ export class AuthController {
     }
 
     const result = await this.authService.getCurrentUser(accessToken);
-    return { user: toAuthUser(result.user) };
+    return {
+      user: toAuthUser(result.user),
+      accessToken,
+      expiresAt: this.authService.tokenExpiresAt(accessToken),
+    };
   }
 
   @Post('refresh')
@@ -87,6 +138,7 @@ export class AuthController {
 
     return {
       user: toAuthUser(result.user),
+      accessToken: result.session.access_token,
       expiresAt: result.session.expires_at ?? null,
     };
   }
@@ -101,6 +153,7 @@ export class AuthController {
 
     return {
       user: toAuthUser(result.user),
+      accessToken: result.session.access_token,
       expiresAt: result.session.expires_at ?? null,
     };
   }
@@ -131,6 +184,7 @@ export class AuthController {
 
     return {
       user: toAuthUser(result.user),
+      accessToken: result.session.access_token,
       expiresAt: result.session.expires_at ?? null,
     };
   }

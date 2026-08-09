@@ -1,7 +1,6 @@
 export * from './models/chat-message.model';
 export * from './models/chat-user.model';
 export * from './chat-avatar/chat-avatar.component';
-export * from './call-icon/call-icon.component';
 export * from './chat-bar/chat-bar.component';
 export * from './chat-message/chat-message.component';
 export * from './chat-react/chat-react.component';

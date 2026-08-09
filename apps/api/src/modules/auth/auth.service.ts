@@ -1,4 +1,5 @@
 import type {
+  AnonymousAuthRequest,
   ConfirmEmailRequest,
   EmailRequest,
   LoginRequest,
@@ -25,6 +26,19 @@ export class AuthService {
 
     if (error || !data.session) {
       throw new UnauthorizedException('Invalid email or password');
+    }
+
+    return { user: data.session.user, session: data.session };
+  }
+
+  async signInAnonymously(dto: AnonymousAuthRequest) {
+    const supabase = this.supabaseService.createAuthClient();
+    const { data, error } = await supabase.auth.signInAnonymously({
+      options: dto.captchaToken ? { captchaToken: dto.captchaToken } : undefined,
+    });
+
+    if (error || !data.session) {
+      throw new UnauthorizedException(error?.message ?? 'Anonymous sign-in failed');
     }
 
     return { user: data.session.user, session: data.session };
@@ -172,5 +186,26 @@ export class AuthService {
 
   private webOrigin(): string {
     return (process.env.WEB_ORIGIN ?? 'http://localhost:4200').replace(/\/$/, '');
+  }
+
+  tokenExpiresAt(accessToken: string): number | null {
+    try {
+      const payloadPart = accessToken.split('.')[1];
+      if (!payloadPart) return null;
+
+      const parsed: unknown = JSON.parse(Buffer.from(payloadPart, 'base64url').toString('utf8'));
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        'exp' in parsed &&
+        typeof parsed.exp === 'number'
+      ) {
+        return parsed.exp;
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
   }
 }

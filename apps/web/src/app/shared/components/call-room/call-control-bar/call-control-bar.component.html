@@ -1,58 +1,104 @@
 <footer
-  class="flex shrink-0 flex-wrap items-center gap-3 border-t border-white/8 bg-[#12161f]/95 px-4 py-3 backdrop-blur-xl sm:px-6"
+  class="pointer-events-none absolute inset-x-0 bottom-4 z-30 flex justify-center px-4 sm:bottom-5"
 >
-  <div class="flex min-w-0 items-center gap-2.5">
-    <app-chat-avatar [name]="currentUserName()" size="sm" [elevated]="true" />
-    <span class="hidden max-w-40 truncate text-xs font-medium text-[#e7eaf0] md:inline">
-      {{ currentUserName() }}
-    </span>
-  </div>
+  <div
+    class="pointer-events-auto flex max-w-full items-center gap-2 rounded-[1.35rem] border border-white/10 bg-[#0d1119]/90 p-2 shadow-[0_24px_70px_rgba(0,0,0,0.55)] backdrop-blur-2xl"
+  >
+    <div class="hidden min-w-0 items-center gap-2.5 border-r border-white/8 pr-3 sm:flex">
+      <app-chat-avatar [name]="currentUserName()" size="sm" [elevated]="true" />
+      <div class="min-w-0">
+        <p class="max-w-32 truncate text-xs font-semibold text-white">{{ currentUserName() }}</p>
+        <p class="text-[10px] text-[#778295]">In the call</p>
+      </div>
+    </div>
 
-  <div class="flex items-center gap-3">
-    <app-call-icon
-      [type]="micEnabled() ? 'mic' : 'mic-off'"
-      variant="solid"
-      size="lg"
-      shape="circle"
-      [active]="micEnabled()"
-      [disabled]="micPending() || !enabled()"
-      [label]="micEnabled() ? 'Mute microphone' : 'Unmute microphone'"
+    <button
+      type="button"
       (click)="toggleMic.emit()"
-    />
+      [disabled]="micPending() || !enabled()"
+      class="grid size-12 place-items-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-45"
+      [class]="
+        micEnabled()
+          ? 'border-primary/35 bg-primary/20 text-[#e8e2ff] hover:bg-primary/28'
+          : 'border-rose-400/25 bg-rose-400/10 text-rose-200 hover:bg-rose-400/16'
+      "
+      [attr.aria-label]="micEnabled() ? 'Mute microphone' : 'Unmute microphone'"
+      [attr.title]="micEnabled() ? 'Mute microphone' : 'Unmute microphone'"
+    >
+      <app-icon [name]="micEnabled() ? 'mic' : 'mic-off'" [size]="19" />
+    </button>
 
-    <app-call-icon
-      [type]="cameraEnabled() ? 'video' : 'camera-off'"
-      variant="solid"
-      size="lg"
-      shape="circle"
-      [active]="cameraEnabled()"
-      [disabled]="!enabled()"
-      [label]="cameraEnabled() ? 'Turn camera off' : 'Turn camera on'"
-      (click)="toggleCamera.emit()"
-    />
+    <div class="group relative flex">
+      <button
+        type="button"
+        (click)="toggleScreenShare.emit()"
+        [disabled]="screenSharePending() || !enabled() || screenShareDisabled()"
+        class="grid size-12 place-items-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-45"
+        [class]="
+          screenShareActive()
+            ? 'border-emerald-400/35 bg-emerald-400/14 text-emerald-200 hover:bg-emerald-400/20'
+            : 'border-white/9 bg-white/[0.055] text-[#d7ddea] hover:border-white/16 hover:bg-white/10'
+        "
+        [attr.aria-label]="
+          screenShareActive()
+            ? 'Stop screen sharing'
+            : screenShareDisabledReason() || 'Share your screen'
+        "
+        [attr.title]="
+          screenShareActive()
+            ? 'Stop screen sharing'
+            : screenShareDisabledReason() || 'Share your screen'
+        "
+      >
+        <app-icon [name]="screenShareActive() ? 'screen-share-off' : 'screen-share'" [size]="19" />
+      </button>
 
-    <app-call-icon
-      [type]="screenShareActive() ? 'screen-share-off' : 'screen-share'"
-      variant="solid"
-      size="lg"
-      shape="circle"
-      [active]="screenShareActive()"
-      [disabled]="screenSharePending() || !enabled()"
-      [label]="screenShareActive() ? 'Stop screen sharing' : 'Share your screen'"
-      (click)="toggleScreenShare.emit()"
-    />
+      @if (screenShareDisabledReason(); as reason) {
+        <span
+          class="pointer-events-none absolute bottom-[calc(100%+0.6rem)] left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg border border-white/10 bg-[#111722] px-2.5 py-1.5 text-[10px] font-medium text-[#d7ddea] shadow-xl group-hover:block"
+        >
+          {{ reason }}
+        </span>
+      }
+    </div>
+
+    <button
+      type="button"
+      (click)="toggleParticipants.emit()"
+      class="hidden h-12 items-center gap-2 rounded-full border border-white/8 bg-white/[0.055] px-4 text-xs font-semibold text-[#d7ddea] transition hover:border-white/16 hover:bg-white/10 sm:inline-flex"
+      aria-label="Open participants"
+    >
+      <app-icon name="users" [size]="17" />
+      {{ participantCount() }}
+    </button>
+
+    @if (showChatToggle()) {
+      <button
+        type="button"
+        (click)="toggleChat.emit()"
+        class="grid size-12 place-items-center rounded-full border transition"
+        [class]="
+          chatVisible()
+            ? 'border-primary/35 bg-primary/20 text-[#e8e2ff] hover:bg-primary/28'
+            : 'border-white/9 bg-white/[0.055] text-[#d7ddea] hover:border-white/16 hover:bg-white/10'
+        "
+        [attr.aria-label]="chatVisible() ? 'Hide chat panel' : 'Show chat panel'"
+        [attr.title]="chatVisible() ? 'Hide chat panel' : 'Show chat panel'"
+      >
+        <app-icon name="chat" [size]="19" />
+      </button>
+    }
+
+    <span class="mx-0.5 h-7 w-px bg-white/8"></span>
+
+    <button
+      type="button"
+      (click)="leave.emit()"
+      class="grid size-12 place-items-center rounded-full border border-rose-400/25 bg-rose-500/14 text-rose-200 transition hover:bg-rose-500/22"
+      aria-label="Leave call"
+      title="Leave call"
+    >
+      <app-icon name="leave-call" [size]="19" />
+    </button>
   </div>
-
-  <span class="min-w-0 flex-1"></span>
-
-  <ng-content select="[call-control-input]" />
-
-  <app-call-icon
-    type="leave"
-    variant="danger"
-    size="lg"
-    shape="circle"
-    label="Leave call"
-    (click)="leave.emit()"
-  />
 </footer>

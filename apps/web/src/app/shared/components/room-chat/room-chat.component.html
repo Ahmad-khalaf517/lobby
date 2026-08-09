@@ -1,44 +1,41 @@
-<div class="flex min-h-0 min-w-0 flex-1 flex-col">
-  <header
-    class="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center border-b border-white/7 bg-[#141821] px-4 py-3 sm:px-6"
-  >
-    <div class="col-start-1 flex justify-self-start">
-      <ng-content select="[chat-header-leading]" />
-    </div>
+<div class="flex min-h-0 min-w-0 flex-1 flex-col bg-app-background">
+  @if (showHeader()) {
+    <header
+      class="flex h-14 shrink-0 items-center gap-3 border-b border-white/[0.07] bg-[#0e131d]/94 px-4 backdrop-blur-xl"
+    >
+      <div class="flex shrink-0 items-center">
+        <ng-content select="[chat-header-leading]" />
+      </div>
 
-    <div class="col-start-2 max-w-full justify-self-center px-2 text-center">
-      <p class="max-w-full truncate text-sm font-semibold text-white">{{ title() }}</p>
-      @if (subtitle()) {
-        <p class="mt-0.5 max-w-full truncate text-[10px] font-medium text-[#a0a9b7]">
-          {{ subtitle() }}
-        </p>
-      }
-    </div>
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-sm font-semibold leading-5 text-white">{{ title() }}</p>
+        @if (subtitle()) {
+          <p class="truncate text-[10px] font-normal leading-4 text-[#748095]">{{ subtitle() }}</p>
+        }
+      </div>
 
-    <div class="col-start-3 flex items-center justify-self-end gap-2">
-      <ng-content select="[chat-header-extra]" />
-      @if (showCloseButton()) {
-        <button
-          type="button"
-          (click)="onClose()"
-          aria-label="Close chat"
-          class="grid size-8 place-items-center rounded-lg border border-white/8 bg-white/[0.03] text-[#c8cfdb] transition hover:border-white/20 hover:bg-white/10 hover:text-white"
-        >
-          <svg viewBox="0 0 24 24" class="size-4" fill="none" aria-hidden="true">
-            <path
-              d="M18 6 6 18M6 6l12 12"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-            />
-          </svg>
-        </button>
-      }
-    </div>
-  </header>
+      <div class="flex shrink-0 items-center gap-2">
+        <ng-content select="[chat-header-extra]" />
+        @if (showCloseButton()) {
+          <button
+            type="button"
+            (click)="onClose()"
+            aria-label="Close chat"
+            title="Close chat"
+            class="grid size-8 place-items-center rounded-lg border border-white/[0.08] bg-white/[0.025] text-[#9da8b8] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60"
+          >
+            <app-icon name="close" class="size-3.5" />
+          </button>
+        }
+      </div>
+    </header>
+  }
 
   <app-chat-sidebar
     [infoBannerText]="infoBannerText()"
+    [emptyStateVariant]="emptyStateVariant()"
+    [emptyStateTitle]="emptyStateTitle()"
+    [emptyStateSubtitle]="emptyStateSubtitle()"
     [messages]="messages()"
     [currentUserId]="currentUserId()"
     [memberNames]="memberNames()"
@@ -52,6 +49,7 @@
     (toggleReactionMenu)="onToggleReactionMenu($event)"
     (react)="onReact($event)"
     (delete)="onDelete($event)"
+    (edit)="onEdit($event)"
     (cancelReply)="onCancelReply()"
   ></app-chat-sidebar>
 </div>

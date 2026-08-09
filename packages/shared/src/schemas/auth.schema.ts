@@ -14,6 +14,7 @@ export const AuthPasswordSchema = z
 export const AuthUserSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email().nullable(),
+  isAnonymous: z.boolean(),
   userMetadata: z.record(z.unknown()),
 });
 
@@ -81,16 +82,21 @@ export type ResetPasswordRequest = z.infer<typeof ResetPasswordRequestSchema>;
 
 export const AuthSessionResponseSchema = z.object({
   user: AuthUserSchema,
+  accessToken: z.string().min(1),
   expiresAt: z.number().int().positive().nullable(),
 });
 
 export type AuthSessionResponse = z.infer<typeof AuthSessionResponseSchema>;
 
-export const CurrentUserResponseSchema = z.object({
-  user: AuthUserSchema,
-});
+export const CurrentUserResponseSchema = AuthSessionResponseSchema;
 
 export type CurrentUserResponse = z.infer<typeof CurrentUserResponseSchema>;
+
+export const AnonymousAuthRequestSchema = z.object({
+  captchaToken: z.string().min(1).optional(),
+});
+
+export type AnonymousAuthRequest = z.infer<typeof AnonymousAuthRequestSchema>;
 
 export const RegistrationResponseSchema = z.object({
   message: z.string(),

@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -9,60 +9,40 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { io, type Socket } from 'socket.io-client';
+import { firstValueFrom } from 'rxjs';
 import {
   CallStatusResponseSchema,
-  ChannelSchema,
-  ChatMessageBroadcastSchema,
-  ChatMessagePayloadSchema,
-  DeleteMessagePayloadSchema,
-  JoinChannelPayloadSchema,
-  LeaveChannelPayloadSchema,
-  MemberListSchema,
+  CallTokenRequestSchema,
+  CallTokenResponseSchema,
   MAX_NAME_LENGTH,
-  MessageDeletedBroadcastSchema,
-  MessageReactionBroadcastSchema,
-  MessageReactionPayloadSchema,
-  MessageHistorySchema,
-  SOCKET_EVENTS,
-  type Channel,
-  type Member,
-  type Message,
 } from '@lobby/shared';
+
 import { environment } from '../../../../environments/environment';
+import { SKIP_ERROR_TOAST } from '../../../core/auth-http-context';
 import {
-  type ChatMessage,
-  type ChatReaction,
-  type ChatUser,
-  CallIconComponent,
-  RoomChatComponent,
-  initialsFromName,
-} from '../../../shared/components/room-chat';
-import {
+  CallControlBarComponent,
   CallParticipantsSidebarComponent,
-  CallRoomCodeCardComponent,
+  CallStageComponent,
+  LiveKitCallService,
+  VoiceParticipantTileComponent,
   type CallParticipant,
 } from '../../../shared/components/call-room';
+import {
+  RoomChatComponent,
+  type ChatMessage,
+  type SendChatMessage,
+} from '../../../shared/components/room-chat';
+import { LobbyIconComponent } from '../../../shared/ui/icon/lobby-icon.component';
 import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
+import { guestDisplayNameSchema } from '../../../shared/validation/guest-channel.schema';
+import { GuestChannelStore } from '../services/guest-channel.store';
 
 type RoomStatus = 'needs-name' | 'loading' | 'ready' | 'not-found' | 'error';
-
-type MessageToast = {
-  id: number;
-  name: string;
-  text: string;
-};
-
-type MessageReactionState = {
-  counts: Record<string, number>;
-  byUser: Record<string, string>;
-};
-
-const TOAST_LIFETIME_MS = 4500;
-const TOAST_TEXT_PREVIEW_LENGTH = 80;
 const CALL_STATUS_POLL_MS = 10_000;
+const CALL_SESSION_KEY_PREFIX = 'lobby:guest-call:';
 
 @Component({
   selector: 'app-guest-room-page',
@@ -70,11 +50,14 @@ const CALL_STATUS_POLL_MS = 10_000;
     ReactiveFormsModule,
     RouterLink,
     LogoComponent,
+    LobbyIconComponent,
     RoomChatComponent,
-    CallIconComponent,
     CallParticipantsSidebarComponent,
-    CallRoomCodeCardComponent,
+    CallStageComponent,
+    VoiceParticipantTileComponent,
+    CallControlBarComponent,
   ],
+
   templateUrl: './guest-room-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -83,567 +66,511 @@ export class GuestRoomPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
-
+  protected readonly guest = inject(GuestChannelStore);
+  protected readonly call = inject(LiveKitCallService);
   private readonly roomChat = viewChild(RoomChatComponent);
 
-  protected readonly channelId = this.route.snapshot.paramMap.get('inviteCode') ?? '';
-
+  protected readonly inviteCode = this.route.snapshot.paramMap.get('inviteCode') ?? '';
   protected readonly maxNameLength = MAX_NAME_LENGTH;
-  protected readonly status = signal<RoomStatus>('needs-name');
+  protected readonly status = signal<RoomStatus>('loading');
   protected readonly errorMessage = signal('');
-  protected readonly channel = signal<Channel | null>(null);
-  protected readonly messages = signal<Message[]>([]);
-  protected readonly members = signal<Member[]>([]);
-  protected readonly connected = signal(false);
-  protected readonly displayName = signal('');
-  /** At most one entry — a new toast replaces whatever's currently showing rather than stacking. */
-  protected readonly toasts = signal<MessageToast[]>([]);
-  protected readonly sidebarCollapsed = signal(false);
-  protected readonly messageReactions = signal<Record<string, MessageReactionState>>({});
-  /** Whether a LiveKit call is currently live in this channel (from the API poll). */
+  protected readonly actionNotice = signal<string | null>(null);
   protected readonly callActive = signal(false);
-  /** True once the user dismissed the "Join the call" banner. */
-  protected readonly joinCallDismissed = signal(false);
+  protected readonly callStatusLoading = signal(true);
+  protected readonly callStatusParticipantCount = signal(0);
+  protected readonly callJoining = signal(false);
+  protected readonly restoringCallSession = signal(false);
+  protected readonly mobileChatOpen = signal(false);
+  protected readonly membersPanelOpen = signal(false);
+  protected readonly chatCollapsed = signal(false);
+  protected readonly inviteCopied = signal(false);
+  protected readonly now = signal(Date.now());
 
-  protected readonly chatMessages = computed<ChatMessage[]>(() =>
-    this.messages().map((message) => this.toChatMessage(message)),
-  );
+  protected readonly channel = this.guest.channel;
+  protected readonly chatMessages = this.guest.chatMessages;
+  protected readonly connected = this.guest.connected;
+  protected readonly displayName = this.guest.displayName;
+  protected readonly currentUser = this.guest.currentUser;
+  protected readonly memberNames = this.guest.memberNames;
+  protected readonly isOwner = this.guest.isOwner;
 
-  protected readonly currentUser = computed<ChatUser>(() => ({
-    id: this.displayName(),
-    name: this.displayName(),
-  }));
+  protected readonly nameSubmitted = signal(false);
+  protected readonly nameControl = new FormControl('', { nonNullable: true });
 
-  protected readonly memberNames = computed<string[]>(() =>
-    this.members()
-      .map((member) => member.name.trim())
-      .filter(Boolean),
-  );
+  protected readonly roomParticipants = computed<CallParticipant[]>(() => {
+    const liveByIdentity = new Map(
+      this.call.participants().map((participant) => [participant.id, participant] as const),
+    );
+    const ownerMemberId = this.guest.channel()?.owner_member_id;
+    const currentMemberId = this.guest.currentMember()?.id;
 
-  /** Socket presence members mapped onto the shared CallParticipant shape for the participants sidebar. */
-  protected readonly memberParticipants = computed<CallParticipant[]>(() =>
-    this.members().map((member) => ({
-      id: member.socketId,
-      name: member.name,
-      isLocal: member.name === this.displayName(),
-      isSpeaking: false,
-      isMicMuted: false,
-      isCameraOff: true,
-      cameraTrack: null,
-      screenShareTrack: null,
-    })),
-  );
-
-  /** Shared initials derivation, exposed for the toast markup. */
-  protected readonly initials = initialsFromName;
-
-  /**
-   * Show the "Join the call" banner only while a call is genuinely live AND the
-   * user hasn't dismissed it. Dismissal re-arms once the call ends so a later
-   * call can prompt again.
-   */
-  protected readonly joinCallBannerVisible = computed(
-    () => this.callActive() && !this.joinCallDismissed(),
-  );
-
-  protected readonly nameControl = new FormControl('', {
-    nonNullable: true,
-    validators: [Validators.required, Validators.maxLength(MAX_NAME_LENGTH)],
+    return this.guest.members().map((member) => {
+      const live = liveByIdentity.get(member.livekit_identity);
+      return {
+        id: member.livekit_identity,
+        name: member.display_name,
+        isLocal: member.id === currentMemberId,
+        isOwner: member.id === ownerMemberId,
+        isSpeaking: live?.isSpeaking ?? false,
+        isMicMuted: live?.isMicMuted ?? true,
+        inCall: live !== undefined,
+        screenShareTrack: live?.screenShareTrack ?? null,
+      };
+    });
   });
 
-  private socket: Socket | null = null;
-  private audioContext: AudioContext | null = null;
-  private nextToastId = 0;
-  private toastTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  protected readonly callParticipants = computed<CallParticipant[]>(() => {
+    const ownerIdentity = this.guest
+      .members()
+      .find((member) => member.id === this.guest.channel()?.owner_member_id)?.livekit_identity;
+
+    return this.call.participants().map((participant) => ({
+      ...participant,
+      isOwner: participant.id === ownerIdentity,
+    }));
+  });
+
+  protected readonly roomMemberCount = computed(() => this.guest.members().length);
+  protected readonly callParticipantCount = computed(() =>
+    this.call.joined() ? this.call.participants().length : this.callStatusParticipantCount(),
+  );
+  protected readonly callButtonLabel = computed(() =>
+    this.callActive() ? 'Join live call' : 'Start audio call',
+  );
+  protected readonly expiresInLabel = computed(() => {
+    const expiresAt = this.channel()?.expires_at;
+    if (!expiresAt) return 'Temporary room';
+    const remainingMs = Date.parse(expiresAt) - this.now();
+    if (remainingMs <= 0) return 'Expired';
+    const minutes = Math.max(1, Math.ceil(remainingMs / 60_000));
+    if (minutes < 60) return `${minutes} min remaining`;
+    const hours = Math.floor(minutes / 60);
+    const rest = minutes % 60;
+    return rest > 0 ? `${hours}h ${rest}m remaining` : `${hours}h remaining`;
+  });
+
   private callStatusIntervalId: ReturnType<typeof setInterval> | null = null;
+  private callStatusPollInFlight = false;
+  private clockIntervalId: ReturnType<typeof setInterval> | null = null;
+  private inviteCopiedTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private destroyed = false;
 
   constructor() {
-    if (!this.channelId) {
+    if (!this.inviteCode) {
       this.status.set('not-found');
     } else {
-      const nameFromLink = this.route.snapshot.queryParamMap.get('name')?.trim();
-      if (nameFromLink) {
-        this.enterRoom(nameFromLink);
+      const requestedName = this.route.snapshot.queryParamMap.get('name')?.trim();
+      if (requestedName) {
+        this.nameControl.setValue(requestedName);
+        const parsedName = this.parseDisplayName();
+        if (parsedName) {
+          void this.enterRoom(parsedName);
+        } else {
+          this.nameSubmitted.set(true);
+          this.status.set('needs-name');
+        }
+      } else {
+        void this.restoreRoom();
       }
     }
 
-    // Re-arm the "Join the call" banner when the call ends so a later call can
-    // prompt the user again (unless they've navigated away).
+    this.clockIntervalId = setInterval(() => this.now.set(Date.now()), 60_000);
+
     effect(() => {
-      if (!this.callActive()) {
-        this.joinCallDismissed.set(false);
+      const storeError = this.guest.error();
+      if (storeError) this.actionNotice.set(storeError);
+
+      if (this.guest.ended() && this.status() === 'ready') {
+        this.forgetCallSession();
+        void this.call.disconnect();
+        this.errorMessage.set('This guest room has ended or expired.');
+        this.status.set('error');
+      }
+
+      const member = this.guest.currentMember();
+      if (this.status() === 'ready' && member && (member.left_at || member.removed_at)) {
+        this.forgetCallSession();
+        void this.call.disconnect();
+        this.errorMessage.set(
+          member.removed_at ? 'You were removed from this room.' : 'You have left this room.',
+        );
+        this.status.set('error');
+      }
+    });
+
+    effect(() => {
+      const callError = this.call.error();
+      if (callError) this.actionNotice.set(callError);
+    });
+
+    effect(() => {
+      const connectionState = this.call.connectionState();
+      if (
+        this.status() === 'ready' &&
+        (connectionState === 'disconnected' || connectionState === 'error')
+      ) {
+        void this.refreshCallStatus();
       }
     });
 
     this.destroyRef.onDestroy(() => {
-      this.disconnect();
-      if (this.callStatusIntervalId !== null) {
-        clearInterval(this.callStatusIntervalId);
-        this.callStatusIntervalId = null;
-      }
+      this.destroyed = true;
+      if (this.callStatusIntervalId) clearInterval(this.callStatusIntervalId);
+      if (this.clockIntervalId) clearInterval(this.clockIntervalId);
+      if (this.inviteCopiedTimeoutId) clearTimeout(this.inviteCopiedTimeoutId);
+      void this.call.disconnect();
+      void this.guest.cleanup();
     });
+
+    this.router.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.mobileChatOpen.set(false);
+      this.membersPanelOpen.set(false);
+    });
+  }
+
+  protected nameFieldError(): string | null {
+    const error = this.nameControl.errors?.['zod'];
+    const shouldShow = this.nameControl.touched || this.nameControl.dirty || this.nameSubmitted();
+    return shouldShow && typeof error === 'string' ? error : null;
+  }
+
+  protected validateNameField(): void {
+    this.parseDisplayName();
+  }
+
+  protected handleNameInput(): void {
+    this.errorMessage.set('');
+    this.parseDisplayName();
   }
 
   protected submitName(): void {
-    if (this.nameControl.invalid) {
+    this.nameSubmitted.set(true);
+    const name = this.parseDisplayName();
+    if (name === null) {
       this.nameControl.markAsTouched();
       return;
     }
-    this.enterRoom(this.nameControl.value.trim());
+    void this.enterRoom(name);
   }
 
-  private enterRoom(name: string): void {
-    this.displayName.set(name);
-    this.status.set('loading');
+  protected async joinCall(restoringSession = false): Promise<void> {
+    if (this.callJoining() || this.call.joined() || this.destroyed) return;
 
-    this.http.get<unknown>(`${environment.apiUrl}/channels/${this.channelId}`).subscribe({
-      next: (response) => {
-        try {
-          this.channel.set(ChannelSchema.parse(response));
-          this.loadHistoryAndConnect();
-        } catch {
-          this.errorMessage.set('The channel payload is invalid. Please refresh and try again.');
-          this.status.set('error');
-        }
-      },
-      error: (err: { status?: number }) => {
-        this.status.set(err.status === 404 ? 'not-found' : 'error');
-      },
-    });
-  }
+    this.callJoining.set(true);
+    this.restoringCallSession.set(restoringSession);
+    this.actionNotice.set(null);
 
-  private loadHistoryAndConnect(): void {
-    this.http.get<unknown>(`${environment.apiUrl}/channels/${this.channelId}/messages`).subscribe({
-      next: (response) => {
-        try {
-          const history = MessageHistorySchema.parse(response);
-          this.messages.set(history.messages);
-          this.messageReactions.set(this.hydrateReactionState(history.messages));
-          this.status.set('ready');
-          queueMicrotask(() => this.roomChat()?.scrollToNewest(false));
-          this.startCallStatusPolling();
-          this.connectSocket();
-        } catch {
-          this.errorMessage.set('Unable to parse channel history. Please refresh and try again.');
-          this.status.set('error');
-        }
-      },
-      error: () => this.status.set('error'),
-    });
-  }
+    try {
+      const channelId = this.guest.channel()?.id;
+      if (!channelId) throw new Error('Active channel membership is required.');
 
-  private connectSocket(): void {
-    // Empty apiUrl (dev) => same-origin, handled by proxy.conf.json.
-    // Absolute apiUrl (production) => connect to that origin directly.
-    const socket = io(environment.apiUrl || undefined);
-    this.socket = socket;
-
-    socket.on('connect', () => {
-      // Transport-level connect only — joinChannel is async server-side (it
-      // opens a channel_members row), so sending is not actually safe yet.
-      // `connected` flips true on the first memberList below instead, which
-      // the server only broadcasts once the join has really completed.
-      const payload = { channelId: this.channelId, name: this.displayName() };
-      socket.emit(SOCKET_EVENTS.JOIN_CHANNEL, JoinChannelPayloadSchema.parse(payload));
-    });
-
-    socket.on('disconnect', () => {
-      this.connected.set(false);
-      this.members.set([]);
-    });
-
-    socket.on(SOCKET_EVENTS.MEMBER_LIST, (raw: unknown) => {
-      const payload = MemberListSchema.parse(raw);
-      this.members.set(payload.members);
-      this.connected.set(true);
-    });
-
-    socket.on(SOCKET_EVENTS.CHAT_MESSAGE, (raw: unknown) => {
-      const shouldStickToBottom = this.roomChat()?.isNearBottom() ?? true;
-      const message = ChatMessageBroadcastSchema.parse(raw);
-      this.messages.update((current) => [...current, message]);
-
-      if (shouldStickToBottom || message.authorName === this.displayName()) {
-        queueMicrotask(() => this.roomChat()?.scrollToNewest(false));
-      }
-
-      if (message.authorName !== this.displayName()) {
-        this.playNotificationSound();
-        this.showToast(message);
-      }
-    });
-
-    socket.on(SOCKET_EVENTS.MESSAGE_REACTION, (raw: unknown) => {
-      const reaction = MessageReactionBroadcastSchema.parse(raw);
-      this.applyReactionUpdate(
-        reaction.messageId,
-        reaction.reactedBy,
-        reaction.emoji,
-        reaction.removed,
+      const body = CallTokenRequestSchema.parse({ channelId });
+      const raw = await firstValueFrom(
+        this.http.post<unknown>(`${this.apiUrl()}/livekit/token`, body),
       );
-    });
+      const response = CallTokenResponseSchema.parse(raw);
 
-    socket.on(SOCKET_EVENTS.MESSAGE_DELETED, (raw: unknown) => {
-      const { messageId } = MessageDeletedBroadcastSchema.parse(raw);
-      this.removeMessageLocally(messageId);
-    });
+      // The component may have been destroyed while the token request was in flight.
+      if (this.destroyed) return;
 
-    socket.on('exception', (err: { message?: string }) => {
-      this.errorMessage.set(err.message ?? 'The channel disconnected unexpectedly.');
-      this.status.set('error');
-    });
-  }
+      await this.call.connect({
+        livekitUrl: response.livekitUrl,
+        token: response.token,
+        roomName: response.roomName,
+      });
 
-  /** room-chat emits the final text (reply prefix already applied); send it over the socket. */
-  protected onSendMessage(text: string): void {
-    if (!this.socket?.connected) {
-      return;
+      if (this.destroyed) {
+        await this.call.disconnect();
+        return;
+      }
+
+      // The user may cancel while LiveKit is still connecting.
+      if (!this.call.joined()) return;
+
+      this.rememberCallSession();
+      this.callStatusParticipantCount.set(this.call.participants().length);
+      this.callActive.set(true);
+      this.callStatusLoading.set(false);
+    } catch (error: unknown) {
+      if (restoringSession) this.forgetCallSession();
+      const message = describeError(error);
+      this.actionNotice.set(
+        restoringSession ? `Could not restore your call automatically. ${message}` : message,
+      );
+    } finally {
+      this.callJoining.set(false);
+      this.restoringCallSession.set(false);
     }
-
-    const payload = ChatMessagePayloadSchema.parse({
-      channelId: this.channelId,
-      name: this.displayName(),
-      text,
-    });
-
-    this.socket.emit(SOCKET_EVENTS.CHAT_MESSAGE, payload);
-    queueMicrotask(() => this.roomChat()?.scrollToNewest(false));
   }
 
-  /** room-chat already shows the reply preview + focuses the composer — nothing more needed for guests. */
+  protected async leaveCall(): Promise<void> {
+    this.forgetCallSession();
+
+    const remainingParticipantCount = Math.max(0, this.call.participants().length - 1);
+
+    // Keep the pre-join card accurate immediately, then confirm it against the
+    // server after LiveKit has completed the disconnect.
+    this.callStatusParticipantCount.set(remainingParticipantCount);
+    this.callActive.set(remainingParticipantCount > 0);
+    this.callStatusLoading.set(false);
+
+    await this.call.disconnect();
+    await this.refreshCallStatus();
+  }
+
+  protected toggleMic(): void {
+    void this.call.toggleMic();
+  }
+
+  protected toggleScreenShare(): void {
+    void this.call.toggleScreenShare();
+  }
+
+  protected onSendMessage(message: SendChatMessage): void {
+    const shouldStickToBottom = this.roomChat()?.isNearBottom() ?? true;
+    void this.guest
+      .send(message)
+      .then(() => {
+        if (shouldStickToBottom) queueMicrotask(() => this.roomChat()?.scrollToNewest(false));
+      })
+      .catch((error: unknown) => this.showActionError(error));
+  }
+
   protected onReact({ messageId, emoji }: { messageId: string; emoji: string }): void {
-    if (!this.socket?.connected) {
-      return;
-    }
-
-    const reactedBy = this.displayName();
-    const userKey = reactedBy.trim().toLocaleLowerCase();
-    const currentEmoji = this.messageReactions()[messageId]?.byUser[userKey];
-    const removing = currentEmoji === emoji;
-
-    this.applyReactionUpdate(messageId, reactedBy, emoji, removing);
-
-    const payload = MessageReactionPayloadSchema.parse({
-      channelId: this.channelId,
-      messageId,
-      emoji,
-    });
-    this.socket.emit(SOCKET_EVENTS.MESSAGE_REACTION, payload);
+    void this.guest
+      .toggleReaction(messageId, emoji)
+      .catch((error: unknown) => this.showActionError(error));
   }
 
   protected onDelete(messageId: string): void {
-    this.removeMessageLocally(messageId);
+    void this.guest.deleteMessage(messageId).catch((error: unknown) => this.showActionError(error));
+  }
 
-    if (this.socket?.connected) {
-      const payload = DeleteMessagePayloadSchema.parse({
-        channelId: this.channelId,
-        messageId,
-      });
-      this.socket.emit(SOCKET_EVENTS.DELETE_MESSAGE, payload);
+  protected onEdit(message: ChatMessage): void {
+    if (typeof window === 'undefined') return;
+    const content = window.prompt('Edit message', message.text)?.trim();
+    if (!content || content === message.text) return;
+    void this.guest
+      .editMessage(message.id, content)
+      .catch((error: unknown) => this.showActionError(error));
+  }
+
+  protected async leaveChannel(): Promise<void> {
+    this.forgetCallSession();
+
+    try {
+      await this.call.disconnect();
+      await this.guest.leave();
+      await this.router.navigate(['/guests']);
+    } catch (error: unknown) {
+      this.showActionError(error);
     }
   }
 
-  protected onCloseChat(): void {
-    this.goToGuests();
+  protected async closeChannel(): Promise<void> {
+    if (
+      typeof window !== 'undefined' &&
+      !window.confirm('Close this room for everyone? This cannot be undone.')
+    ) {
+      return;
+    }
+
+    this.forgetCallSession();
+
+    try {
+      await this.call.disconnect();
+      await this.guest.close();
+    } catch (error: unknown) {
+      this.showActionError(error);
+    }
   }
 
-  private removeMessageLocally(messageId: string): void {
-    this.messages.update((current) => current.filter((message) => message.id !== messageId));
-    this.messageReactions.update((current) => {
-      const next = { ...current };
-      delete next[messageId];
-      return next;
-    });
+  protected toggleChatPanel(): void {
+    this.chatCollapsed.update((collapsed) => !collapsed);
   }
 
-  protected toggleSidebar(): void {
-    this.playClickSound();
-    this.sidebarCollapsed.update((collapsed) => !collapsed);
+  protected async copyInviteLink(): Promise<void> {
+    if (typeof navigator === 'undefined' || !navigator.clipboard) return;
+
+    try {
+      await navigator.clipboard.writeText(this.guestInviteLink());
+      this.inviteCopied.set(true);
+      if (this.inviteCopiedTimeoutId) clearTimeout(this.inviteCopiedTimeoutId);
+      this.inviteCopiedTimeoutId = setTimeout(() => this.inviteCopied.set(false), 1600);
+    } catch {
+      this.actionNotice.set('Could not copy the invite link.');
+    }
+  }
+
+  protected dismissNotice(): void {
+    this.actionNotice.set(null);
+    this.call.dismissError();
   }
 
   protected guestInviteLink(): string {
-    if (typeof window === 'undefined') {
-      return `/guest/${this.channelId}`;
-    }
-
-    const baseUrl = window.location.origin;
-    return `${baseUrl}/guest/${this.channelId}`;
-  }
-
-  protected goToCall(): void {
-    void this.router.navigate(['/guest', this.channelId, 'call'], {
-      queryParams: { name: this.displayName() },
-    });
-  }
-
-  protected dismissJoinCall(): void {
-    this.joinCallDismissed.set(true);
-  }
-
-  /**
-   * Poll the API for LiveKit call state while the room is open so the "Join
-   * the call" banner only appears when a call is genuinely live.
-   */
-  private startCallStatusPolling(): void {
-    const poll = (): void => {
-      this.http
-        .get<unknown>(`${environment.apiUrl}/channels/${this.channelId}/call-status`)
-        .subscribe({
-          next: (raw) => {
-            try {
-              this.callActive.set(CallStatusResponseSchema.parse(raw).active);
-            } catch {
-              this.callActive.set(false);
-            }
-          },
-          error: () => this.callActive.set(false),
-        });
-    };
-
-    poll();
-    this.callStatusIntervalId = setInterval(poll, CALL_STATUS_POLL_MS);
+    const path = `/guest/${this.inviteCode}`;
+    return typeof window === 'undefined' ? path : `${window.location.origin}${path}`;
   }
 
   protected goToGuests(): void {
-    void this.router.navigate(['/guests']);
+    void this.leaveChannel();
   }
 
-  private toChatMessage(message: Message): ChatMessage {
-    const state = this.messageReactions()[message.id];
-    const ownReaction = state?.byUser[this.currentReactionUserKey()] ?? null;
+  private parseDisplayName(): string | null {
+    this.nameControl.setErrors(null);
+    const result = guestDisplayNameSchema.safeParse(this.nameControl.value);
+    if (result.success) return result.data;
 
-    const reactions: ChatReaction[] = state
-      ? Object.entries(state.counts)
-          .map(([emoji, count]) => ({ emoji, count, reactedByMe: ownReaction === emoji }))
-          .sort((a, b) => b.count - a.count)
-      : [];
-
-    return {
-      id: message.id,
-      author: { id: message.authorName, name: message.authorName },
-      text: message.text,
-      createdAt: message.createdAt,
-      reactions,
-      ownReaction,
-    };
-  }
-
-  /**
-   * A brief "name: message" banner — useful when a new message lands while
-   * scrolled up in history. Replaces whatever toast is currently showing
-   * (array is only ever 0-1 long) rather than stacking — a new id each time
-   * also gives @for's track a reason to destroy/recreate the element so the
-   * slide-in animation replays instead of silently updating in place.
-   */
-  private showToast(message: Message): void {
-    const id = this.nextToastId++;
-    const text =
-      message.text.length > TOAST_TEXT_PREVIEW_LENGTH
-        ? `${message.text.slice(0, TOAST_TEXT_PREVIEW_LENGTH).trimEnd()}…`
-        : message.text;
-
-    if (this.toastTimeoutId !== null) {
-      clearTimeout(this.toastTimeoutId);
-    }
-
-    this.toasts.set([{ id, name: message.authorName, text }]);
-    this.toastTimeoutId = setTimeout(() => this.dismissToast(id), TOAST_LIFETIME_MS);
-  }
-
-  protected dismissToast(id: number): void {
-    this.toasts.update((current) => current.filter((toast) => toast.id !== id));
-  }
-
-  private applyReactionUpdate(
-    messageId: string,
-    reactedBy: string,
-    emoji: string,
-    removed = false,
-  ): void {
-    const userKey = reactedBy.trim().toLocaleLowerCase();
-
-    this.messageReactions.update((current) => {
-      const existing = current[messageId] ?? { counts: {}, byUser: {} };
-      const currentEmoji = existing.byUser[userKey];
-      const nextCounts = { ...existing.counts };
-
-      if (removed) {
-        if (currentEmoji) {
-          const decremented = (nextCounts[currentEmoji] ?? 1) - 1;
-          if (decremented <= 0) {
-            delete nextCounts[currentEmoji];
-          } else {
-            nextCounts[currentEmoji] = decremented;
-          }
-        }
-
-        const nextByUser = { ...existing.byUser };
-        delete nextByUser[userKey];
-
-        return {
-          ...current,
-          [messageId]: { counts: nextCounts, byUser: nextByUser },
-        };
-      }
-
-      if (currentEmoji === emoji) {
-        return current;
-      }
-
-      if (currentEmoji) {
-        const decremented = (nextCounts[currentEmoji] ?? 1) - 1;
-        if (decremented <= 0) {
-          delete nextCounts[currentEmoji];
-        } else {
-          nextCounts[currentEmoji] = decremented;
-        }
-      }
-
-      nextCounts[emoji] = (nextCounts[emoji] ?? 0) + 1;
-
-      return {
-        ...current,
-        [messageId]: {
-          counts: nextCounts,
-          byUser: {
-            ...existing.byUser,
-            [userKey]: emoji,
-          },
-        },
-      };
+    this.nameControl.setErrors({
+      zod: result.error.issues[0]?.message ?? 'Enter a valid display name.',
     });
+    return null;
   }
 
-  private hydrateReactionState(messages: Message[]): Record<string, MessageReactionState> {
-    const nextState: Record<string, MessageReactionState> = {};
-
-    for (const message of messages) {
-      const reactions = Array.isArray(message.reactions) ? message.reactions : [];
-
-      for (const reaction of reactions) {
-        const messageState =
-          nextState[message.id] ??
-          ({
-            counts: {},
-            byUser: {},
-          } satisfies MessageReactionState);
-
-        const userKey = reaction.reactedBy.trim().toLocaleLowerCase();
-        messageState.byUser[userKey] = reaction.emoji;
-        messageState.counts[reaction.emoji] = (messageState.counts[reaction.emoji] ?? 0) + 1;
-        nextState[message.id] = messageState;
+  private async restoreRoom(): Promise<void> {
+    try {
+      const result = await this.guest.restore(this.inviteCode);
+      if (result === 'needs-name') {
+        this.status.set('needs-name');
+        return;
       }
-    }
-
-    return nextState;
-  }
-
-  /**
-   * A short synthesized "tick" used for UI clicks (e.g. the sidebar toggle).
-   * A 1.5kHz square-wave burst through a highpass filter gives a sharp,
-   * physical click feel. `typeof AudioContext === 'undefined'` guards SSR.
-   */
-  private playClickSound(): void {
-    if (typeof AudioContext === 'undefined') return;
-
-    this.audioContext ??= new AudioContext();
-    if (this.audioContext.state === 'suspended') {
-      void this.audioContext.resume();
-    }
-
-    const ctx = this.audioContext;
-    const now = ctx.currentTime;
-    const oscillator = ctx.createOscillator();
-    const gain = ctx.createGain();
-    const filter = ctx.createBiquadFilter();
-
-    oscillator.type = 'square';
-    oscillator.frequency.setValueAtTime(1500, now);
-    filter.type = 'highpass';
-    filter.frequency.value = 900;
-
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.09, now + 0.005);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
-
-    oscillator.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
-    oscillator.start(now);
-    oscillator.stop(now + 0.06);
-  }
-
-  /**
-   * A short synthesized chime — no audio asset/dependency needed. A rising
-   * C6-E6-G6 major triad, softened with a lowpass filter and a slow
-   * exponential decay so it lands closer to a gentle "pop" than a harsh
-   * beep. `typeof AudioContext === 'undefined'` guards SSR (no Web Audio
-   * API in Node); the joinChannel flow already involved a user gesture
-   * (typing a name, clicking Join), so the browser's autoplay policy
-   * shouldn't block it. Skipped while the page has focus — the toast +
-   * inline message are already enough feedback when you're looking at it;
-   * the sound is for when you're not.
-   */
-  private playNotificationSound(): void {
-    if (typeof AudioContext === 'undefined' || document.hasFocus()) return;
-
-    this.audioContext ??= new AudioContext();
-    if (this.audioContext.state === 'suspended') {
-      void this.audioContext.resume();
-    }
-
-    const ctx = this.audioContext;
-    const now = ctx.currentTime;
-    const notes = [
-      { frequency: 1046.5, start: 0 }, // C6
-      { frequency: 1318.5, start: 0.07 }, // E6
-      { frequency: 1568, start: 0.14 }, // G6
-    ];
-
-    for (const { frequency, start } of notes) {
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-      const filter = ctx.createBiquadFilter();
-
-      oscillator.type = 'sine';
-      oscillator.frequency.value = frequency;
-      filter.type = 'lowpass';
-      filter.frequency.value = 4000;
-
-      const noteStart = now + start;
-      const attack = 0.015;
-      const decay = 0.35;
-
-      gain.gain.setValueAtTime(0, noteStart);
-      gain.gain.linearRampToValueAtTime(0.18, noteStart + attack);
-      gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + attack + decay);
-
-      oscillator.connect(filter);
-      filter.connect(gain);
-      gain.connect(ctx.destination);
-
-      oscillator.start(noteStart);
-      oscillator.stop(noteStart + attack + decay + 0.05);
+      this.roomReady();
+    } catch (error: unknown) {
+      this.handleEntryError(error);
     }
   }
 
-  private disconnect(): void {
-    void this.audioContext?.close();
-    this.audioContext = null;
-    this.members.set([]);
+  private async enterRoom(name: string): Promise<void> {
+    this.status.set('loading');
+    try {
+      await this.guest.join(this.inviteCode, name);
+      this.roomReady();
+    } catch (error: unknown) {
+      this.handleEntryError(error);
+    }
+  }
 
-    if (!this.socket) return;
+  private roomReady(): void {
+    // The room itself is ready, but the call state is still unknown until the
+    // first server status request completes. Keeping this separate prevents
+    // the inactive purple card from flashing before a live call is detected.
+    this.callStatusLoading.set(true);
+    this.status.set('ready');
+    queueMicrotask(() => this.roomChat()?.scrollToNewest(false));
+    this.startCallStatusPolling();
 
-    if (this.socket.connected) {
-      const payload = LeaveChannelPayloadSchema.parse({ channelId: this.channelId });
-      this.socket.emit(SOCKET_EVENTS.LEAVE_CHANNEL, payload);
+    // sessionStorage survives a refresh in the same tab. If this member had
+    // joined the call before the refresh, request a fresh token and reconnect
+    // with the same LiveKit identity instead of leaving them on the join card.
+    if (this.hasRememberedCallSession()) {
+      queueMicrotask(() => void this.joinCall(true));
+    }
+  }
+
+  private startCallStatusPolling(): void {
+    if (this.callStatusIntervalId) clearInterval(this.callStatusIntervalId);
+
+    void this.refreshCallStatus();
+    this.callStatusIntervalId = setInterval(
+      () => void this.refreshCallStatus(),
+      CALL_STATUS_POLL_MS,
+    );
+  }
+
+  private async refreshCallStatus(): Promise<void> {
+    if (this.call.joined()) {
+      const participantCount = this.call.participants().length;
+      this.callStatusParticipantCount.set(participantCount);
+      this.callActive.set(true);
+      this.callStatusLoading.set(false);
+      return;
     }
 
-    this.socket.disconnect();
-    this.socket = null;
+    const channelId = this.guest.channel()?.id;
+    if (!channelId || this.callStatusPollInFlight) return;
+
+    this.callStatusPollInFlight = true;
+    try {
+      const raw = await firstValueFrom(
+        this.http.get<unknown>(`${this.apiUrl()}/channels/${channelId}/call-status`, {
+          context: new HttpContext().set(SKIP_ERROR_TOAST, true),
+        }),
+      );
+      const response = CallStatusResponseSchema.parse(raw);
+
+      this.callStatusParticipantCount.set(response.participants);
+      this.callActive.set(response.active || response.participants > 0);
+      this.callStatusLoading.set(false);
+    } catch {
+      // Keep the last known call state during a temporary API or LiveKit
+      // outage. Reporting a live call as empty is more misleading than
+      // briefly displaying the previous confirmed value.
+    } finally {
+      this.callStatusPollInFlight = false;
+    }
   }
 
-  private currentReactionUserKey(): string {
-    return this.displayName().trim().toLocaleLowerCase() || 'guest';
+  private hasRememberedCallSession(): boolean {
+    const key = this.callSessionStorageKey();
+    if (!key || typeof window === 'undefined') return false;
+
+    try {
+      return window.sessionStorage.getItem(key) === 'joined';
+    } catch {
+      return false;
+    }
   }
+
+  private rememberCallSession(): void {
+    const key = this.callSessionStorageKey();
+    if (!key || typeof window === 'undefined') return;
+
+    try {
+      window.sessionStorage.setItem(key, 'joined');
+    } catch {
+      // Call restoration is a progressive enhancement; the active call still works.
+    }
+  }
+
+  private forgetCallSession(): void {
+    const key = this.callSessionStorageKey();
+    if (!key || typeof window === 'undefined') return;
+
+    try {
+      window.sessionStorage.removeItem(key);
+    } catch {
+      // Ignore storage restrictions while still allowing the user to leave.
+    }
+  }
+
+  private callSessionStorageKey(): string | null {
+    const channelId = this.guest.channel()?.id;
+    return channelId ? `${CALL_SESSION_KEY_PREFIX}${channelId}` : null;
+  }
+
+  private handleEntryError(error: unknown): void {
+    const message = describeError(error);
+    this.errorMessage.set(message);
+    this.status.set(/not found|invalid invite/i.test(message) ? 'not-found' : 'error');
+  }
+
+  private showActionError(error: unknown): void {
+    this.actionNotice.set(describeError(error));
+  }
+
+  private apiUrl(): string {
+    return environment.apiUrl.replace(/\/$/, '');
+  }
+}
+
+function describeError(error: unknown): string {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof error.message === 'string'
+  ) {
+    return error.message;
+  }
+  return error instanceof Error ? error.message : 'The room request failed.';
 }

@@ -8,11 +8,13 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { LobbyIconComponent } from '../../ui/icon/lobby-icon.component';
 import { ChatSidebarComponent } from './chat-sidebar/chat-sidebar.component';
 import {
   DEFAULT_CHAT_EMOJIS,
   type ChatMessage,
   type ChatReplyPreview,
+  type SendChatMessage,
 } from './models/chat-message.model';
 
 /**
@@ -27,20 +29,12 @@ import {
  * close). No socket / persistence logic lives here.
  *
  * ---------------------------------------------------------------------------
- * Reusing individual pieces OUTSIDE the full panel (e.g. the future call page)
+ * Reusing individual pieces
  * ---------------------------------------------------------------------------
  *
- * `app-chat-avatar` and `app-call-icon` are intentionally generic and can be
- * used standalone anywhere:
- *
- *   <!-- Call page: participants list -->
- *   <app-chat-avatar [name]="p.name" size="sm" [status]="'online'" />
- *
- *   <!-- Call page: control bar -->
- *   <app-call-icon type="mic" variant="solid" size="lg" shape="circle"
- *     label="Toggle microphone" [active]="micOn" (click)="toggleMic()" />
- *   <app-call-icon type="leave" variant="danger" size="lg" shape="circle"
- *     label="Leave call" (click)="leave()" />
+ * `app-chat-avatar` is intentionally generic and can be used in participant
+ * lists or call controls. Icons are provided through the shared Lucide-based
+ * `app-icon` component.
  *
  * `app-chat-message` renders one message bubble (avatar + hover actions +
  * reaction chips) given a `ChatMessage`; `app-chat-bar` is a standalone
@@ -60,13 +54,12 @@ import {
  *   (deleteMessage)="onDelete($event)"
  *   (close)="goBack()">
  *   <button chat-header-leading (click)="toggleSidebar()">…</button>
- *   <app-call-icon chat-header-extra type="call" label="Meet now" />
  * </app-room-chat>
  */
 @Component({
   selector: 'app-room-chat',
   standalone: true,
-  imports: [ChatSidebarComponent],
+  imports: [LobbyIconComponent, ChatSidebarComponent],
   templateUrl: './room-chat.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -101,11 +94,21 @@ export class RoomChatComponent {
   /** Shows/hides the close button in the header. */
   showCloseButton = input<boolean>(true);
 
+  /** Allows page shells that already own the room header to avoid a duplicate header band. */
+  showHeader = input<boolean>(true);
+
+  /** Empty-state presentation: centered for panels, channel intro for full-page conversation views. */
+  emptyStateVariant = input<'centered' | 'channel'>('centered');
+  emptyStateTitle = input<string>('Start the conversation');
+  emptyStateSubtitle = input<string>(
+    'Messages, replies, and reactions will appear here in realtime.',
+  );
+
   /** Emoji set for the reaction menu + composer picker. */
   emojis = input<string[]>(DEFAULT_CHAT_EMOJIS);
 
   /** Emitted with the final message text (reply prefix already applied) on Send. */
-  readonly sendMessage = output<string>();
+  readonly sendMessage = output<SendChatMessage>();
 
   /** Emitted when the user starts replying to a message. */
   readonly replyToMessage = output<ChatMessage>();
@@ -115,6 +118,7 @@ export class RoomChatComponent {
 
   /** Emitted with the message id on delete. */
   readonly deleteMessage = output<string>();
+  readonly editMessage = output<ChatMessage>();
 
   /** Emitted when the header close button is clicked. */
   readonly close = output<void>();
@@ -145,11 +149,8 @@ export class RoomChatComponent {
 
   protected onSend(text: string): void {
     const reply = this.pendingReply();
-    const replySnippet = reply?.text.replace(/\s+/g, ' ').trim().slice(0, 80);
-    const finalText = reply ? `↪ Reply to ${reply.authorName}: ${replySnippet}\n${text}` : text;
-
     this.pendingReply.set(null);
-    this.sendMessage.emit(finalText);
+    this.sendMessage.emit({ text, replyTo: reply?.messageId ?? null });
   }
 
   protected onReply(message: ChatMessage): void {
@@ -179,6 +180,11 @@ export class RoomChatComponent {
       this.pendingReply.set(null);
     }
     this.deleteMessage.emit(messageId);
+  }
+
+  protected onEdit(message: ChatMessage): void {
+    this.openReactionMenuId.set(null);
+    this.editMessage.emit(message);
   }
 
   protected onCancelReply(): void {

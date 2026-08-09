@@ -1,0 +1,82 @@
+import { z } from 'zod';
+import { MAX_MESSAGE_LENGTH } from '../constants/limits.js';
+import { UserProfileSchema } from './user-profile.schema.js';
+
+// ---------------------------------------------------------------------
+// Request payloads
+// ---------------------------------------------------------------------
+
+/** REST: POST /dms — body */
+export const CreateDmRequestSchema = z.object({
+  userId: z.string().uuid(),
+});
+export type CreateDmRequest = z.infer<typeof CreateDmRequestSchema>;
+
+/** REST: POST /dms/:conversationId/messages — body */
+export const SendDmMessageRequestSchema = z.object({
+  body: z.string().min(1).max(MAX_MESSAGE_LENGTH),
+  /** Id of another message in the same conversation this one replies to. */
+  replyToMessageId: z.string().uuid().nullable().optional(),
+});
+export type SendDmMessageRequest = z.infer<typeof SendDmMessageRequestSchema>;
+
+export const ConversationIdParamSchema = z.object({
+  conversationId: z.string().uuid(),
+});
+export type ConversationIdParam = z.infer<typeof ConversationIdParamSchema>;
+
+export const DmMessageIdParamSchema = z.object({
+  messageId: z.string().uuid(),
+});
+export type DmMessageIdParam = z.infer<typeof DmMessageIdParamSchema>;
+
+/** REST: PATCH /dms/:conversationId/messages/:messageId — body */
+export const EditDmMessageRequestSchema = z.object({
+  body: z.string().min(1).max(MAX_MESSAGE_LENGTH),
+});
+export type EditDmMessageRequest = z.infer<typeof EditDmMessageRequestSchema>;
+
+/** REST: PUT /dms/:conversationId/messages/:messageId/reaction — body */
+export const SetDmReactionRequestSchema = z.object({
+  emoji: z.string().min(1).max(16),
+});
+export type SetDmReactionRequest = z.infer<typeof SetDmReactionRequestSchema>;
+
+// ---------------------------------------------------------------------
+// Response shapes
+// ---------------------------------------------------------------------
+
+/** A single persisted 1:1 message. */
+export const DmMessageSchema = z.object({
+  id: z.string().uuid(),
+  conversationId: z.string().uuid(),
+  senderId: z.string().uuid(),
+  body: z.string().min(1).max(MAX_MESSAGE_LENGTH),
+  /** One reaction slot per message — null until either participant reacts. */
+  reactionEmoji: z.string().min(1).max(16).nullable(),
+  /** Id of the message this one replies to, or null. The client resolves the
+   * quoted preview (author/text) from its own already-loaded history. */
+  replyToMessageId: z.string().uuid().nullable(),
+  // { offset: true } — Supabase/PostgREST serializes timestamptz as
+  // "...+00:00", not the "Z" suffix z.string().datetime() requires by default.
+  createdAt: z.string().datetime({ offset: true }),
+});
+export type DmMessage = z.infer<typeof DmMessageSchema>;
+
+/**
+ * A conversation as seen by one participant. `user` is always the OTHER
+ * person (never the viewer), and `areFriends` tells the client whether to
+ * show the "Add friend" affordance instead of a friend-only action.
+ */
+export const DmConversationSchema = z.object({
+  conversationId: z.string().uuid(),
+  user: UserProfileSchema,
+  areFriends: z.boolean(),
+  lastMessage: DmMessageSchema.nullable(),
+  createdAt: z.string().datetime({ offset: true }),
+  updatedAt: z.string().datetime({ offset: true }),
+});
+export type DmConversation = z.infer<typeof DmConversationSchema>;
+
+export const DmListResponseSchema = z.array(DmConversationSchema);
+export const DmMessageHistorySchema = z.array(DmMessageSchema);

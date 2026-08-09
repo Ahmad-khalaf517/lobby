@@ -8,6 +8,7 @@ import {
   viewChild,
   type ElementRef,
 } from '@angular/core';
+import { LobbyIconComponent } from '../../../ui/icon/lobby-icon.component';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAX_MESSAGE_LENGTH } from '@lobby/shared';
 import { ChatAvatarComponent } from '../chat-avatar/chat-avatar.component';
@@ -22,7 +23,7 @@ import { DEFAULT_CHAT_EMOJIS } from '../models/chat-message.model';
 @Component({
   selector: 'app-chat-bar',
   standalone: true,
-  imports: [ReactiveFormsModule, ChatAvatarComponent],
+  imports: [ReactiveFormsModule, LobbyIconComponent, ChatAvatarComponent],
   templateUrl: './chat-bar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
