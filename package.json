@@ -15,6 +15,7 @@
     "build": "pnpm --filter @lobby/shared build && pnpm --filter api build && pnpm --filter web build",
     "build:shared": "pnpm --filter @lobby/shared build",
     "build:web": "pnpm --filter @lobby/shared build && pnpm --filter web build",
+    "build:api": "pnpm --filter @lobby/shared build && pnpm --filter api build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
