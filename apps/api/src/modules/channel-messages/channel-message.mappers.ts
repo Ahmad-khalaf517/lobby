@@ -15,6 +15,7 @@ export function toChannelMessage(
   return {
     id: row.id,
     channelId: row.channel_id,
+    senderId: row.sender_id,
     content: row.content,
     author,
     replyTo,

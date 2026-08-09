@@ -117,10 +117,11 @@ export class ChannelMessagesService {
     emoji: string,
   ): Promise<ChannelMessage> {
     await this.assertAccess(serverId, channelId, currentUserId);
-    const message = await this.requireMessageInChannel(channelId, messageId);
-
-    const member = await this.repo.ensureChannelMember(channelId, currentUserId);
-    await this.repo.addReaction(messageId, member.id, emoji);
+    const [message, member] = await Promise.all([
+      this.requireMessageInChannel(channelId, messageId),
+      this.repo.ensureChannelMember(channelId, currentUserId),
+    ]);
+    await this.repo.addReaction(channelId, message.id, member.id, emoji);
 
     const [result] = await this.hydrate([message], currentUserId);
     return result;
@@ -137,11 +138,12 @@ export class ChannelMessagesService {
       throw new BadRequestException('emoji is required');
     }
     await this.assertAccess(serverId, channelId, currentUserId);
-    const message = await this.requireMessageInChannel(channelId, messageId);
-
-    const member = await this.repo.findChannelMember(channelId, currentUserId);
+    const [message, member] = await Promise.all([
+      this.requireMessageInChannel(channelId, messageId),
+      this.repo.findChannelMember(channelId, currentUserId),
+    ]);
     if (member) {
-      await this.repo.removeReaction(messageId, member.id, emoji);
+      await this.repo.removeReaction(message.id, member.id, emoji);
     }
 
     const [result] = await this.hydrate([message], currentUserId);
@@ -153,11 +155,15 @@ export class ChannelMessagesService {
   // ---------------------------------------------------------------------
 
   private async assertAccess(serverId: string, channelId: string, userId: string): Promise<void> {
-    if (!(await this.serverMembers.isMember(serverId, userId))) {
+    // Both lookups are independent — run them in one round. `findChannelInServer`
+    // rejects (NotFound) if the channel doesn't belong to the server.
+    const [member] = await Promise.all([
+      this.serverMembers.isMember(serverId, userId),
+      this.channels.findChannelInServer(serverId, channelId),
+    ]);
+    if (!member) {
       throw new ForbiddenException('You are not a member of this server.');
     }
-    // Scoped lookup guarantees the channel actually belongs to this server.
-    await this.channels.findChannelInServer(serverId, channelId);
   }
 
   private async requireMessageInChannel(

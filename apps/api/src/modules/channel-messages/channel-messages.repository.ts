@@ -178,10 +178,20 @@ export class ChannelMessagesRepository {
   }
 
   /** Idempotent add — re-reacting the same emoji is a no-op (unique index). */
-  async addReaction(messageId: string, channelMemberId: string, emoji: string): Promise<void> {
+  async addReaction(
+    channelId: string,
+    messageId: string,
+    channelMemberId: string,
+    emoji: string,
+  ): Promise<void> {
     const { error } = await this.db
       .from('message_reactions')
-      .insert({ message_id: messageId, channel_member_id: channelMemberId, emoji });
+      .insert({
+        channel_id: channelId,
+        message_id: messageId,
+        channel_member_id: channelMemberId,
+        emoji,
+      });
 
     if (error && error.code !== '23505') throw error;
   }

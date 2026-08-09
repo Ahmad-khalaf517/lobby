@@ -58,6 +58,8 @@ export type ChannelMessagePreview = z.infer<typeof ChannelMessagePreviewSchema>;
 export const ChannelMessageSchema = z.object({
   id: z.string().uuid(),
   channelId: z.string(),
+  /** The `channel_members` row id (`messages.sender_id`) — lets clients map realtime payloads to authors. */
+  senderId: z.string().uuid(),
   content: z.string().min(1).max(MAX_MESSAGE_LENGTH),
   author: UserProfileSchema,
   replyTo: ChannelMessagePreviewSchema.nullable(),

@@ -77,9 +77,8 @@ export class ChatSidebarComponent {
 
   /**
    * Becomes true once the initial history has been loaded and the list was
-   * positioned at the newest message (the parent calls `scrollToNewest` right
-   * after loading). Until then, new arrivals are treated as baseline — the
-   * unread badge must never count the pre-existing history.
+   * positioned at the newest message. Until then, new arrivals are treated as
+   * baseline — the unread badge must never count the pre-existing history.
    */
   private live = false;
 
@@ -88,7 +87,19 @@ export class ChatSidebarComponent {
       const count = this.messages().length;
 
       if (!this.live) {
-        // Still loading the initial history — sync the baseline, don't count.
+        if (count === 0) {
+          // Nothing to position yet — stay in baseline mode.
+          this.lastMessageCount = 0;
+          return;
+        }
+        // First history, the first-ever message in an empty chat, or a chat
+        // instance created after its history already loaded (split view /
+        // mobile overlay): become live and pin to the newest message so
+        // arrivals are visible instead of piling up below the fold.
+        if (this.lastMessageCount === 0) {
+          this.scrollToNewest(false);
+          return;
+        }
         this.lastMessageCount = count;
         return;
       }
@@ -114,6 +125,12 @@ export class ChatSidebarComponent {
   }
 
   protected onMessagesScroll(): void {
+    if (!this.live) {
+      // The user has started interacting with the list — anything already in
+      // it is history, and future arrivals should follow from here.
+      this.live = true;
+      this.lastMessageCount = this.messages().length;
+    }
     this.stickyBottom = this.isNearBottom();
     this.showScrollToNewest.set(!this.stickyBottom);
     if (this.stickyBottom) {
