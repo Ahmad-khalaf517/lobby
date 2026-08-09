@@ -1,5 +1,6 @@
 // Schemas & inferred types
 export * from './schemas/channel.schema.js';
+export * from './schemas/channel-message.schema.js';
 export * from './schemas/call.schema.js';
 export * from './schemas/user-profile.schema.js';
 export * from './schemas/account-settings.schema.js';

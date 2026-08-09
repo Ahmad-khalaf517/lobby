@@ -38,6 +38,21 @@ NestJS resolves the member display name, LiveKit identity, room name, and member
 
 Notification rows are written by NestJS (service-role key) as side effects of the real action: friend request received, friend request accepted, and a new DM message (`type: 'message'`; `message_id` stays null because that FK references the channel `messages` table). The Angular app loads the inbox from `GET /notifications`, prepends live Realtime inserts, and marks items read when the panel opens.
 
+## Channel message REST endpoints
+
+Registered-account feature (same guards as servers/channels). `messages.sender_id` references `channel_members.id`, not `users.id`; the API hydrates authors and includes `senderId` on every message so clients can map realtime `messages` INSERT payloads to authors instantly.
+
+| Method and path                                                              | Request                         | Response                                                | Shared schema                            |
+| ---------------------------------------------------------------------------- | ------------------------------- | ------------------------------------------------------- | ---------------------------------------- |
+| `GET /servers/:serverId/channels/:channelId/messages`                        | `limit`/`before`                | `{ messages: ChannelMessage[] }` (oldest first, max 50) | `ChannelMessageListResponseSchema`       |
+| `POST /servers/:serverId/channels/:channelId/messages`                       | `{ content, replyToMessageId }` | `ChannelMessage`                                        | `SendChannelMessageRequestSchema`        |
+| `PATCH /servers/:serverId/channels/:channelId/messages/:messageId`           | `{ content }`                   | `ChannelMessage`                                        | `UpdateChannelMessageRequestSchema`      |
+| `DELETE /servers/:serverId/channels/:channelId/messages/:messageId`          | —                               | 204 (soft delete)                                       | —                                        |
+| `PUT /servers/:serverId/channels/:channelId/messages/:messageId/reaction`    | `{ emoji }`                     | `ChannelMessage`                                        | `SetChannelMessageReactionRequestSchema` |
+| `DELETE /servers/:serverId/channels/:channelId/messages/:messageId/reaction` | `emoji` query                   | `ChannelMessage`                                        | —                                        |
+
+Channel messages also flow over Supabase Realtime: the Angular app subscribes to `postgres_changes` on `public.messages` (scoped to the active channel) and `public.message_reactions` (un-filtered), applies INSERTs to the store instantly, and reconciles via a short debounced re-fetch of the active channel's history.
+
 ## Guest database contract
 
 Guest reads and mutations do not cross the NestJS REST boundary. Angular uses its user-scoped Supabase JWT with:
