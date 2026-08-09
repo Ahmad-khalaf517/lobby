@@ -67,15 +67,71 @@
         class="relative grid size-9 place-items-center rounded-xl text-app-muted transition hover:bg-surface-hover"
       >
         <app-icon name="bell" [size]="16" />
-        <span class="absolute right-2 top-2 size-1.5 rounded-full bg-destructive"></span>
+        @if (unreadCount() > 0) {
+          <span
+            class="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-medium leading-none text-white"
+          >
+            {{ unreadCount() > 9 ? '9+' : unreadCount() }}
+          </span>
+        }
       </button>
 
       @if (notificationsOpen()) {
         <div
-          class="absolute right-0 top-[calc(100%+6px)] z-30 w-64 rounded-xl border border-[#171d2a] bg-[#0d121b] p-4 shadow-2xl"
+          class="absolute right-0 top-[calc(100%+6px)] z-30 w-[min(92vw,22rem)] rounded-xl border border-[#171d2a] bg-[#0d121b] p-2 shadow-2xl"
         >
-          <p class="text-sm font-medium text-app-foreground">Notifications</p>
-          <p class="mt-2 text-xs text-app-muted">You're all caught up — nothing new yet.</p>
+          <div class="flex items-center justify-between px-2 py-1.5">
+            <p class="text-sm font-medium text-app-foreground">Notifications</p>
+            @if (notifications().length > 0) {
+              <button
+                type="button"
+                (click)="markNotificationsRead()"
+                class="text-[11px] text-app-muted transition hover:text-app-foreground"
+              >
+                Mark all read
+              </button>
+            }
+          </div>
+
+          @if (notificationsLoading()) {
+            <p class="px-2 py-8 text-center text-xs text-app-muted">Loading…</p>
+          } @else if (notifications().length === 0) {
+            <p class="px-2 py-8 text-center text-xs text-app-muted">
+              You're all caught up — nothing new yet.
+            </p>
+          } @else {
+            <div class="max-h-80 overflow-y-auto lobby-scrollbar">
+              @for (notification of notifications(); track notification.id) {
+                <button
+                  type="button"
+                  (click)="openNotification(notification)"
+                  class="flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left transition hover:bg-surface-hover"
+                >
+                  <span
+                    class="mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-surface text-app-muted"
+                  >
+                    <app-icon [name]="notificationIcon(notification.type)" [size]="13" />
+                  </span>
+                  <span class="min-w-0 flex-1">
+                    <span class="flex items-center gap-1.5">
+                      <span class="truncate text-[12px] font-medium text-app-foreground">{{
+                        notification.title
+                      }}</span>
+                      @if (!notification.isRead) {
+                        <span class="size-1.5 shrink-0 rounded-full bg-primary"></span>
+                      }
+                    </span>
+                    <span class="mt-0.5 line-clamp-2 text-[11px] leading-snug text-app-muted">{{
+                      notification.body
+                    }}</span>
+                    <span class="mt-1 block text-[10px] text-app-muted/70">{{
+                      notificationTime(notification.createdAt)
+                    }}</span>
+                  </span>
+                </button>
+              }
+            </div>
+          }
         </div>
       }
     </div>

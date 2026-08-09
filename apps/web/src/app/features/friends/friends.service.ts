@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, effect, inject, Injectable, NgZone, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import {
   FriendListResponseSchema,
   UserProfileSchema,
@@ -8,6 +9,8 @@ import {
   type UserProfile,
 } from '@lobby/shared';
 import { environment } from '../../../environments/environment';
+import { SupabaseSessionService } from '../../core/supabase/supabase-session.service';
+import { AuthService } from '../auth/services/auth';
 import { personFromProfile } from '../../shared/components/person-avatar/person.util';
 import type { BlockedUser, Friend, PendingRequest } from './friends.models';
 
@@ -15,11 +18,17 @@ import type { BlockedUser, Friend, PendingRequest } from './friends.models';
  * Friends feature state — backed by the friendships REST API.
  *
  * Every list is fetched in a single `load()`, and each mutation call hits the
- * API and then refetches so the UI always reflects server truth.
+ * API and then refetches so the UI always reflects server truth. A Supabase
+ * Realtime subscription on `friendships` refetches on any change from the
+ * other side so lists stay live without an explicit action — the RLS policy
+ * only delivers rows where the signed-in user is a participant.
  */
 @Injectable({ providedIn: 'root' })
 export class FriendsService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
+  private readonly supabaseSession = inject(SupabaseSessionService);
+  private readonly ngZone = inject(NgZone);
   private readonly apiUrl = environment.apiUrl.replace(/\/$/, '');
 
   private readonly friendsSignal = signal<Friend[]>([]);
@@ -29,6 +38,7 @@ export class FriendsService {
   private readonly loadingSignal = signal(false);
   private readonly errorSignal = signal<string | null>(null);
   private loadedOnce = false;
+  private realtimeChannel: RealtimeChannel | null = null;
 
   readonly friends = this.friendsSignal.asReadonly();
   readonly pendingIncoming = this.pendingIncomingSignal.asReadonly();
@@ -40,6 +50,37 @@ export class FriendsService {
   readonly pendingCount = computed(
     () => this.pendingIncoming().length + this.pendingOutgoing().length,
   );
+
+  constructor() {
+    // Refetch the lists whenever a friendship row changes for this user
+    // (request sent/accepted/cancelled, friend removed, block...). The RLS
+    // SELECT policy scopes delivery to rows this user participates in.
+    effect(() => {
+      const userId = this.auth.user()?.id;
+      if (userId) {
+        this.subscribeRealtime(userId);
+      } else {
+        this.unsubscribeRealtime();
+      }
+    });
+  }
+
+  private subscribeRealtime(userId: string): void {
+    if (this.realtimeChannel) return;
+    this.realtimeChannel = this.supabaseSession.client
+      .channel(`friendships:${userId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () =>
+        this.ngZone.run(() => void this.load()),
+      )
+      .subscribe();
+  }
+
+  private unsubscribeRealtime(): void {
+    if (this.realtimeChannel) {
+      void this.supabaseSession.client.removeChannel(this.realtimeChannel);
+      this.realtimeChannel = null;
+    }
+  }
 
   /** Fetch the friends, incoming/outgoing requests, and blocked lists. */
   async load(): Promise<void> {

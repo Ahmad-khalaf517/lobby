@@ -14,10 +14,12 @@ import type { Person } from '../../../shared/components/person-avatar/person.mod
 import { UserPopoverAvatarComponent } from '../../../shared/components/user-popover/user-popover-avatar.component';
 import {
   ChatReplyComponent,
+  DEFAULT_CHAT_EMOJIS,
   type ChatMessage,
   type ChatReplyPreview,
 } from '../../../shared/components/room-chat';
 import { MessageRowComponent } from '../components/message-row/message-row.component';
+import { LobbyIconComponent } from '../../../shared/ui/icon/lobby-icon.component';
 import { formatMessageTime } from '../messages.util';
 import { DirectMessagesService } from '../messages.service';
 import { FriendsService } from '../../friends/friends.service';
@@ -36,13 +38,20 @@ import { ProfilePopupService } from '../../profile/services/profile-popup.servic
 @Component({
   selector: 'app-messages-page',
   standalone: true,
-  imports: [RouterLink, MessageRowComponent, ChatReplyComponent, UserPopoverAvatarComponent],
+  imports: [
+    RouterLink,
+    MessageRowComponent,
+    ChatReplyComponent,
+    UserPopoverAvatarComponent,
+    LobbyIconComponent,
+  ],
   templateUrl: './messages-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'contents' },
 })
 export class MessagesPage {
   protected readonly skeletonRows = [0, 1, 2, 3, 4];
+  protected readonly skeletonMessages = [0, 1, 2, 3, 4, 5];
   private readonly service = inject(DirectMessagesService);
   private readonly friendsService = inject(FriendsService);
   private readonly profilePopup = inject(ProfilePopupService);
@@ -64,6 +73,8 @@ export class MessagesPage {
   protected readonly openReactionMenuId = signal<string | null>(null);
   protected readonly openError = signal<string | null>(null);
   protected readonly headerMenuOpen = signal(false);
+  protected readonly emojis = DEFAULT_CHAT_EMOJIS;
+  protected readonly emojiPickerOpen = signal(false);
 
   protected readonly selectedPartner = computed<Person | null>(() => {
     const friendId = this.selectedFriendId();
@@ -141,11 +152,38 @@ export class MessagesPage {
       return;
     }
     this.headerMenuOpen.set(false);
+    this.emojiPickerOpen.set(false);
     void this.router.navigate(['/app/messages', friendId]);
   }
 
   protected onDraftInput(event: Event): void {
     this.draft.set((event.target as HTMLInputElement).value);
+  }
+
+  protected toggleEmojiPicker(): void {
+    this.emojiPickerOpen.update((open) => !open);
+  }
+
+  protected selectEmoji(emoji: string): void {
+    const input = this.composerInput()?.nativeElement;
+    const current = this.draft();
+
+    if (!input) {
+      this.draft.set(`${current}${emoji}`);
+      this.emojiPickerOpen.set(false);
+      return;
+    }
+
+    const start = input.selectionStart ?? current.length;
+    const end = input.selectionEnd ?? current.length;
+    this.draft.set(`${current.slice(0, start)}${emoji}${current.slice(end)}`);
+    this.emojiPickerOpen.set(false);
+
+    queueMicrotask(() => {
+      input.focus();
+      const cursor = start + emoji.length;
+      input.setSelectionRange(cursor, cursor);
+    });
   }
 
   protected send(): void {
@@ -169,10 +207,12 @@ export class MessagesPage {
       .then(() => this.scrollToBottom());
     this.draft.set('');
     this.pendingReply.set(null);
+    this.emojiPickerOpen.set(false);
   }
 
   protected onReply(message: ChatMessage): void {
     this.openReactionMenuId.set(null);
+    this.emojiPickerOpen.set(false);
     this.pendingReply.set({
       messageId: message.id,
       authorName: message.author.name,
@@ -310,7 +350,7 @@ export class MessagesPage {
 
   @HostListener('document:click', ['$event'])
   protected handleDocumentClick(event: MouseEvent): void {
-    if (!this.openReactionMenuId() && !this.headerMenuOpen()) {
+    if (!this.openReactionMenuId() && !this.headerMenuOpen() && !this.emojiPickerOpen()) {
       return;
     }
     const target = event.target;
@@ -325,6 +365,9 @@ export class MessagesPage {
     }
     if (!target.closest('[data-message-header-menu]')) {
       this.headerMenuOpen.set(false);
+    }
+    if (!target.closest('[data-emoji-picker]')) {
+      this.emojiPickerOpen.set(false);
     }
   }
 
