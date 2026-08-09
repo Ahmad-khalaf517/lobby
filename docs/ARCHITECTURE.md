@@ -18,6 +18,8 @@ HttpOnly cookie -> NestJS only -> Supabase refresh session
 
 Registered and anonymous users share the same Supabase Auth session model. Angular never stores access or refresh tokens in local storage. NestJS creates an anonymous account only when no valid or refreshable session exists.
 
+Angular assigns every authenticated account a session revision. Logout or an account-id change invalidates that revision before clearing dashboard, friend, DM, profile, notification, selection, and LiveKit state. Async responses may commit only while their captured revision is current. A same-account token refresh preserves the revision and cached state.
+
 ## Guest application data
 
 ```text
@@ -60,6 +62,10 @@ The public-schema channel repository remains in source for possible non-guest mi
 
 - `SUPABASE_SERVICE_ROLE_KEY` and `LIVEKIT_API_SECRET` exist only in `apps/api`.
 - Angular uses the public Supabase URL/key plus the current user's short-lived JWT.
+- Registered-dashboard controllers stack `RegisteredUserGuard` after cookie authentication; guest call and guest-channel endpoints intentionally continue accepting anonymous sessions.
+- Unsafe requests carrying auth cookies require an `Origin` or `Referer` whose origin is in the configured CORS allowlist.
+- Password recovery has a short-lived HttpOnly proof issued only after recovery-token verification. Signed-in password changes use a separate endpoint and verify the current password.
+- Profile rows are provisioned after successful registered authentication. Profile GET is read-only and returns 404 when a row is missing.
 - Direct browser writes are not granted; guest mutations use security-definer RPCs with `auth.uid()` checks.
 - Realtime and direct reads are constrained by guest-schema RLS.
 - LiveKit tokens require an active, unremoved membership and an active, unexpired channel.

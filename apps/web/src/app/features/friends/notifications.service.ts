@@ -4,6 +4,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 
 import { AuthService } from '../auth/services/auth';
 import { SupabaseSessionService } from '../../core/supabase/supabase-session.service';
+import { SessionScopeService } from '../../core/session-scope.service';
 import type { NotificationRow } from '../../core/supabase/database.types';
 import { ToastService } from '../../core/toast/toast.service';
 import { FriendsService } from './friends.service';
@@ -23,15 +24,17 @@ export class NotificationsService {
   private readonly toast = inject(ToastService);
   private readonly friends = inject(FriendsService);
   private readonly ngZone = inject(NgZone);
+  private readonly sessionScope = inject(SessionScopeService);
 
   private readonly currentUserId = computed(() => this.auth.user()?.id ?? '');
   private realtimeChannel: RealtimeChannel | null = null;
 
   constructor() {
+    this.sessionScope.registerCleanup(() => this.unsubscribe());
     effect(() => {
       const userId = this.currentUserId();
       if (userId) this.subscribe(userId);
-      else this.unsubscribe();
+      else void this.unsubscribe();
     });
   }
 
@@ -79,14 +82,15 @@ export class NotificationsService {
       });
   }
 
-  private unsubscribe(): void {
-    if (this.realtimeChannel) {
-      void this.supabaseSession.client.removeChannel(this.realtimeChannel);
-      this.realtimeChannel = null;
-    }
+  private async unsubscribe(): Promise<void> {
+    const channel = this.realtimeChannel;
+    this.realtimeChannel = null;
+    if (channel) await this.supabaseSession.client.removeChannel(channel).catch(() => undefined);
+    this.toast.dismissNotifications();
   }
 
   private handleNotification(row: NotificationRow): void {
+    if (row.user_id !== this.sessionScope.userId()) return;
     if (!FRIEND_NOTIFICATION_TYPES.has(row.type)) return;
 
     // A new/updated request affects the pending + friends lists — refresh them

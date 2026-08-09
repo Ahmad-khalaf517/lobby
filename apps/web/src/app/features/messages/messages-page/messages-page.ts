@@ -22,6 +22,7 @@ import { formatMessageTime } from '../messages.util';
 import { DirectMessagesService } from '../messages.service';
 import { FriendsService } from '../../friends/friends.service';
 import { ProfilePopupService } from '../../profile/services/profile-popup.service';
+import { SessionScopeService } from '../../../core/session-scope.service';
 
 /**
  * Direct messages page (routes `/messages`, `/messages/:friendId`). Renders the
@@ -49,6 +50,7 @@ export class MessagesPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly sessionScope = inject(SessionScopeService);
 
   protected readonly conversationRows = this.service.conversationRows;
   protected readonly totalUnread = this.service.totalUnread;
@@ -91,6 +93,8 @@ export class MessagesPage {
   private readonly composerInput = viewChild<ElementRef<HTMLInputElement>>('composerInput');
 
   constructor() {
+    const unregister = this.sessionScope.registerCleanup(() => this.resetSelections());
+    this.destroyRef.onDestroy(unregister);
     void this.service.loadConversations();
     void this.friendsService.ensureLoaded();
 
@@ -113,6 +117,18 @@ export class MessagesPage {
     });
 
     this.destroyRef.onDestroy(() => this.service.setActiveConversation(null));
+  }
+
+  private resetSelections(): void {
+    this.service.setActiveConversation(null);
+    this.selectedFriendId.set(null);
+    this.seededPartner.set(null);
+    this.draft.set('');
+    this.pendingReply.set(null);
+    this.editingMessageId.set(null);
+    this.openReactionMenuId.set(null);
+    this.openError.set(null);
+    this.headerMenuOpen.set(false);
   }
 
   private async openConversation(friendId: string): Promise<void> {

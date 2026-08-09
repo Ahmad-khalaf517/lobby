@@ -24,10 +24,11 @@ import {
 } from '@lobby/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
+import { RegisteredUserGuard } from '../../common/guards/registered-user.guard';
 import { ZodValidationPipe } from '../../zod-validation.pipe';
 import { DmsService } from './dms.service';
 
-@UseGuards(SupabaseAuthGuard)
+@UseGuards(SupabaseAuthGuard, RegisteredUserGuard)
 @Controller('dms')
 export class DmsController {
   constructor(private readonly dmsService: DmsService) {}

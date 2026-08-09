@@ -10,6 +10,7 @@ import {
 } from 'livekit-client';
 
 import type { CallConnectionState, CallParticipant } from '../models/call-participant.model';
+import { SessionScopeService } from '../../../../core/session-scope.service';
 
 export type LiveKitConnectionDetails = {
   livekitUrl: string;
@@ -35,6 +36,7 @@ type AttachedRoomListeners = {
 @Injectable({ providedIn: 'root' })
 export class LiveKitCallService {
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly sessionScope = inject(SessionScopeService);
   private room: Room | null = null;
   private readonly roomListeners = new WeakMap<Room, AttachedRoomListeners>();
   private readonly audioElements = new Map<string, HTMLAudioElement>();
@@ -101,6 +103,10 @@ export class LiveKitCallService {
     }
     return null;
   });
+
+  constructor() {
+    this.sessionScope.registerCleanup(() => this.disconnect());
+  }
 
   async connect(details: LiveKitConnectionDetails): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) return;

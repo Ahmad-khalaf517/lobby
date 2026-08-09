@@ -2,6 +2,7 @@ import type {
   AnonymousAuthRequest,
   AuthMessageResponse,
   AuthSessionResponse,
+  ChangePasswordRequest,
   ConfirmEmailRequest,
   CurrentUserResponse,
   EmailRequest,
@@ -13,6 +14,7 @@ import type {
 } from '@lobby/shared';
 import {
   AnonymousAuthRequestSchema,
+  ChangePasswordRequestSchema,
   ConfirmEmailRequestSchema,
   EmailRequestSchema,
   LoginRequestSchema,
@@ -20,11 +22,28 @@ import {
   ResetPasswordRequestSchema,
   VerifyRecoveryRequestSchema,
 } from '@lobby/shared';
-import { Body, Controller, Get, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 
 import { ZodValidationPipe } from '../../zod-validation.pipe';
-import { clearAuthCookies, readAuthCookies, setAuthCookies } from './auth-cookies';
+import {
+  clearAuthCookies,
+  hasValidRecoveryProof,
+  readAuthCookies,
+  setAuthCookies,
+  setRecoveryProofCookie,
+} from './auth-cookies';
+import { RegisteredUserGuard } from '../../common/guards/registered-user.guard';
+import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 import { toAuthUser } from './auth.mapper';
 import { AuthService } from './auth.service';
 
@@ -189,6 +208,7 @@ export class AuthController {
   ): Promise<AuthSessionResponse> {
     const result = await this.authService.verifyRecovery(dto);
     setAuthCookies(response, result.session);
+    setRecoveryProofCookie(response, result.session);
 
     return {
       user: toAuthUser(result.user),
@@ -207,8 +227,26 @@ export class AuthController {
     if (!accessToken || !refreshToken) {
       throw new UnauthorizedException('Missing recovery session');
     }
+    if (!hasValidRecoveryProof(request, refreshToken)) {
+      throw new UnauthorizedException('Missing or expired password recovery proof');
+    }
 
     const result = await this.authService.resetPassword(dto, accessToken, refreshToken);
+    setAuthCookies(response, result.session);
+    return { message: 'Password updated successfully.' };
+  }
+
+  @UseGuards(SupabaseAuthGuard, RegisteredUserGuard)
+  @Post('change-password')
+  async changePassword(
+    @Body(new ZodValidationPipe(ChangePasswordRequestSchema)) dto: ChangePasswordRequest,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<AuthMessageResponse> {
+    const { accessToken, refreshToken } = readAuthCookies(request);
+    if (!accessToken || !refreshToken) throw new UnauthorizedException('Missing signed-in session');
+
+    const result = await this.authService.changePassword(dto, accessToken, refreshToken);
     setAuthCookies(response, result.session);
     return { message: 'Password updated successfully.' };
   }

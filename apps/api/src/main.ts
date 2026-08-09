@@ -6,6 +6,7 @@ import express from 'express';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
+import { trustedOrigins } from './common/security/trusted-origins';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
@@ -14,15 +15,7 @@ async function bootstrap(): Promise<void> {
   app.use(express.urlencoded({ limit: '10mb', extended: true }));
   app.use(cookieParser());
 
-  const allowedOrigins = (
-    process.env.CORS_ORIGINS ??
-    process.env.CORS_ORIGIN ??
-    process.env.WEB_ORIGIN ??
-    'http://localhost:4200'
-  )
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+  const allowedOrigins = trustedOrigins();
 
   app.enableCors({
     origin: allowedOrigins,

@@ -26,6 +26,7 @@ import { RoomChatComponent } from '../../../shared/components/room-chat';
 import { LobbyIconComponent } from '../../../shared/ui/icon/lobby-icon.component';
 import { LoadingStateComponent } from '../../../shared/ui/loading-state/loading-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { SessionScopeService, type SessionScope } from '../../../core/session-scope.service';
 import { ConfirmModalComponent } from '../components/confirm-modal/confirm-modal.component';
 import { PromptModalComponent } from '../components/prompt-modal/prompt-modal.component';
 import { DashboardStore } from '../services/dashboard.store';
@@ -54,6 +55,7 @@ export class ChannelView {
   private readonly serversService = inject(ServersService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly toast = inject(ToastService);
+  private readonly sessionScope = inject(SessionScopeService);
 
   protected readonly dashboardStore = inject(DashboardStore);
 
@@ -118,8 +120,12 @@ export class ChannelView {
 
   private serverId = '';
   private statusIntervalId: ReturnType<typeof setInterval> | null = null;
+  private loadRevision = 0;
 
   constructor() {
+    const unregister = this.sessionScope.registerCleanup(() => this.resetSessionState());
+    this.destroyRef.onDestroy(unregister);
+
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((paramMap) => {
       this.serverId = paramMap.get('serverId') ?? '';
       const channelId = paramMap.get('channelId');
@@ -134,6 +140,12 @@ export class ChannelView {
       this.channelId();
       this.tabLinks();
       queueMicrotask(() => this.measureTabIndicator());
+    });
+
+    effect(() => {
+      if (this.sessionScope.userId() && this.serverId && this.channelId()) {
+        void this.loadServerAndPoll(this.serverId);
+      }
     });
 
     // Deliberately does NOT disconnect the call here — a voice call must
@@ -230,6 +242,7 @@ export class ChannelView {
   }
 
   protected async submitRenameChannel(name: string): Promise<void> {
+    const scope = this.requireScope();
     const channel = this.renameTarget();
     const server = this.server();
     if (!channel || !server || name === channel.name) {
@@ -241,6 +254,7 @@ export class ChannelView {
     this.renameError.set(null);
     try {
       const updated = await this.serversService.updateChannel(server.id, channel.id, name);
+      this.assertCurrent(scope);
       const nextServer: ServerWithChannels = {
         ...server,
         channels: server.channels.map((candidate) =>
@@ -259,6 +273,7 @@ export class ChannelView {
   }
 
   protected async submitDeleteChannel(): Promise<void> {
+    const scope = this.requireScope();
     const channel = this.deleteTarget();
     const server = this.server();
     if (!channel || !server) return;
@@ -267,6 +282,7 @@ export class ChannelView {
     this.deleteError.set(null);
     try {
       await this.serversService.deleteChannel(server.id, channel.id);
+      this.assertCurrent(scope);
       const remaining = server.channels.filter((candidate) => candidate.id !== channel.id);
       const nextServer: ServerWithChannels = { ...server, channels: remaining };
       this.server.set(nextServer);
@@ -299,6 +315,7 @@ export class ChannelView {
   }
 
   protected async submitNewChannel(name: string): Promise<void> {
+    const scope = this.requireScope();
     const server = this.server();
     if (!server) return;
 
@@ -306,6 +323,7 @@ export class ChannelView {
     this.addChannelError.set(null);
     try {
       const channel = await this.serversService.createChannel(server.id, name);
+      this.assertCurrent(scope);
       const updated: ServerWithChannels = { ...server, channels: [...server.channels, channel] };
       this.server.set(updated);
       this.dashboardStore.cacheChannels(server.id, updated.channels);
@@ -332,11 +350,15 @@ export class ChannelView {
   }
 
   private async loadServerAndPoll(serverId: string): Promise<void> {
+    const scope = this.requireScope();
+    const revision = ++this.loadRevision;
     this.channelStatus.set(null);
     this.callError.set(null);
 
     if (this.server()?.id !== serverId) {
       const server = await this.serversService.getServer(serverId);
+      this.assertCurrent(scope);
+      if (revision !== this.loadRevision || this.serverId !== serverId) return;
       this.server.set(server);
       this.dashboardStore.cacheChannels(server.id, server.channels);
       void this.dashboardStore.loadMembers(serverId);
@@ -346,6 +368,31 @@ export class ChannelView {
   private stopStatusPolling(): void {
     if (this.statusIntervalId) clearInterval(this.statusIntervalId);
     this.statusIntervalId = null;
+  }
+
+  private resetSessionState(): void {
+    this.loadRevision += 1;
+    this.stopStatusPolling();
+    this.server.set(null);
+    this.channelStatus.set(null);
+    this.callError.set(null);
+    this.participantsPanelOpen.set(false);
+    this.channelMenuOpenFor.set(null);
+    this.channelMenuPosition.set(null);
+    this.renameTarget.set(null);
+    this.deleteTarget.set(null);
+    this.addChannelOpen.set(false);
+    this.mobileChatOpen.set(false);
+  }
+
+  private requireScope(): SessionScope {
+    const scope = this.sessionScope.capture();
+    if (!scope.userId) throw new Error('An authenticated account is required.');
+    return scope;
+  }
+
+  private assertCurrent(scope: SessionScope): void {
+    if (!this.sessionScope.isCurrent(scope)) throw new Error('The authenticated account changed.');
   }
 
   private measureTabIndicator(): void {

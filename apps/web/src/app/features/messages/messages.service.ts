@@ -16,6 +16,7 @@ import {
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../auth/services/auth';
 import { SupabaseSessionService } from '../../core/supabase/supabase-session.service';
+import { SessionScopeService, type SessionScope } from '../../core/session-scope.service';
 import type { DmConversationRow, DmMessageRow } from '../../core/supabase/database.types';
 import { ToastService } from '../../core/toast/toast.service';
 import type { Person } from '../../shared/components/person-avatar/person.model';
@@ -38,6 +39,7 @@ export class DirectMessagesService {
   private readonly supabaseSession = inject(SupabaseSessionService);
   private readonly toast = inject(ToastService);
   private readonly ngZone = inject(NgZone);
+  private readonly sessionScope = inject(SessionScopeService);
   private readonly apiUrl = environment.apiUrl.replace(/\/$/, '');
 
   private readonly conversationsSignal = signal<Conversation[]>([]);
@@ -76,6 +78,7 @@ export class DirectMessagesService {
   readonly historyLoadingRecord = this.historyLoadingSignal.asReadonly();
 
   constructor() {
+    this.sessionScope.registerCleanup(() => this.reset());
     // Connects once a session exists, regardless of which page is open, so a
     // message/friend event elsewhere in the app can still surface a toast.
     effect(() => {
@@ -84,7 +87,7 @@ export class DirectMessagesService {
         void this.loadConversations();
         this.subscribeRealtime();
       } else {
-        this.unsubscribeRealtime();
+        void this.reset();
       }
     });
   }
@@ -97,11 +100,13 @@ export class DirectMessagesService {
 
   /** Fetch the sidebar conversation list. */
   async loadConversations(): Promise<void> {
+    const scope = this.requireScope();
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
     try {
       const response = await firstValueFrom(this.http.get<unknown>(`${this.apiUrl}/dms`));
       const rows = DmListResponseSchema.parse(response).map(toConversation);
+      this.assertCurrent(scope);
       // Preserve locally-tracked unread counts — the REST list doesn't know
       // about messages that arrived over realtime since the last full load.
       const unreadById = new Map(this.conversationsSignal().map((c) => [c.friendId, c.unread]));
@@ -109,9 +114,11 @@ export class DirectMessagesService {
         rows.map((row) => ({ ...row, unread: unreadById.get(row.friendId) ?? row.unread })),
       );
     } catch {
-      this.errorSignal.set('Could not load conversations.');
+      if (this.sessionScope.isCurrent(scope)) {
+        this.errorSignal.set('Could not load conversations.');
+      }
     } finally {
-      this.loadingSignal.set(false);
+      if (this.sessionScope.isCurrent(scope)) this.loadingSignal.set(false);
     }
   }
 
@@ -123,34 +130,41 @@ export class DirectMessagesService {
    * so navigating back to a chat is immediate.
    */
   async openConversation(userId: string): Promise<void> {
+    const scope = this.requireScope();
     const conversation = await this.ensureConversation(userId);
+    this.assertCurrent(scope);
     const cached = this.messagesSignal()[userId];
 
     if (cached && cached.length > 0 && this.historyLoaded.has(userId)) {
       this.setHistoryLoading(userId, false);
-      void this.fetchHistory(userId, conversation).catch(() => undefined);
+      void this.fetchHistory(userId, conversation, scope).catch(() => undefined);
       return;
     }
 
     this.setHistoryLoading(userId, true);
     try {
-      await this.fetchHistory(userId, conversation);
+      await this.fetchHistory(userId, conversation, scope);
     } finally {
-      this.setHistoryLoading(userId, false);
+      if (this.sessionScope.isCurrent(scope)) this.setHistoryLoading(userId, false);
     }
   }
 
   /** Fetch + store a conversation's history, marking it as cached afterward. */
-  private async fetchHistory(userId: string, conversation: Conversation): Promise<void> {
+  private async fetchHistory(
+    userId: string,
+    conversation: Conversation,
+    scope: SessionScope,
+  ): Promise<void> {
     const response = await firstValueFrom(
       this.http.get<unknown>(`${this.apiUrl}/dms/${conversation.conversationId}/messages`),
     );
     const history = DmMessageHistorySchema.parse(response);
 
     const [selfAuthor, partnerAuthor] = await Promise.all([
-      this.selfAuthor(),
+      this.selfAuthor(scope),
       authorFromPerson(conversation.partner),
     ]);
+    this.assertCurrent(scope);
     const byId = new Map(history.map((message) => [message.id, message]));
     const authorFor = (senderId: string): ChatUser =>
       senderId === this.currentUserId() ? selfAuthor : partnerAuthor;
@@ -191,6 +205,7 @@ export class DirectMessagesService {
 
   /** Send a message (optionally a reply quoting another message). Persists via POST. */
   async send(userId: string, text: string, reply: ChatReplyPreview | null = null): Promise<void> {
+    const scope = this.requireScope();
     const content = text.trim();
     if (!content) {
       return;
@@ -204,13 +219,15 @@ export class DirectMessagesService {
       }),
     );
     const created = DmMessageSchema.parse(response);
+    this.assertCurrent(scope);
 
     const author =
       created.senderId === this.currentUserId()
-        ? await this.selfAuthor()
+        ? await this.selfAuthor(scope)
         : await authorFromPerson(conversation.partner);
 
     const message = this.toChatMessage(created, author, reply);
+    this.assertCurrent(scope);
 
     this.messagesSignal.update((store) => ({
       ...store,
@@ -222,6 +239,7 @@ export class DirectMessagesService {
 
   /** Persists an edit via PATCH, then applies it locally (rolled back on failure). */
   async editMessage(userId: string, messageId: string, newText: string): Promise<void> {
+    const scope = this.requireScope();
     const content = newText.trim();
     const conversation = this.conversationFor(userId);
     const previous = this.messagesSignal()[userId] ?? [];
@@ -238,9 +256,12 @@ export class DirectMessagesService {
           { body: content },
         ),
       );
+      this.assertCurrent(scope);
     } catch {
       // Roll back to the pre-edit text on failure.
-      this.messagesSignal.update((store) => ({ ...store, [userId]: previous }));
+      if (this.sessionScope.isCurrent(scope)) {
+        this.messagesSignal.update((store) => ({ ...store, [userId]: previous }));
+      }
     }
   }
 
@@ -263,6 +284,7 @@ export class DirectMessagesService {
 
   /** Toggle the current user's reaction — persists via PUT/DELETE reaction APIs. */
   async toggleReaction(userId: string, messageId: string, emoji: string): Promise<void> {
+    const scope = this.requireScope();
     const conversation = this.conversationFor(userId);
     const current = (this.messagesSignal()[userId] ?? []).find(
       (message) => message.id === messageId,
@@ -284,6 +306,7 @@ export class DirectMessagesService {
       return; // Keep the previous state on failure.
     }
 
+    this.assertCurrent(scope);
     this.applyLocalReaction(userId, messageId, next);
   }
 
@@ -316,6 +339,7 @@ export class DirectMessagesService {
    * `DELETE /dms/:conversationId/messages`, then empty the local message list.
    */
   async clearChatHistory(userId: string): Promise<void> {
+    const scope = this.requireScope();
     const conversation = this.conversationFor(userId);
     if (conversation) {
       try {
@@ -326,6 +350,7 @@ export class DirectMessagesService {
         // The messages are cleared locally regardless.
       }
     }
+    this.assertCurrent(scope);
     this.messagesSignal.update((store) => ({ ...store, [userId]: [] }));
     this.conversationsSignal.update((list) =>
       list.map((entry) => (entry.friendId === userId ? { ...entry, preview: null } : entry)),
@@ -333,6 +358,7 @@ export class DirectMessagesService {
   }
 
   private async ensureConversation(userId: string): Promise<Conversation> {
+    const scope = this.requireScope();
     const existing = this.conversationFor(userId);
     if (existing) {
       return existing;
@@ -342,6 +368,7 @@ export class DirectMessagesService {
       this.http.post<unknown>(`${this.apiUrl}/dms`, { userId }),
     );
     const apiConversation = DmConversationSchema.parse(response);
+    this.assertCurrent(scope);
     const conversation = toConversation(apiConversation);
     this.upsertConversation(conversation);
     return conversation;
@@ -364,8 +391,9 @@ export class DirectMessagesService {
     );
   }
 
-  private async selfAuthor(): Promise<ChatUser> {
-    const profile = await this.ensureMyProfile();
+  private async selfAuthor(scope: SessionScope): Promise<ChatUser> {
+    const profile = await this.ensureMyProfile(scope);
+    this.assertCurrent(scope);
     return {
       id: this.currentUserId(),
       name: profile.displayName,
@@ -396,18 +424,20 @@ export class DirectMessagesService {
     };
   }
 
-  private async ensureMyProfile(): Promise<UserProfile> {
+  private async ensureMyProfile(scope: SessionScope): Promise<UserProfile> {
     if (this.myProfile) {
       return this.myProfile;
     }
     this.myProfilePromise ??= (async () => {
       const response = await firstValueFrom(
-        this.http.get<unknown>(`${this.apiUrl}/users/${this.currentUserId()}/profile`),
+        this.http.get<unknown>(`${this.apiUrl}/users/${scope.userId}/profile`),
       );
       return UserProfileSchema.parse(response);
     })();
     try {
-      this.myProfile = await this.myProfilePromise;
+      const profile = await this.myProfilePromise;
+      this.assertCurrent(scope);
+      this.myProfile = profile;
       return this.myProfile;
     } catch (error) {
       this.myProfilePromise = null;
@@ -479,24 +509,32 @@ export class DirectMessagesService {
       });
   }
 
-  private unsubscribeRealtime(): void {
-    if (this.realtimeChannel) {
-      void this.supabaseSession.client.removeChannel(this.realtimeChannel);
-      this.realtimeChannel = null;
-    }
+  private async reset(): Promise<void> {
+    const channel = this.realtimeChannel;
+    this.realtimeChannel = null;
+    if (channel) await this.supabaseSession.client.removeChannel(channel).catch(() => undefined);
     this.historyLoaded.clear();
     this.conversationsSignal.set([]);
     this.messagesSignal.set({});
+    this.historyLoadingSignal.set({});
+    this.activeConversationSignal.set(null);
+    this.loadingSignal.set(false);
+    this.errorSignal.set(null);
+    this.myProfile = null;
+    this.myProfilePromise = null;
+    this.toast.dismissNotifications();
   }
 
   private async handleIncomingMessage(row: DmMessageRow): Promise<void> {
-    if (row.sender_id === this.currentUserId()) return; // my own send already applied it optimistically
+    const scope = this.requireScope();
+    if (row.sender_id === scope.userId) return; // my own send already applied it optimistically
 
     let conversation = this.conversationsSignal().find(
       (c) => c.conversationId === row.conversation_id,
     );
     if (!conversation) {
       await this.loadConversations();
+      this.assertCurrent(scope);
       conversation = this.conversationsSignal().find(
         (c) => c.conversationId === row.conversation_id,
       );
@@ -508,6 +546,7 @@ export class DirectMessagesService {
     const author = await authorFromPerson(conversation.partner);
     const reply = this.resolveReplyFromCache(userId, dmMessage.replyToMessageId);
     const message = this.toChatMessage(dmMessage, author, reply);
+    this.assertCurrent(scope);
 
     // Append unconditionally — fetchHistory() always fully replaces this
     // array when a conversation is opened, so there's no risk of this
@@ -549,10 +588,22 @@ export class DirectMessagesService {
   }
 
   private async handleNewConversation(row: DmConversationRow): Promise<void> {
-    const currentUserId = this.currentUserId();
+    const scope = this.requireScope();
+    const currentUserId = scope.userId;
     if (row.user_a_id !== currentUserId && row.user_b_id !== currentUserId) return;
     if (this.conversationsSignal().some((c) => c.conversationId === row.id)) return;
     await this.loadConversations();
+    this.assertCurrent(scope);
+  }
+
+  private requireScope(): SessionScope {
+    const scope = this.sessionScope.capture();
+    if (!scope.userId) throw new Error('No authenticated session.');
+    return scope;
+  }
+
+  private assertCurrent(scope: SessionScope): void {
+    if (!this.sessionScope.isCurrent(scope)) throw new Error('The authenticated session changed.');
   }
 
   private resolveReplyFromCache(

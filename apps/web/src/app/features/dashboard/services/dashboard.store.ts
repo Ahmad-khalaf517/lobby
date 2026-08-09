@@ -1,6 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import type { Channel, Server, ServerMember } from '@lobby/shared';
 
+import { SessionScopeService, type SessionScope } from '../../../core/session-scope.service';
 import { ProfileService } from '../../profile/services/profile.service';
 import { ServersService } from './servers.service';
 
@@ -33,6 +34,7 @@ export type ServerMemberWithProfile = ServerMember & {
 export class DashboardStore {
   private readonly serversService = inject(ServersService);
   private readonly profileService = inject(ProfileService);
+  private readonly sessionScope = inject(SessionScopeService);
 
   private readonly _servers = signal<Server[]>([]);
   private readonly _loading = signal(false);
@@ -54,21 +56,30 @@ export class DashboardStore {
 
   private loaded = false;
 
+  constructor() {
+    this.sessionScope.registerCleanup(() => this.reset());
+  }
+
   async ensureLoaded(): Promise<void> {
     if (this.loaded) return;
     await this.load();
   }
 
   async load(): Promise<void> {
+    const scope = this.requireScope();
     this._loading.set(true);
     this._error.set(null);
     try {
-      this._servers.set(await this.serversService.listServers());
+      const servers = await this.serversService.listServers();
+      this.assertCurrent(scope);
+      this._servers.set(servers);
       this.loaded = true;
     } catch {
-      this._error.set('Could not load your servers.');
+      if (this.sessionScope.isCurrent(scope)) {
+        this._error.set('Could not load your servers.');
+      }
     } finally {
-      this._loading.set(false);
+      if (this.sessionScope.isCurrent(scope)) this._loading.set(false);
     }
   }
 
@@ -88,14 +99,18 @@ export class DashboardStore {
   }
 
   async createServer(name: string): Promise<Server> {
+    const scope = this.requireScope();
     const server = await this.serversService.createServer(name);
+    this.assertCurrent(scope);
     this._servers.update((servers) => [...servers, server]);
     this._createModalOpen.set(false);
     return server;
   }
 
   async joinServer(inviteCode: string): Promise<Server> {
+    const scope = this.requireScope();
     const server = await this.serversService.joinServer(inviteCode);
+    this.assertCurrent(scope);
     this._servers.update((servers) =>
       servers.some((existing) => existing.id === server.id) ? servers : [...servers, server],
     );
@@ -104,7 +119,9 @@ export class DashboardStore {
   }
 
   async renameServer(serverId: string, name: string): Promise<Server> {
+    const scope = this.requireScope();
     const server = await this.serversService.updateServer(serverId, name);
+    this.assertCurrent(scope);
     this._servers.update((servers) =>
       servers.map((candidate) => (candidate.id === serverId ? server : candidate)),
     );
@@ -129,6 +146,7 @@ export class DashboardStore {
       return;
     }
 
+    const scope = this.requireScope();
     this.membersLoading.add(serverId);
     try {
       const members = await this.serversService.listMembers(serverId);
@@ -157,6 +175,7 @@ export class DashboardStore {
         avatarUrl: profiles.get(member.userId)?.avatarUrl ?? null,
       }));
 
+      this.assertCurrent(scope);
       this._membersByServer.update((current) => ({ ...current, [serverId]: withProfiles }));
     } finally {
       this.membersLoading.delete(serverId);
@@ -165,13 +184,42 @@ export class DashboardStore {
 
   /** Owner-only; the UI hides the affordance for non-owners. Refreshes the roster on success. */
   async addMember(serverId: string, memberUserId: string): Promise<void> {
+    const scope = this.requireScope();
     await this.serversService.addMember(serverId, memberUserId);
+    this.assertCurrent(scope);
     await this.loadMembers(serverId, true);
   }
 
   /** Owner-only; the UI hides the affordance for non-owners. Refreshes the roster on success. */
   async removeMember(serverId: string, memberUserId: string): Promise<void> {
+    const scope = this.requireScope();
     await this.serversService.removeMember(serverId, memberUserId);
+    this.assertCurrent(scope);
     await this.loadMembers(serverId, true);
+  }
+
+  reset(): void {
+    this.loaded = false;
+    this.membersLoading.clear();
+    this._servers.set([]);
+    this._loading.set(false);
+    this._error.set(null);
+    this._createModalOpen.set(false);
+    this._joinModalOpen.set(false);
+    this._channelsByServer.set({});
+    this._activeCall.set(null);
+    this._membersByServer.set({});
+  }
+
+  private requireScope(): SessionScope {
+    const scope = this.sessionScope.capture();
+    if (!scope.userId) throw new Error('An authenticated account is required.');
+    return scope;
+  }
+
+  private assertCurrent(scope: SessionScope): void {
+    if (!this.sessionScope.isCurrent(scope)) {
+      throw new Error('The authenticated account changed before the request completed.');
+    }
   }
 }

@@ -18,6 +18,7 @@ const refreshExcludedPaths = new Set([
   '/auth/resend-confirmation',
   '/auth/forgot-password',
   '/auth/verify-recovery',
+  '/auth/reset-password',
   '/auth/refresh',
   '/auth/logout',
 ]);
@@ -50,9 +51,8 @@ export const authRefreshInterceptor: HttpInterceptorFn = (request, next) => {
       if (!refreshRequest$) {
         refreshRequest$ = from(auth.refreshSession()).pipe(
           catchError((refreshError: unknown) => {
-            // AuthService clears local state only when the refresh session was
-            // actually rejected. A temporary refresh outage must not turn a
-            // still-valid refresh session into a permanent client-side logout.
+            // Any failed refresh invalidates the local auth scope and every
+            // dashboard cache before navigation, so stale data cannot remain.
             if (auth.status() === 'unauthenticated') {
               void router.navigate(['/login'], {
                 queryParams: { returnUrl: router.url },

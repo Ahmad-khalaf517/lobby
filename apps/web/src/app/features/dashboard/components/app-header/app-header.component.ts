@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   ElementRef,
   HostListener,
@@ -28,6 +29,7 @@ import { DashboardStore, type ServerMemberWithProfile } from '../../services/das
 import { PromptModalComponent } from '../prompt-modal/prompt-modal.component';
 import { ProfilePopupComponent } from '../../../profile/profile-popup/profile-popup';
 import { SettingsPopupComponent } from '../../../account-settings/settings-popup/settings-popup';
+import { SessionScopeService } from '../../../../core/session-scope.service';
 
 @Component({
   selector: 'app-dashboard-header',
@@ -58,6 +60,8 @@ export class AppHeaderComponent {
   private readonly profileService = inject(ProfileService);
   private readonly friendsService = inject(FriendsService);
   private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly sessionScope = inject(SessionScopeService);
   // Not read directly here — injecting forces these singletons to construct
   // (and start their realtime subscriptions) as soon as the dashboard shell
   // mounts, so a DM/friend-request toast can fire from any page in /app.
@@ -70,6 +74,8 @@ export class AppHeaderComponent {
   protected readonly currentUserId = computed(() => this.auth.user()?.id ?? '');
 
   constructor() {
+    const unregister = this.sessionScope.registerCleanup(() => this.resetSelections());
+    this.destroyRef.onDestroy(unregister);
     // Reload once whenever both profile-editing surfaces are closed — this
     // covers the initial load and picks up an avatar/name change made in
     // either the profile popup or the settings popup's profile panel.
@@ -84,9 +90,26 @@ export class AppHeaderComponent {
     });
   }
 
+  private resetSelections(): void {
+    if (this.memberSearchTimer) clearTimeout(this.memberSearchTimer);
+    this.memberSearchTimer = null;
+    this.myProfile.set(null);
+    this.notificationsOpen.set(false);
+    this.accountMenuOpen.set(false);
+    this.membersPanelOpen.set(false);
+    this.addMemberOpen.set(false);
+    this.memberQuery.set('');
+    this.memberSearchResults.set([]);
+    this.memberSearching.set(false);
+    this.memberActionError.set(null);
+    this.renameModalOpen.set(false);
+    this.renameError.set(null);
+  }
+
   private async loadMyProfile(userId: string): Promise<void> {
     try {
-      this.myProfile.set(await this.profileService.getProfile(userId));
+      const profile = await this.profileService.getProfile(userId);
+      if (this.currentUserId() === userId) this.myProfile.set(profile);
     } catch {
       // Avatar is decorative here — silently keep showing initials on failure.
     }
@@ -273,8 +296,11 @@ export class AppHeaderComponent {
 
   protected async logout(): Promise<void> {
     this.accountMenuOpen.set(false);
-    await this.auth.logout();
-    await this.router.navigateByUrl('/login');
+    try {
+      await this.auth.logout();
+    } finally {
+      await this.router.navigateByUrl('/login');
+    }
   }
 
   @HostListener('document:click', ['$event'])

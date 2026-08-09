@@ -3,10 +3,11 @@ import type { BlockUserPayload, SendFriendRequestPayload } from '@lobby/shared';
 import { BlockUserSchema, SendFriendRequestSchema } from '@lobby/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
+import { RegisteredUserGuard } from '../../common/guards/registered-user.guard';
 import { ZodValidationPipe } from '../../zod-validation.pipe';
 import { FriendshipsService } from './friendships.service';
 
-@UseGuards(SupabaseAuthGuard)
+@UseGuards(SupabaseAuthGuard, RegisteredUserGuard)
 @Controller('friendships')
 export class FriendshipsController {
   constructor(private readonly friendshipsService: FriendshipsService) {}

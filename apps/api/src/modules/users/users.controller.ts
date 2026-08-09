@@ -13,10 +13,11 @@ import type { UpdateUserProfileRequest, UploadUserAvatarRequest } from '@lobby/s
 import { UpdateUserProfileRequestSchema, UploadUserAvatarRequestSchema } from '@lobby/shared';
 import { SameUserGuard } from '../../common/guards/same-user.guard';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
+import { RegisteredUserGuard } from '../../common/guards/registered-user.guard';
 import { ZodValidationPipe } from '../../zod-validation.pipe';
 import { UsersService } from './users.service';
 
-@UseGuards(SupabaseAuthGuard)
+@UseGuards(SupabaseAuthGuard, RegisteredUserGuard)
 @Controller('users')
 export class UsersController {
   constructor(private readonly users: UsersService) {}

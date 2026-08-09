@@ -1,12 +1,14 @@
 import { Injectable, effect, inject, signal } from '@angular/core';
 
 import { AuthService } from '../../auth/services/auth';
+import { SessionScopeService } from '../../../core/session-scope.service';
 
 export type SettingsSection = 'profile' | 'general' | 'change-password';
 
 @Injectable({ providedIn: 'root' })
 export class SettingsPopupService {
   private readonly auth = inject(AuthService);
+  private readonly sessionScope = inject(SessionScopeService);
 
   private readonly openState = signal(false);
   private readonly sectionState = signal<SettingsSection>('profile');
@@ -15,6 +17,7 @@ export class SettingsPopupService {
   readonly section = this.sectionState.asReadonly();
 
   constructor() {
+    this.sessionScope.registerCleanup(() => this.reset());
     // Belt-and-suspenders: if a session expires/logs out while the popup
     // happens to be open, force it shut rather than leaving an account
     // settings panel rendered for a now-signed-out user.
@@ -40,6 +43,11 @@ export class SettingsPopupService {
 
   close(): void {
     this.openState.set(false);
+  }
+
+  private reset(): void {
+    this.openState.set(false);
+    this.sectionState.set('profile');
   }
 
   goTo(section: SettingsSection): void {
