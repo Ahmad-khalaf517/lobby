@@ -15,6 +15,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import {
   MAX_CHANNEL_NAME_LENGTH,
+  MAX_MESSAGE_LENGTH,
   type Channel,
   type CallStatusResponse,
   type ServerWithChannels,
@@ -22,12 +23,17 @@ import {
 
 import { AuthService } from '../../auth/services/auth';
 import { LiveKitCallService } from '../../../shared/components/call-room';
-import { RoomChatComponent } from '../../../shared/components/room-chat';
+import {
+  RoomChatComponent,
+  type ChatMessage,
+  type SendChatMessage,
+} from '../../../shared/components/room-chat';
 import { LobbyIconComponent } from '../../../shared/ui/icon/lobby-icon.component';
 import { LoadingStateComponent } from '../../../shared/ui/loading-state/loading-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { ConfirmModalComponent } from '../components/confirm-modal/confirm-modal.component';
 import { PromptModalComponent } from '../components/prompt-modal/prompt-modal.component';
+import { ChannelMessagesService } from '../services/channel-messages.service';
 import { DashboardStore } from '../services/dashboard.store';
 import { ServersService } from '../services/servers.service';
 
@@ -56,6 +62,7 @@ export class ChannelView {
   private readonly toast = inject(ToastService);
 
   protected readonly dashboardStore = inject(DashboardStore);
+  protected readonly channelMessages = inject(ChannelMessagesService);
 
   protected readonly call = inject(LiveKitCallService);
 
@@ -97,6 +104,26 @@ export class ChannelView {
     const server = this.server();
     return server ? this.dashboardStore.membersFor(server.id) : [];
   });
+  protected readonly memberNames = computed(() => this.roster().map((member) => member.name));
+
+  protected readonly channelMessagesList = computed<ChatMessage[]>(() =>
+    this.channelMessages.messagesFor(this.channelId() ?? ''),
+  );
+  protected readonly channelMessagesLoading = computed(() =>
+    this.channelMessages.loadingFor(this.channelId() ?? ''),
+  );
+  protected readonly channelMessagesError = computed(() =>
+    this.channelMessages.errorFor(this.channelId() ?? ''),
+  );
+
+  protected readonly chatViews = viewChildren(RoomChatComponent);
+
+  protected readonly editMessageTarget = signal<ChatMessage | null>(null);
+  protected readonly editMessageSaving = signal(false);
+  protected readonly editMessageError = signal<string | null>(null);
+  protected readonly maxMessageLength = MAX_MESSAGE_LENGTH;
+
+  private lastScrolledChannel = '';
 
   protected readonly tabLinks = viewChildren<ElementRef<HTMLElement>>('tabLink');
   protected readonly tabScroller = viewChild<ElementRef<HTMLElement>>('tabScroller');
@@ -124,7 +151,10 @@ export class ChannelView {
       this.serverId = paramMap.get('serverId') ?? '';
       const channelId = paramMap.get('channelId');
       this.channelId.set(channelId);
-      if (this.serverId && channelId) void this.loadServerAndPoll(this.serverId);
+      if (this.serverId && channelId) {
+        void this.loadServerAndPoll(this.serverId);
+        void this.channelMessages.setActiveChannel(this.serverId, channelId);
+      }
     });
 
     // Re-measures the active tab's position once the DOM reflects it — after
@@ -136,12 +166,25 @@ export class ChannelView {
       queueMicrotask(() => this.measureTabIndicator());
     });
 
+    // Scrolls to the newest message once a channel's initial history lands,
+    // then leaves subsequent arrivals to the sidebar's own sticky-bottom logic.
+    effect(() => {
+      const channelId = this.channelId() ?? '';
+      const messages = this.channelMessages.messagesFor(channelId);
+      const loading = this.channelMessages.loadingFor(channelId);
+      if (channelId && !loading && messages.length > 0 && channelId !== this.lastScrolledChannel) {
+        this.lastScrolledChannel = channelId;
+        queueMicrotask(() => this.scrollChatToNewest());
+      }
+    });
+
     // Deliberately does NOT disconnect the call here — a voice call must
     // survive navigating to a different channel/server (that's the whole
     // point of the rail's persistent call widget). Only an explicit "Leave"
     // click (leaveCall(), or the widget's own) disconnects.
     this.destroyRef.onDestroy(() => {
       this.stopStatusPolling();
+      this.channelMessages.clearActiveChannel();
     });
 
     this.router.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
@@ -325,6 +368,79 @@ export class ChannelView {
 
   protected toggleScreenShare(): void {
     void this.call.toggleScreenShare();
+  }
+
+  // -------------------------------------------------------------------
+  // Channel messages
+  // -------------------------------------------------------------------
+
+  protected onSendMessage(payload: SendChatMessage): void {
+    const channelId = this.channelId();
+    if (!this.serverId || !channelId) return;
+    void this.channelMessages.sendMessage(this.serverId, channelId, payload.text, payload.replyTo);
+  }
+
+  protected onDeleteMessage(messageId: string): void {
+    const channelId = this.channelId();
+    if (!this.serverId || !channelId) return;
+    void this.channelMessages.deleteMessage(this.serverId, channelId, messageId);
+  }
+
+  protected onReactMessage(payload: { messageId: string; emoji: string }): void {
+    const channelId = this.channelId();
+    if (!this.serverId || !channelId) return;
+    void this.channelMessages.toggleReaction(
+      this.serverId,
+      channelId,
+      payload.messageId,
+      payload.emoji,
+    );
+  }
+
+  protected requestEditMessage(message: ChatMessage): void {
+    this.editMessageError.set(null);
+    this.editMessageTarget.set(message);
+  }
+
+  protected cancelEditMessage(): void {
+    if (this.editMessageSaving()) return;
+    this.editMessageTarget.set(null);
+    this.editMessageError.set(null);
+  }
+
+  protected async submitEditMessage(content: string): Promise<void> {
+    const channelId = this.channelId();
+    const target = this.editMessageTarget();
+    if (!this.serverId || !channelId || !target || content === target.text) {
+      this.editMessageTarget.set(null);
+      return;
+    }
+
+    this.editMessageSaving.set(true);
+    this.editMessageError.set(null);
+    try {
+      const ok = await this.channelMessages.editMessage(
+        this.serverId,
+        channelId,
+        target.id,
+        content,
+      );
+      if (ok) {
+        this.editMessageTarget.set(null);
+      } else {
+        this.editMessageError.set('Could not edit the message.');
+      }
+    } finally {
+      this.editMessageSaving.set(false);
+    }
+  }
+
+  private scrollChatToNewest(): void {
+    // Hidden instances (mobile overlay, split-view aside when not shown) no-op —
+    // scrollIntoView on a display:none element doesn't scroll the page.
+    for (const chat of this.chatViews()) {
+      chat.scrollToNewest();
+    }
   }
 
   protected toggleParticipantsPanel(): void {

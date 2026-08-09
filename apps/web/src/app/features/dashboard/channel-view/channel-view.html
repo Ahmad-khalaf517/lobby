@@ -113,9 +113,21 @@
           [showHeader]="false"
           emptyStateVariant="channel"
           emptyStateTitle=""
-          emptyStateSubtitle="No messages yet — say something to get started."
+          [emptyStateSubtitle]="
+            channelMessagesLoading()
+              ? 'Loading messages…'
+              : 'No messages yet — say something to get started.'
+          "
           [placeholder]="'Message #' + (channel()?.name ?? 'channel')"
           [showCloseButton]="false"
+          [messages]="channelMessagesList()"
+          [currentUserId]="currentUserId()"
+          [memberNames]="memberNames()"
+          [infoBannerText]="channelMessagesError()"
+          (sendMessage)="onSendMessage($event)"
+          (editMessage)="requestEditMessage($event)"
+          (deleteMessage)="onDeleteMessage($event)"
+          (reactToMessage)="onReactMessage($event)"
         />
       } @else {
         @if (!chatCollapsed()) {
@@ -127,9 +139,21 @@
               [subtitle]="roster().length + ' member' + (roster().length === 1 ? '' : 's')"
               emptyStateVariant="channel"
               emptyStateTitle=""
-              emptyStateSubtitle="No messages yet — say something to get started."
+              [emptyStateSubtitle]="
+                channelMessagesLoading()
+                  ? 'Loading messages…'
+                  : 'No messages yet — say something to get started.'
+              "
               [placeholder]="'Message #' + (channel()?.name ?? 'channel')"
               [showCloseButton]="false"
+              [messages]="channelMessagesList()"
+              [currentUserId]="currentUserId()"
+              [memberNames]="memberNames()"
+              [infoBannerText]="channelMessagesError()"
+              (sendMessage)="onSendMessage($event)"
+              (editMessage)="requestEditMessage($event)"
+              (deleteMessage)="onDeleteMessage($event)"
+              (reactToMessage)="onReactMessage($event)"
             />
           </aside>
         }
@@ -144,9 +168,21 @@
         [subtitle]="roster().length + ' member' + (roster().length === 1 ? '' : 's')"
         emptyStateVariant="channel"
         emptyStateTitle=""
-        emptyStateSubtitle="No messages yet — say something to get started."
+        [emptyStateSubtitle]="
+          channelMessagesLoading()
+            ? 'Loading messages…'
+            : 'No messages yet — say something to get started.'
+        "
         [placeholder]="'Message #' + (channel()?.name ?? 'channel')"
         [showCloseButton]="true"
+        [messages]="channelMessagesList()"
+        [currentUserId]="currentUserId()"
+        [memberNames]="memberNames()"
+        [infoBannerText]="channelMessagesError()"
+        (sendMessage)="onSendMessage($event)"
+        (editMessage)="requestEditMessage($event)"
+        (deleteMessage)="onDeleteMessage($event)"
+        (reactToMessage)="onReactMessage($event)"
         (close)="mobileChatOpen.set(false)"
       />
     </div>
@@ -227,5 +263,18 @@
     [errorMessage]="addChannelError()"
     (save)="submitNewChannel($event)"
     (cancel)="cancelAddingChannel()"
+  />
+
+  <app-prompt-modal
+    [open]="editMessageTarget() !== null"
+    title="Edit message"
+    icon="edit"
+    label="Message"
+    [initialValue]="editMessageTarget()?.text ?? ''"
+    [maxLength]="maxMessageLength"
+    [saving]="editMessageSaving()"
+    [errorMessage]="editMessageError()"
+    (save)="submitEditMessage($event)"
+    (cancel)="cancelEditMessage()"
   />
 }
