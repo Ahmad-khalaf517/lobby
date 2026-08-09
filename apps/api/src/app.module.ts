@@ -11,6 +11,7 @@ import { AccountSettingsModule } from './modules/account-settings/account-settin
 import { FriendshipsModule } from './modules/friendships/friendships.module';
 import { DmsModule } from './modules/dms/dms.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ChannelMessagesModule } from './modules/channel-messages/channel-messages.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     FriendshipsModule,
     DmsModule,
     NotificationsModule,
+    ChannelMessagesModule,
   ],
   providers: [
     {

@@ -355,7 +355,6 @@ export type Database = {
       };
       message_reactions: {
         Row: {
-          channel_id: string | null;
           channel_member_id: string;
           created_at: string;
           emoji: string;
@@ -364,7 +363,6 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
-          channel_id: string | null;
           channel_member_id: string;
           created_at?: string;
           emoji: string;
@@ -373,7 +371,6 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
-          channel_id: string | null;
           channel_member_id?: string;
           created_at?: string;
           emoji?: string;
@@ -382,13 +379,6 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
-          {
-            foreignKeyName: 'message_reactions_channel_id_fkey';
-            columns: ['channel_id'];
-            isOneToOne: false;
-            referencedRelation: 'channels';
-            referencedColumns: ['id'];
-          },
           {
             foreignKeyName: 'message_reactions_channel_member_id_fkey';
             columns: ['channel_member_id'];
@@ -408,7 +398,6 @@ export type Database = {
       messages: {
         Row: {
           channel_id: string;
-          client_message_id: string | null;
           content: string;
           created_at: string;
           deleted_at: string | null;
@@ -419,7 +408,6 @@ export type Database = {
         };
         Insert: {
           channel_id: string;
-          client_message_id?: string | null;
           content: string;
           created_at?: string;
           deleted_at?: string | null;
@@ -430,7 +418,6 @@ export type Database = {
         };
         Update: {
           channel_id?: string;
-          client_message_id?: string | null;
           content?: string;
           created_at?: string;
           deleted_at?: string | null;
