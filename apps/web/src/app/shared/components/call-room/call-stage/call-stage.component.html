@@ -1,6 +1,19 @@
-<section #stage class="flex h-full min-h-0 w-full flex-col gap-3 bg-[#080b11] fullscreen:p-4">
-  <div class="flex flex-wrap items-center justify-between gap-3 px-1">
-    <div class="flex min-w-0 items-center gap-2.5">
+<section
+  #stage
+  [class]="
+    'relative flex h-full min-h-0 w-full flex-col gap-2 bg-[#080b11] sm:gap-3 fullscreen:p-2 sm:fullscreen:p-4 ' +
+    (expanded() ? 'fixed inset-0 z-[80] h-dvh p-2 sm:p-4' : '')
+  "
+>
+  <div
+    [class]="
+      'flex flex-wrap items-center justify-between gap-2 px-1 sm:gap-3 ' +
+      (expanded()
+        ? 'absolute top-4 right-4 left-4 z-20 rounded-xl border border-white/10 bg-[#0b0f17]/88 p-2 pl-3 shadow-xl backdrop-blur-xl sm:top-5 sm:right-5 sm:left-5'
+        : 'max-lg:landscape:absolute max-lg:landscape:top-1 max-lg:landscape:right-1 max-lg:landscape:left-1 max-lg:landscape:z-20 max-lg:landscape:rounded-lg max-lg:landscape:border max-lg:landscape:border-white/10 max-lg:landscape:bg-[#0b0f17]/85 max-lg:landscape:p-1 max-lg:landscape:pl-2 max-lg:landscape:backdrop-blur-xl')
+    "
+  >
+    <div class="flex min-w-0 flex-1 items-center gap-2.5">
       <span class="relative flex size-2.5 shrink-0">
         <span
           class="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-50"
@@ -11,7 +24,9 @@
         <p class="truncate text-xs font-semibold text-[#eef1f6]">
           {{ sharerName() }} is presenting
         </p>
-        <p class="mt-0.5 text-[10px] text-[#748095]">
+        <p
+          class="mt-0.5 hidden text-[10px] text-[#748095] min-[430px]:block max-lg:landscape:hidden"
+        >
           Screen sharing is locked to one presenter at a time
         </p>
       </div>
@@ -20,14 +35,14 @@
     <div class="flex items-center gap-2">
       @if (isLocalSharing()) {
         <span
-          class="rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[10px] font-semibold text-[#cfc6ff]"
+          class="hidden rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[9px] font-semibold text-[#cfc6ff] min-[360px]:inline-flex sm:px-3 sm:text-[10px] max-lg:landscape:hidden"
           >You are sharing</span
         >
       }
       <button
         type="button"
         (click)="toggleExpanded()"
-        class="grid size-9 place-items-center rounded-xl border border-white/10 bg-white/[0.055] text-[#d3dae6] transition hover:border-white/18 hover:bg-white/10 hover:text-white"
+        class="grid size-10 place-items-center rounded-xl border border-white/10 bg-white/[0.055] text-[#d3dae6] outline-none transition hover:border-white/18 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 lg:size-9 max-lg:landscape:size-8 max-lg:landscape:rounded-lg"
         [attr.aria-label]="expanded() ? 'Exit expanded screen share' : 'Expand screen share'"
         [attr.title]="expanded() ? 'Exit expanded view' : 'Expand screen share'"
       >
@@ -37,7 +52,7 @@
   </div>
 
   <div
-    class="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/[0.09] bg-black"
+    class="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-white/[0.09] bg-black sm:rounded-2xl"
   >
     <div
       class="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-inset ring-white/5"

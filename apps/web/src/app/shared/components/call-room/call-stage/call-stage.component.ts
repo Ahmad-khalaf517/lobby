@@ -48,13 +48,25 @@ export class CallStageComponent {
 
     if (typeof document !== 'undefined') {
       const onFullscreenChange = (): void => {
-        this.expanded.set(document.fullscreenElement === this.stage()?.nativeElement);
+        if (document.fullscreenElement === this.stage()?.nativeElement) {
+          this.expanded.set(true);
+        } else if (document.fullscreenElement === null) {
+          this.expanded.set(false);
+        }
+      };
+
+      const onKeydown = (event: KeyboardEvent): void => {
+        if (event.key === 'Escape' && this.expanded() && document.fullscreenElement === null) {
+          this.expanded.set(false);
+        }
       };
 
       document.addEventListener('fullscreenchange', onFullscreenChange);
-      this.destroyRef.onDestroy(() =>
-        document.removeEventListener('fullscreenchange', onFullscreenChange),
-      );
+      document.addEventListener('keydown', onKeydown);
+      this.destroyRef.onDestroy(() => {
+        document.removeEventListener('fullscreenchange', onFullscreenChange);
+        document.removeEventListener('keydown', onKeydown);
+      });
     }
   }
 
@@ -63,14 +75,28 @@ export class CallStageComponent {
     const stage = this.stage()?.nativeElement;
     if (!stage) return;
 
+    if (this.expanded() && document.fullscreenElement === null) {
+      this.expanded.set(false);
+      return;
+    }
+
     try {
       if (document.fullscreenElement === stage) {
         await document.exitFullscreen();
       } else {
-        await stage.requestFullscreen();
+        const requestFullscreen = stage.requestFullscreen;
+        if (typeof requestFullscreen !== 'function') {
+          this.expanded.set(true);
+          return;
+        }
+
+        await requestFullscreen.call(stage);
+        if (document.fullscreenElement !== stage) this.expanded.set(true);
       }
     } catch {
-      // The browser may reject fullscreen when it is unavailable or blocked.
+      // iOS and embedded browsers can reject native fullscreen. Keep the
+      // presentation maximized with an in-app fallback instead.
+      this.expanded.set(true);
     }
   }
 }

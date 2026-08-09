@@ -346,7 +346,7 @@
 
   @case ('ready') {
     <main
-      class="relative flex h-dvh min-h-0 flex-col overflow-hidden bg-[#080b11] text-app-foreground sm:min-h-[620px]"
+      class="relative flex h-dvh min-h-0 flex-col overflow-hidden bg-[#080b11] text-app-foreground lg:min-h-[620px]"
     >
       <div
         class="lobby-noise pointer-events-none absolute inset-0 opacity-25"
@@ -358,7 +358,7 @@
       ></div>
 
       <header
-        class="relative z-20 flex h-16 shrink-0 items-center gap-3 border-b border-white/[0.07] bg-[#0c1018]/90 px-3 backdrop-blur-xl sm:px-5"
+        class="relative z-20 flex h-14 shrink-0 items-center gap-2.5 border-b border-white/[0.07] bg-[#0c1018]/90 px-2.5 backdrop-blur-xl sm:h-16 sm:gap-3 sm:px-5 max-lg:landscape:h-12"
       >
         <!-- Brand -->
         <a
@@ -417,7 +417,7 @@
             type="button"
             (click)="shareRoomOpen.set(true)"
             aria-label="Share room"
-            class="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-primary/25 bg-primary/[0.09] px-2.5 text-xs font-semibold leading-none text-[#d8d0ff] outline-none transition-colors hover:border-primary/40 hover:bg-primary/[0.16] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:px-3"
+            class="inline-flex size-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-primary/25 bg-primary/[0.09] text-xs font-semibold leading-none text-[#d8d0ff] outline-none transition-colors hover:border-primary/40 hover:bg-primary/[0.16] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-9 sm:w-auto sm:px-3"
           >
             <app-icon name="qr" aria-hidden="true" class="size-3.5" />
             <span class="hidden sm:inline">Share room</span>
@@ -428,7 +428,7 @@
             type="button"
             (click)="membersPanelOpen.set(true)"
             [attr.aria-label]="'Show room members, ' + roomMemberCount() + ' members'"
-            class="inline-flex h-9 min-w-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.035] px-2.5 text-xs font-medium leading-none text-[#b8c1ce] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60"
+            class="inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.035] px-2.5 text-xs font-medium leading-none text-[#b8c1ce] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-9 sm:min-w-9"
           >
             <app-icon name="users" aria-hidden="true" class="size-3.5 shrink-0" />
 
@@ -445,7 +445,7 @@
             type="button"
             (click)="requestRoomExit()"
             [attr.aria-label]="isOwner() ? 'Close room' : 'Leave room'"
-            class="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-white/[0.08] bg-white/[0.035] px-2.5 text-xs font-medium leading-none text-[#b8c1ce] outline-none transition-colors hover:border-rose-400/25 hover:bg-rose-400/[0.08] hover:text-rose-200 focus-visible:ring-2 focus-visible:ring-rose-400/50 sm:px-3"
+            class="inline-flex size-10 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-white/[0.08] bg-white/[0.035] text-xs font-medium leading-none text-[#b8c1ce] outline-none transition-colors hover:border-rose-400/25 hover:bg-rose-400/[0.08] hover:text-rose-200 focus-visible:ring-2 focus-visible:ring-rose-400/50 sm:h-9 sm:w-auto sm:px-3"
           >
             <app-icon name="logout" aria-hidden="true" class="size-3.5 shrink-0" />
 
@@ -482,8 +482,10 @@
           class="relative min-w-0 flex-1 overflow-hidden bg-[linear-gradient(180deg,rgba(14,19,29,0.72),rgba(8,12,18,0.9))]"
         >
           @if (call.joined()) {
-            <div class="relative flex h-full min-h-0 flex-col pb-24">
-              @if (callJoining()) {
+            <div
+              class="relative flex h-full min-h-0 flex-col pb-[calc(4.75rem+env(safe-area-inset-bottom))] sm:pb-24 max-lg:landscape:pb-[calc(4.25rem+env(safe-area-inset-bottom))]"
+            >
+              @if (callJoining() && !call.connected()) {
                 <div
                   class="absolute inset-0 z-40 grid place-items-center bg-[#0a0f17]/82 backdrop-blur-md"
                 >
@@ -500,7 +502,7 @@
               }
 
               <div
-                class="flex shrink-0 items-center justify-between gap-3 border-b border-white/7 px-4 h-14 sm:px-5"
+                class="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-white/7 px-3 sm:h-14 sm:px-5 max-lg:landscape:h-10"
               >
                 <div class="min-w-0">
                   <div class="flex items-center gap-2">
@@ -512,7 +514,9 @@
                     ></span>
                     <p class="truncate text-xs font-semibold text-white">Audio room connected</p>
                   </div>
-                  <p class="mt-1 truncate text-[10px] text-[#707c90]">
+                  <p
+                    class="mt-0.5 max-w-[70vw] truncate text-[9px] text-[#707c90] sm:mt-1 sm:max-w-none sm:text-[10px] max-lg:landscape:hidden"
+                  >
                     {{ callParticipantCount() }} / {{ callCapacity() }} participants ·
                     {{ call.roomName() }}
                   </p>
@@ -525,9 +529,9 @@
 
               @if (call.activeScreenShare().track !== null) {
                 <div
-                  class="flex min-h-0 flex-1 flex-col gap-3 p-3 sm:p-4 lg:grid lg:grid-cols-[minmax(0,1fr)_clamp(13rem,20vw,17rem)] lg:gap-4"
+                  class="flex min-h-0 flex-1 flex-col gap-2 p-2 sm:gap-3 sm:p-4 lg:grid lg:grid-cols-[minmax(0,1fr)_clamp(13rem,20vw,17rem)] lg:gap-4 max-lg:landscape:grid max-lg:landscape:grid-cols-[minmax(0,1fr)_8.5rem] max-lg:landscape:gap-2"
                 >
-                  <div class="min-h-0 min-w-0 flex-1 lg:h-full">
+                  <div class="flex min-h-0 min-w-0 flex-1 lg:h-full">
                     <app-call-stage
                       [isLocalSharing]="call.activeScreenShare().isLocal"
                       [sharerName]="call.activeScreenShare().sharerName"
@@ -537,22 +541,38 @@
 
                   <aside
                     aria-label="Call participants"
-                    class="lobby-scrollbar flex max-h-32 shrink-0 gap-2 overflow-x-auto border-t border-white/7 pt-3 lg:max-h-none lg:min-h-0 lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto lg:border-t-0 lg:border-l lg:pt-0 lg:pl-3"
+                    class="lobby-scrollbar flex max-h-18 shrink-0 gap-2 overflow-x-auto border-t border-white/7 pt-2 lg:max-h-none lg:min-h-0 lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto lg:border-t-0 lg:border-l lg:pt-0 lg:pl-3 max-lg:landscape:max-h-none max-lg:landscape:min-h-0 max-lg:landscape:flex-col max-lg:landscape:overflow-x-hidden max-lg:landscape:overflow-y-auto max-lg:landscape:border-t-0 max-lg:landscape:border-l max-lg:landscape:pt-0 max-lg:landscape:pl-2"
                   >
                     @for (participant of callParticipants(); track participant.id) {
-                      <div class="min-w-52 shrink-0 lg:min-w-0 lg:w-full">
+                      <div
+                        class="min-w-40 shrink-0 lg:w-full lg:min-w-0 max-lg:landscape:w-full max-lg:landscape:min-w-0"
+                      >
                         <app-voice-participant-tile [participant]="participant" [compact]="true" />
                       </div>
                     }
                   </aside>
                 </div>
               } @else {
-                <div class="lobby-scrollbar min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+                <div class="lobby-scrollbar min-h-0 flex-1 overflow-y-auto p-3 sm:p-6">
                   <div
-                    class="mx-auto grid max-w-5xl auto-rows-min grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+                    class="mx-auto grid max-w-5xl auto-rows-min grid-cols-2 gap-2.5 sm:gap-3 xl:grid-cols-3 max-lg:landscape:grid-cols-[repeat(auto-fit,minmax(7.5rem,1fr))]"
                   >
-                    @for (participant of callParticipants(); track participant.id) {
-                      <app-voice-participant-tile [participant]="participant" />
+                    @for (
+                      participant of callParticipants();
+                      track participant.id;
+                      let isLast = $last
+                    ) {
+                      <div
+                        [class]="
+                          callParticipants().length === 1
+                            ? 'col-span-2 mx-auto w-full max-w-60 lg:col-span-1 lg:max-w-none max-lg:landscape:col-span-1'
+                            : isLast && callParticipants().length % 2 === 1
+                              ? 'col-span-2 mx-auto w-[calc(50%-0.3125rem)] lg:col-span-1 lg:mx-0 lg:w-auto max-lg:landscape:col-span-1 max-lg:landscape:mx-0 max-lg:landscape:w-auto'
+                              : ''
+                        "
+                      >
+                        <app-voice-participant-tile [participant]="participant" />
+                      </div>
                     }
                   </div>
                 </div>
@@ -1096,7 +1116,7 @@
             role="dialog"
             aria-modal="true"
             aria-labelledby="members-panel-title"
-            class="absolute inset-y-0 right-0 flex w-[min(92vw,23.5rem)] flex-col overflow-hidden border-l border-white/[0.08] bg-[#0d121b] shadow-[-24px_0_70px_rgba(0,0,0,0.48)]"
+            class="absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col overflow-hidden rounded-t-2xl border-t border-white/[0.08] bg-[#0d121b] pb-[env(safe-area-inset-bottom)] shadow-[0_-24px_70px_rgba(0,0,0,0.48)] lg:inset-y-0 lg:right-0 lg:left-auto lg:max-h-none lg:w-[min(92vw,23.5rem)] lg:rounded-none lg:border-t-0 lg:border-l lg:pb-0 lg:shadow-[-24px_0_70px_rgba(0,0,0,0.48)]"
           >
             <!-- Drawer header -->
             <header
