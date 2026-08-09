@@ -21,8 +21,9 @@ import {
 } from '@lobby/shared';
 
 import { AuthService } from '../../auth/services/auth';
+import { ChannelChatPanel } from '../../channel-chat/channel-chat-panel/channel-chat-panel';
+import { ChannelChatStore } from '../../channel-chat/services/channel-chat.store';
 import { LiveKitCallService } from '../../../shared/components/call-room';
-import { RoomChatComponent } from '../../../shared/components/room-chat';
 import { LobbyIconComponent } from '../../../shared/ui/icon/lobby-icon.component';
 import { LoadingStateComponent } from '../../../shared/ui/loading-state/loading-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -40,7 +41,7 @@ import { ServersService } from '../services/servers.service';
     RouterLinkActive,
     LobbyIconComponent,
     LoadingStateComponent,
-    RoomChatComponent,
+    ChannelChatPanel,
     PromptModalComponent,
     ConfirmModalComponent,
   ],
@@ -56,6 +57,7 @@ export class ChannelView {
   private readonly destroyRef = inject(DestroyRef);
   private readonly toast = inject(ToastService);
   private readonly sessionScope = inject(SessionScopeService);
+  private readonly channelChat = inject(ChannelChatStore);
 
   protected readonly dashboardStore = inject(DashboardStore);
 
@@ -99,6 +101,7 @@ export class ChannelView {
     const server = this.server();
     return server ? this.dashboardStore.membersFor(server.id) : [];
   });
+  protected readonly chatMemberNames = computed(() => this.roster().map((member) => member.name));
 
   protected readonly tabLinks = viewChildren<ElementRef<HTMLElement>>('tabLink');
   protected readonly tabScroller = viewChild<ElementRef<HTMLElement>>('tabScroller');
@@ -130,7 +133,10 @@ export class ChannelView {
       this.serverId = paramMap.get('serverId') ?? '';
       const channelId = paramMap.get('channelId');
       this.channelId.set(channelId);
-      if (this.serverId && channelId) void this.loadServerAndPoll(this.serverId);
+      if (this.serverId && channelId) {
+        void this.loadServerAndPoll(this.serverId);
+        void this.channelChat.open(channelId).catch(() => undefined);
+      }
     });
 
     // Re-measures the active tab's position once the DOM reflects it — after
@@ -143,8 +149,10 @@ export class ChannelView {
     });
 
     effect(() => {
-      if (this.sessionScope.userId() && this.serverId && this.channelId()) {
+      const activeChannelId = this.channelId();
+      if (this.sessionScope.userId() && this.serverId && activeChannelId) {
         void this.loadServerAndPoll(this.serverId);
+        void this.channelChat.open(activeChannelId).catch(() => undefined);
       }
     });
 
@@ -154,6 +162,7 @@ export class ChannelView {
     // click (leaveCall(), or the widget's own) disconnects.
     this.destroyRef.onDestroy(() => {
       this.stopStatusPolling();
+      void this.channelChat.close();
     });
 
     this.router.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {

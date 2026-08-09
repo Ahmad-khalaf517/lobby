@@ -3,7 +3,7 @@
 ## Monorepo layout
 
 - `apps/api`: NestJS authentication, privileged operations, and LiveKit token minting.
-- `apps/web`: Angular UI, user-scoped Supabase guest data, Realtime, and LiveKit media.
+- `apps/web`: Angular UI, user-scoped Supabase guest/authenticated chat data, Realtime, and LiveKit media.
 - `packages/shared`: Zod schemas and shared limits for Angular/NestJS boundaries.
 - `apps/api/supabase`: guest schema migrations, RLS, RPC functions, Realtime publication, and cleanup jobs.
 
@@ -37,6 +37,22 @@ Persisted membership and media presence are separate:
 - Supabase membership describes who joined, left, was removed, owns the channel, and which display name is persisted.
 - LiveKit presence describes who is currently connected to media, speaking, muted, or screen sharing.
 
+## Authenticated server-channel chat
+
+```text
+Angular authenticated channel UI / RoomChatComponent
+  -> ChannelChatStore
+  |-- RLS SELECT ------------> public.messages + public.message_reactions
+  |-- authenticated RPC -----> public chat mutation functions
+  `-- Realtime subscription < public Postgres changes
+```
+
+`ChannelChatStore` is independent of `GuestChannelStore` and of the current dashboard presentation. `RoomChatComponent` remains presentational: it receives mapped `ChatMessage` values and emits user intents, but contains no authenticated persistence or membership logic. An authenticated-only adapter currently connects the store to that component so the dashboard chat can be redesigned later without replacing the chat data layer.
+
+The browser keeps raw table mutations revoked. Narrow security-definer RPCs are the authenticated chat write authority: each rejects anonymous sessions, derives identity from `auth.uid()`, verifies `server_members` plus active `channel_members`, and accepts no browser-supplied user/member/role value. A lazy `channel_members` row supplies normalized sender/reaction identity only after server membership has been authorized. Message retries are idempotent through a browser-generated client UUID. Edits and deletes are sender-only; deletes are soft updates so Realtime does not depend on deleted-row payload visibility.
+
+The browser receives RLS-filtered history and Realtime rows from `public.messages` and `public.message_reactions`. RLS calls a security-definer membership predicate without granting direct reads on `channels` or `server_members`. The store filters one subscription to the active channel, merges raw events with optimistic rows, guards every async commit with the account revision plus a channel revision, and removes the subscription on navigation, logout, or account change.
+
 ## LiveKit
 
 ```text
@@ -66,8 +82,8 @@ The public-schema channel repository remains in source for possible non-guest mi
 - Unsafe requests carrying auth cookies require an `Origin` or `Referer` whose origin is in the configured CORS allowlist.
 - Password recovery has a short-lived HttpOnly proof issued only after recovery-token verification. Signed-in password changes use a separate endpoint and verify the current password.
 - Profile rows are provisioned after successful registered authentication. Profile GET is read-only and returns 404 when a row is missing.
-- Direct browser writes are not granted; guest mutations use security-definer RPCs with `auth.uid()` checks.
-- Realtime and direct reads are constrained by guest-schema RLS.
+- Direct browser table writes are not granted; guest and authenticated-chat mutations use narrow security-definer RPCs with `auth.uid()` checks.
+- Realtime and direct reads are constrained by schema-specific membership RLS.
 - LiveKit tokens require an active, unremoved membership and an active, unexpired channel.
 
 ## Validation
