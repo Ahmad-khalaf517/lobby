@@ -2,12 +2,12 @@
   class="pointer-events-none absolute inset-x-0 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-30 flex justify-center px-2 sm:bottom-5 sm:px-4"
 >
   <div
-    class="pointer-events-auto flex max-w-[calc(100vw-1rem)] items-center gap-1 rounded-2xl border border-white/[0.09] bg-[#11151d]/95 p-1.5 shadow-[0_20px_55px_rgba(0,0,0,0.45)] backdrop-blur-2xl sm:max-w-full sm:gap-1.5"
+    class="pointer-events-auto flex max-w-[calc(100vw-1rem)] items-center gap-1 rounded-2xl border border-white/9 bg-[#11151d]/95 p-1.5 shadow-[0_20px_55px_rgba(0,0,0,0.45)] backdrop-blur-2xl sm:max-w-full sm:gap-1.5"
     role="toolbar"
     aria-label="Call controls"
   >
     <!-- Current participant -->
-    <div class="hidden min-w-0 items-center gap-2.5 border-r border-white/[0.08] px-2 pr-3 lg:flex">
+    <div class="hidden min-w-0 items-center gap-2.5 border-r border-white/8 px-2 pr-3 lg:flex">
       <app-chat-avatar [name]="currentUserName()" size="sm" />
 
       <div class="min-w-0">
@@ -34,7 +34,7 @@
         class="grid size-11 shrink-0 place-items-center rounded-xl border outline-none transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45 sm:size-12"
         [class]="
           micEnabled()
-            ? 'border-white/[0.08] bg-white/[0.055] text-[#e3e7ed] hover:bg-white/[0.1] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60'
+            ? 'border-white/8 bg-white/5.5 text-[#e3e7ed] hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60'
             : 'border-rose-400/20 bg-rose-500/90 text-white hover:bg-rose-500 focus-visible:ring-2 focus-visible:ring-rose-400/70'
         "
       >
@@ -50,7 +50,7 @@
 
       <span
         role="tooltip"
-        class="pointer-events-none absolute bottom-[calc(100%+0.55rem)] left-1/2 z-50 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-white/[0.08] bg-[#171c25] px-2 py-1.5 text-[10px] font-medium leading-none text-[#d8dde5] shadow-xl group-hover/control:block group-focus-within/control:block"
+        class="pointer-events-none absolute bottom-[calc(100%+0.55rem)] left-1/2 z-50 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-white/8 bg-[#171c25] px-2 py-1.5 text-[10px] font-medium leading-none text-[#d8dde5] shadow-xl group-hover/control:block group-focus-within/control:block"
       >
         {{ micEnabled() ? 'Mute microphone' : 'Turn on microphone' }}
       </span>
@@ -73,7 +73,7 @@
           [class]="
             screenShareActive()
               ? 'border-primary/40 bg-primary text-white shadow-[0_8px_24px_rgba(124,92,252,0.22)] hover:bg-[#896aff] focus-visible:ring-2 focus-visible:ring-violet-400/70'
-              : 'border-white/[0.08] bg-white/[0.055] text-[#e3e7ed] hover:bg-white/[0.1] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60'
+              : 'border-white/8 bg-white/5.5 text-[#e3e7ed] hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60'
           "
         >
           @if (screenSharePending()) {
@@ -92,7 +92,7 @@
 
         <span
           role="tooltip"
-          class="pointer-events-none absolute bottom-[calc(100%+0.55rem)] left-1/2 z-50 hidden max-w-56 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/[0.08] bg-[#171c25] px-2 py-1.5 text-[10px] font-medium leading-none text-[#d8dde5] shadow-xl group-hover/control:block group-focus-within/control:block"
+          class="pointer-events-none absolute bottom-[calc(100%+0.55rem)] left-1/2 z-50 hidden max-w-56 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/8 bg-[#171c25] px-2 py-1.5 text-[10px] font-medium leading-none text-[#d8dde5] shadow-xl group-hover/control:block group-focus-within/control:block"
         >
           {{
             screenShareActive()
@@ -114,7 +114,7 @@
           'grid size-11 shrink-0 place-items-center rounded-xl border outline-none transition-colors duration-150 sm:size-12 ' +
           (chatOpen()
             ? 'border-primary/35 bg-primary/[0.14] text-[#d8d0ff] focus-visible:ring-2 focus-visible:ring-violet-400/60'
-            : 'border-white/[0.08] bg-white/[0.055] text-[#e0e4eb] hover:bg-white/[0.1] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60')
+            : 'border-white/8 bg-white/5.5 text-[#e0e4eb] hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60')
         "
       >
         <app-icon name="chat" aria-hidden="true" class="size-4" />
@@ -122,7 +122,7 @@
 
       <span
         role="tooltip"
-        class="pointer-events-none absolute bottom-[calc(100%+0.55rem)] left-1/2 z-50 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-white/[0.08] bg-[#171c25] px-2 py-1.5 text-[10px] font-medium leading-none text-[#d8dde5] shadow-xl group-hover/control:block group-focus-within/control:block"
+        class="pointer-events-none absolute bottom-[calc(100%+0.55rem)] left-1/2 z-50 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-white/8 bg-[#171c25] px-2 py-1.5 text-[10px] font-medium leading-none text-[#d8dde5] shadow-xl group-hover/control:block group-focus-within/control:block"
       >
         {{ chatOpen() ? 'Hide room chat' : 'Open room chat' }}
       </span>
@@ -133,7 +133,7 @@
       <button
         type="button"
         (click)="toggleParticipants.emit()"
-        class="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.055] px-2.5 text-xs font-medium tabular-nums text-[#e0e4eb] outline-none transition-colors hover:bg-white/[0.1] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-12 sm:px-3"
+        class="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-white/8 bg-white/5.5 px-2.5 text-xs font-medium tabular-nums text-[#e0e4eb] outline-none transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-12 sm:px-3"
         aria-label="Open participants"
       >
         <app-icon name="users" aria-hidden="true" class="size-4" />
@@ -145,14 +145,14 @@
 
       <span
         role="tooltip"
-        class="pointer-events-none absolute bottom-[calc(100%+0.55rem)] left-1/2 z-50 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-white/[0.08] bg-[#171c25] px-2 py-1.5 text-[10px] font-medium leading-none text-[#d8dde5] shadow-xl group-hover/control:block group-focus-within/control:block"
+        class="pointer-events-none absolute bottom-[calc(100%+0.55rem)] left-1/2 z-50 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-white/8 bg-[#171c25] px-2 py-1.5 text-[10px] font-medium leading-none text-[#d8dde5] shadow-xl group-hover/control:block group-focus-within/control:block"
       >
         View participants
       </span>
     </div>
 
     <!-- Leave separator -->
-    <span aria-hidden="true" class="mx-0.5 h-7 w-px shrink-0 bg-white/[0.08]"></span>
+    <span aria-hidden="true" class="mx-0.5 h-7 w-px shrink-0 bg-white/8"></span>
 
     <!-- Leave call -->
     <div class="group/control relative">
@@ -167,7 +167,7 @@
 
       <span
         role="tooltip"
-        class="pointer-events-none absolute right-0 bottom-[calc(100%+0.55rem)] z-50 hidden whitespace-nowrap rounded-md border border-white/[0.08] bg-[#171c25] px-2 py-1.5 text-[10px] font-medium leading-none text-[#d8dde5] shadow-xl group-hover/control:block group-focus-within/control:block"
+        class="pointer-events-none absolute right-0 bottom-[calc(100%+0.55rem)] z-50 hidden whitespace-nowrap rounded-md border border-white/8 bg-[#171c25] px-2 py-1.5 text-[10px] font-medium leading-none text-[#d8dde5] shadow-xl group-hover/control:block group-focus-within/control:block"
       >
         Leave call
       </span>

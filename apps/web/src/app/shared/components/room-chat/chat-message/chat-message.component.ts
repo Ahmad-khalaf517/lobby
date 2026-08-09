@@ -28,7 +28,7 @@ export type ParsedReply = { authorName: string; previewText: string; bodyText: s
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class:
-      'group relative flex w-full items-start gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-white/[0.025] focus-within:bg-white/[0.025]',
+      'group relative flex w-full items-start gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-white/2.5 focus-within:bg-white/2.5',
   },
 })
 export class ChatMessageComponent {

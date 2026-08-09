@@ -2,7 +2,7 @@
   #stage
   [class]="
     'relative flex h-full min-h-0 w-full flex-col gap-2 bg-[#080b11] sm:gap-3 fullscreen:p-2 sm:fullscreen:p-4 ' +
-    (expanded() ? 'fixed inset-0 z-[80] h-dvh p-2 sm:p-4' : '')
+    (expanded() ? 'fixed inset-0 z-80 h-dvh p-2 sm:p-4' : '')
   "
 >
   <div
@@ -42,7 +42,7 @@
       <button
         type="button"
         (click)="toggleExpanded()"
-        class="grid size-10 place-items-center rounded-xl border border-white/10 bg-white/[0.055] text-[#d3dae6] outline-none transition hover:border-white/18 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 lg:size-9 max-lg:landscape:size-8 max-lg:landscape:rounded-lg"
+        class="grid size-10 place-items-center rounded-xl border border-white/10 bg-white/5.5 text-[#d3dae6] outline-none transition hover:border-white/18 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 lg:size-9 max-lg:landscape:size-8 max-lg:landscape:rounded-lg"
         [attr.aria-label]="expanded() ? 'Exit expanded screen share' : 'Expand screen share'"
         [attr.title]="expanded() ? 'Exit expanded view' : 'Expand screen share'"
       >
@@ -52,7 +52,7 @@
   </div>
 
   <div
-    class="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-white/[0.09] bg-black sm:rounded-2xl"
+    class="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-white/9 bg-black sm:rounded-2xl"
   >
     <div
       class="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-inset ring-white/5"

@@ -26,7 +26,7 @@
 
       <a
         routerLink="/"
-        class="inline-flex h-9 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.025] px-3 text-xs font-medium text-[#aeb8c8] outline-none transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60"
+        class="inline-flex h-9 items-center justify-center rounded-lg border border-white/8 bg-white/2.5 px-3 text-xs font-medium text-[#aeb8c8] outline-none transition-colors hover:bg-white/6 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60"
       >
         Back home
       </a>
@@ -46,7 +46,7 @@
         </span>
 
         <h1
-          class="mt-5 text-4xl font-semibold leading-[1.04] tracking-[-0.05em] text-white sm:text-5xl lg:text-[3.65rem]"
+          class="mt-5 text-4xl font-semibold leading-[1.04] tracking-tighter text-white sm:text-5xl lg:text-[3.65rem]"
         >
           A temporary room that feels like a real workspace.
         </h1>
@@ -64,7 +64,7 @@
             class="flex items-start gap-3 border-b border-white/[0.07] py-4 sm:block sm:border-b-0 sm:px-4 sm:first:pl-0"
           >
             <span
-              class="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/[0.09] text-[#b7a8ff]"
+              class="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/9 text-[#b7a8ff]"
             >
               <app-icon name="chat" class="size-3.5" aria-hidden="true" />
             </span>
@@ -81,7 +81,7 @@
             class="flex items-start gap-3 border-b border-white/[0.07] py-4 sm:block sm:border-b-0 sm:px-4"
           >
             <span
-              class="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/[0.09] text-[#b7a8ff]"
+              class="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/9 text-[#b7a8ff]"
             >
               <app-icon name="mic" class="size-3.5" aria-hidden="true" />
             </span>
@@ -96,7 +96,7 @@
 
           <div class="flex items-start gap-3 py-4 sm:block sm:px-4 sm:last:pr-0">
             <span
-              class="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/[0.09] text-[#b7a8ff]"
+              class="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/9 text-[#b7a8ff]"
             >
               <app-icon name="screen-share" class="size-3.5" aria-hidden="true" />
             </span>
@@ -118,7 +118,7 @@
       >
         <!-- Local ambient glow, not a card -->
         <div
-          class="pointer-events-none absolute -top-20 right-8 size-64 rounded-full bg-primary/[0.1] blur-[90px]"
+          class="pointer-events-none absolute -top-20 right-8 size-64 rounded-full bg-primary/10 blur-[90px]"
           aria-hidden="true"
         ></div>
 
@@ -189,7 +189,7 @@
                     [maxlength]="maxNameLength"
                     autocomplete="name"
                     placeholder="e.g. Mohammad"
-                    class="mt-2.5 h-11 w-full rounded-xl border border-white/[0.09] bg-[#111722] px-3.5 text-sm text-white outline-none transition placeholder:text-[#566276] hover:border-white/[0.15] focus:border-primary/50 focus:ring-4 focus:ring-primary/[0.08]"
+                    class="mt-2.5 h-11 w-full rounded-xl border border-white/9 bg-[#111722] px-3.5 text-sm text-white outline-none transition placeholder:text-[#566276] hover:border-white/15 focus:border-primary/50 focus:ring-4 focus:ring-primary/8"
                     [class.auth-input-error]="fieldError('displayName')"
                     [attr.aria-invalid]="fieldError('displayName') ? 'true' : null"
                     [attr.aria-describedby]="
@@ -210,7 +210,7 @@
               @case ('registered') {
                 <div class="flex min-h-12 items-center gap-3">
                   <span
-                    class="grid size-9 shrink-0 place-items-center rounded-lg bg-emerald-400/[0.08] text-emerald-300"
+                    class="grid size-9 shrink-0 place-items-center rounded-lg bg-emerald-400/8 text-emerald-300"
                   >
                     <app-icon name="check" class="size-3.5" aria-hidden="true" />
                   </span>
@@ -230,7 +230,7 @@
           <!-- Error -->
           @if (errorMessage(); as error) {
             <div
-              class="mt-4 flex items-start gap-3 border-l-2 border-rose-400/60 bg-rose-400/[0.055] px-3.5 py-3 text-xs leading-5 text-rose-100"
+              class="mt-4 flex items-start gap-3 border-l-2 border-rose-400/60 bg-rose-400/5.5 px-3.5 py-3 text-xs leading-5 text-rose-100"
               role="alert"
             >
               <span class="mt-1.5 size-1.5 shrink-0 rounded-full bg-rose-400"></span>
@@ -252,7 +252,7 @@
             >
               <div class="flex items-center gap-3">
                 <span
-                  class="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/[0.09] text-[#b7a8ff]"
+                  class="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/9 text-[#b7a8ff]"
                 >
                   <app-icon name="link" class="size-3.5" aria-hidden="true" />
                 </span>
@@ -279,7 +279,7 @@
                 autocapitalize="characters"
                 spellcheck="false"
                 placeholder="ABC12345"
-                class="mt-2 h-11 w-full rounded-xl border border-white/[0.09] bg-[#111722] px-3.5 font-mono text-sm tracking-[0.08em] text-white uppercase outline-none transition placeholder:text-[#536074] hover:border-white/[0.15] focus:border-primary/50 focus:ring-4 focus:ring-primary/[0.08]"
+                class="mt-2 h-11 w-full rounded-xl border border-white/9 bg-[#111722] px-3.5 font-mono text-sm tracking-[0.08em] text-white uppercase outline-none transition placeholder:text-[#536074] hover:border-white/15 focus:border-primary/50 focus:ring-4 focus:ring-primary/8"
                 [class.auth-input-error]="fieldError('inviteCode')"
                 [attr.aria-invalid]="fieldError('inviteCode') ? 'true' : null"
                 [attr.aria-describedby]="fieldError('inviteCode') ? 'invite-code-error' : null"
@@ -316,7 +316,7 @@
             >
               <div class="flex items-center gap-3">
                 <span
-                  class="grid size-9 shrink-0 place-items-center rounded-lg bg-emerald-400/[0.08] text-emerald-300"
+                  class="grid size-9 shrink-0 place-items-center rounded-lg bg-emerald-400/8 text-emerald-300"
                 >
                   <app-icon name="plus" class="size-3.5" aria-hidden="true" />
                 </span>
@@ -342,7 +342,7 @@
                 [maxlength]="maxChannelNameLength"
                 autocomplete="off"
                 placeholder="Project review"
-                class="mt-2 h-11 w-full rounded-xl border border-white/[0.09] bg-[#111722] px-3.5 text-sm text-white outline-none transition placeholder:text-[#536074] hover:border-white/[0.15] focus:border-primary/50 focus:ring-4 focus:ring-primary/[0.08]"
+                class="mt-2 h-11 w-full rounded-xl border border-white/9 bg-[#111722] px-3.5 text-sm text-white outline-none transition placeholder:text-[#536074] hover:border-white/15 focus:border-primary/50 focus:ring-4 focus:ring-primary/8"
                 [class.auth-input-error]="fieldError('channelName')"
                 [attr.aria-invalid]="fieldError('channelName') ? 'true' : null"
                 [attr.aria-describedby]="fieldError('channelName') ? 'channel-name-error' : null"
@@ -378,7 +378,7 @@
                         configurationError() ? 'room-configuration-error' : 'call-capacity-help'
                       "
                       (input)="handleConfigurationInput()"
-                      class="mt-2 h-10 w-full rounded-lg border border-white/[0.09] bg-[#111722] px-3 text-xs text-white outline-none transition hover:border-white/[0.15] focus:border-primary/50 focus:ring-3 focus:ring-primary/[0.08]"
+                      class="mt-2 h-10 w-full rounded-lg border border-white/9 bg-[#111722] px-3 text-xs text-white outline-none transition hover:border-white/15 focus:border-primary/50 focus:ring-3 focus:ring-primary/8"
                     />
 
                     <p id="call-capacity-help" class="mt-1.5 text-[9px] text-[#667286]">

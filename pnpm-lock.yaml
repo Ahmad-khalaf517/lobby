@@ -215,7 +215,7 @@ importers:
         specifier: 0.13.31
         version: 0.13.31
       '@tailwindcss/postcss':
-        specifier: ^4.1.12
+        specifier: ^4.3.3
         version: 4.3.3
       '@types/express':
         specifier: ^5.0.1
@@ -236,7 +236,7 @@ importers:
         specifier: ^3.8.1
         version: 3.9.6
       tailwindcss:
-        specifier: ^4.1.12
+        specifier: ^4.3.3
         version: 4.3.3
       typescript:
         specifier: ~6.0.2

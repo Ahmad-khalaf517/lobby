@@ -13,7 +13,7 @@
       [class.translate-y-0]="moreMenuOpen() || reactionMenuOpen()"
       [class.scale-100]="moreMenuOpen() || reactionMenuOpen()"
       [class.opacity-100]="moreMenuOpen() || reactionMenuOpen()"
-      class="pointer-events-none absolute -top-3 right-3 z-30 flex translate-y-1 scale-95 items-center rounded-lg border border-white/[0.09] bg-[#171c27]/95 p-0.5 opacity-0 shadow-[0_16px_40px_rgba(0,0,0,0.38)] backdrop-blur-xl transition duration-150 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:scale-100 group-focus-within:opacity-100"
+      class="pointer-events-none absolute -top-3 right-3 z-30 flex translate-y-1 scale-95 items-center rounded-lg border border-white/9 bg-[#171c27]/95 p-0.5 opacity-0 shadow-[0_16px_40px_rgba(0,0,0,0.38)] backdrop-blur-xl transition duration-150 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:scale-100 group-focus-within:opacity-100"
       aria-label="Message actions"
     >
       <!-- React -->
@@ -28,7 +28,7 @@
         @if (!reactionMenuOpen()) {
           <span
             role="tooltip"
-            class="pointer-events-none absolute left-1/2 top-[calc(100%+0.45rem)] z-50 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/[0.08] bg-[#0b1018]/98 px-2 py-1 text-[10px] font-medium leading-none text-[#d3dae5] opacity-0 shadow-lg shadow-black/30 transition-opacity group-hover/action:opacity-100 group-focus-within/action:opacity-100"
+            class="pointer-events-none absolute left-1/2 top-[calc(100%+0.45rem)] z-50 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/8 bg-[#0b1018]/98 px-2 py-1 text-[10px] font-medium leading-none text-[#d3dae5] opacity-0 shadow-lg shadow-black/30 transition-opacity group-hover/action:opacity-100 group-focus-within/action:opacity-100"
           >
             Add reaction
           </span>
@@ -41,7 +41,7 @@
 
         <span
           role="tooltip"
-          class="pointer-events-none absolute left-1/2 top-[calc(100%+0.45rem)] z-50 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/[0.08] bg-[#0b1018]/98 px-2 py-1 text-[10px] font-medium leading-none text-[#d3dae5] opacity-0 shadow-lg shadow-black/30 transition-opacity group-hover/action:opacity-100 group-focus-within/action:opacity-100"
+          class="pointer-events-none absolute left-1/2 top-[calc(100%+0.45rem)] z-50 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/8 bg-[#0b1018]/98 px-2 py-1 text-[10px] font-medium leading-none text-[#d3dae5] opacity-0 shadow-lg shadow-black/30 transition-opacity group-hover/action:opacity-100 group-focus-within/action:opacity-100"
         >
           Reply
         </span>
@@ -57,8 +57,8 @@
           aria-haspopup="menu"
           aria-label="More message actions"
           [class]="
-            'grid size-8 shrink-0 place-items-center rounded-md outline-none transition-colors hover:bg-white/[0.08] hover:text-white focus-visible:bg-white/[0.08] focus-visible:text-white focus-visible:ring-1 focus-visible:ring-violet-400/70 ' +
-            (moreMenuOpen() ? 'bg-white/[0.08] text-white' : 'text-[#929db0]')
+            'grid size-8 shrink-0 place-items-center rounded-md outline-none transition-colors hover:bg-white/8 hover:text-white focus-visible:bg-white/8 focus-visible:text-white focus-visible:ring-1 focus-visible:ring-violet-400/70 ' +
+            (moreMenuOpen() ? 'bg-white/8 text-white' : 'text-[#929db0]')
           "
         >
           <svg
@@ -80,7 +80,7 @@
         @if (!moreMenuOpen()) {
           <span
             role="tooltip"
-            class="pointer-events-none absolute left-1/2 top-[calc(100%+0.45rem)] z-50 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/[0.08] bg-[#0b1018]/98 px-2 py-1 text-[10px] font-medium leading-none text-[#d3dae5] opacity-0 shadow-lg shadow-black/30 transition-opacity group-hover/action:opacity-100 group-focus-within/action:opacity-100"
+            class="pointer-events-none absolute left-1/2 top-[calc(100%+0.45rem)] z-50 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/8 bg-[#0b1018]/98 px-2 py-1 text-[10px] font-medium leading-none text-[#d3dae5] opacity-0 shadow-lg shadow-black/30 transition-opacity group-hover/action:opacity-100 group-focus-within/action:opacity-100"
           >
             More
           </span>
@@ -90,14 +90,14 @@
           <div
             data-message-more-menu
             role="menu"
-            class="absolute right-0 top-[calc(100%+0.4rem)] z-50 min-w-36 overflow-hidden rounded-lg border border-white/[0.09] bg-[#171c27]/98 p-1 shadow-[0_16px_36px_rgba(0,0,0,0.42)] backdrop-blur-xl"
+            class="absolute right-0 top-[calc(100%+0.4rem)] z-50 min-w-36 overflow-hidden rounded-lg border border-white/9 bg-[#171c27]/98 p-1 shadow-[0_16px_36px_rgba(0,0,0,0.42)] backdrop-blur-xl"
             (click)="$event.stopPropagation()"
           >
             <button
               type="button"
               role="menuitem"
               (click)="copyMessageText($event)"
-              class="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[11px] font-medium whitespace-nowrap text-[#b9c2d0] outline-none transition-colors hover:bg-white/[0.065] hover:text-white focus-visible:bg-white/[0.065] focus-visible:text-white"
+              class="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[11px] font-medium whitespace-nowrap text-[#b9c2d0] outline-none transition-colors hover:bg-white/6.5 hover:text-white focus-visible:bg-white/6.5 focus-visible:text-white"
             >
               <svg
                 aria-hidden="true"
@@ -121,7 +121,7 @@
                 type="button"
                 role="menuitem"
                 (click)="onEditFromMenu($event)"
-                class="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[11px] font-medium whitespace-nowrap text-[#b9c2d0] outline-none transition-colors hover:bg-white/[0.065] hover:text-white focus-visible:bg-white/[0.065] focus-visible:text-white"
+                class="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[11px] font-medium whitespace-nowrap text-[#b9c2d0] outline-none transition-colors hover:bg-white/6.5 hover:text-white focus-visible:bg-white/6.5 focus-visible:text-white"
               >
                 <app-icon name="edit" aria-hidden="true" class="size-3 shrink-0" />
                 <span>Edit message</span>
@@ -133,7 +133,7 @@
                 type="button"
                 role="menuitem"
                 (click)="onDeleteFromMenu($event)"
-                class="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[11px] font-medium whitespace-nowrap text-rose-300 outline-none transition-colors hover:bg-rose-400/[0.09] hover:text-rose-200 focus-visible:bg-rose-400/[0.09] focus-visible:text-rose-200"
+                class="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[11px] font-medium whitespace-nowrap text-rose-300 outline-none transition-colors hover:bg-rose-400/9 hover:text-rose-200 focus-visible:bg-rose-400/9 focus-visible:text-rose-200"
               >
                 <app-icon name="delete" aria-hidden="true" class="size-3 shrink-0" />
                 <span>Delete message</span>
@@ -153,7 +153,7 @@
 
     @if (isOwn()) {
       <span
-        class="rounded bg-primary/[0.12] px-1.5 py-0.5 text-[9px] font-semibold leading-none tracking-[0.06em] text-[#b9aaff] uppercase"
+        class="rounded bg-primary/12 px-1.5 py-0.5 text-[9px] font-semibold leading-none tracking-[0.06em] text-[#b9aaff] uppercase"
       >
         You
       </span>
@@ -181,9 +181,7 @@
 
   <!-- Reply context -->
   @if (parsedReply(); as replyMessage) {
-    <div
-      class="mt-1.5 max-w-2xl rounded-r-lg border-l-2 border-primary/55 bg-white/[0.025] px-3 py-2"
-    >
+    <div class="mt-1.5 max-w-2xl rounded-r-lg border-l-2 border-primary/55 bg-white/2.5 px-3 py-2">
       <p class="text-[10px] font-semibold leading-4 text-[#a99bff]">
         Replying to {{ replyMessage.authorName }}
       </p>

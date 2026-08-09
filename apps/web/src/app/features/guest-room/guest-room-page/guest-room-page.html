@@ -53,7 +53,7 @@
             </span>
 
             <h1
-              class="mt-5 text-4xl font-semibold leading-[1.05] tracking-[-0.05em] text-white sm:text-5xl lg:text-[3.5rem]"
+              class="mt-5 text-4xl font-semibold leading-[1.05] tracking-tighter text-white sm:text-5xl lg:text-[3.5rem]"
             >
               One name. No account. Straight into the conversation.
             </h1>
@@ -109,7 +109,7 @@
             class="relative mx-auto w-full max-w-md lg:mx-0"
           >
             <div
-              class="pointer-events-none absolute -top-24 right-0 size-64 rounded-full bg-primary/[0.1] blur-[90px]"
+              class="pointer-events-none absolute -top-24 right-0 size-64 rounded-full bg-primary/10 blur-[90px]"
               aria-hidden="true"
             ></div>
 
@@ -147,7 +147,7 @@
                   [maxlength]="maxNameLength"
                   placeholder="e.g. Mohammad"
                   autocomplete="name"
-                  class="mt-2.5 h-12 w-full rounded-xl border border-white/[0.09] bg-[#111722] px-3.5 text-sm text-white outline-none transition placeholder:text-[#536074] hover:border-white/[0.15] focus:border-primary/50 focus:ring-4 focus:ring-primary/[0.08]"
+                  class="mt-2.5 h-12 w-full rounded-xl border border-white/9 bg-[#111722] px-3.5 text-sm text-white outline-none transition placeholder:text-[#536074] hover:border-white/15 focus:border-primary/50 focus:ring-4 focus:ring-primary/8"
                   [class.auth-input-error]="nameFieldError()"
                   [attr.aria-invalid]="nameFieldError() ? 'true' : null"
                   [attr.aria-describedby]="nameFieldError() ? 'guest-name-error' : null"
@@ -209,7 +209,7 @@
           ></span>
 
           <span
-            class="absolute inset-2 animate-pulse rounded-[1.35rem] bg-primary/[0.08]"
+            class="absolute inset-2 animate-pulse rounded-[1.35rem] bg-primary/8"
             aria-hidden="true"
           ></span>
 
@@ -249,7 +249,7 @@
 
       <section class="relative w-full max-w-lg">
         <span
-          class="mx-auto grid size-12 place-items-center rounded-xl bg-rose-400/[0.08] text-rose-300"
+          class="mx-auto grid size-12 place-items-center rounded-xl bg-rose-400/8 text-rose-300"
         >
           <app-icon name="warning" aria-hidden="true" class="size-5" />
         </span>
@@ -279,7 +279,7 @@
 
           <a
             routerLink="/"
-            class="inline-flex h-11 w-full items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.025] px-5 text-sm font-medium text-[#bec7d4] outline-none transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:w-auto"
+            class="inline-flex h-11 w-full items-center justify-center rounded-xl border border-white/9 bg-white/2.5 px-5 text-sm font-medium text-[#bec7d4] outline-none transition-colors hover:bg-white/6 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:w-auto"
           >
             Back home
           </a>
@@ -304,7 +304,7 @@
 
       <section class="relative w-full max-w-lg">
         <span
-          class="mx-auto grid size-12 place-items-center rounded-xl bg-amber-400/[0.08] text-amber-300"
+          class="mx-auto grid size-12 place-items-center rounded-xl bg-amber-400/8 text-amber-300"
         >
           <app-icon name="refresh" aria-hidden="true" class="size-5" />
         </span>
@@ -335,7 +335,7 @@
           <button
             type="button"
             (click)="goToGuests()"
-            class="inline-flex h-11 w-full items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.025] px-5 text-sm font-medium text-[#bec7d4] outline-none transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:w-auto"
+            class="inline-flex h-11 w-full items-center justify-center rounded-xl border border-white/9 bg-white/2.5 px-5 text-sm font-medium text-[#bec7d4] outline-none transition-colors hover:bg-white/6 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:w-auto"
           >
             Try again
           </button>
@@ -376,7 +376,7 @@
         </a>
 
         <!-- Brand separator -->
-        <span aria-hidden="true" class="hidden h-7 w-px shrink-0 bg-white/[0.08] sm:block"></span>
+        <span aria-hidden="true" class="hidden h-7 w-px shrink-0 bg-white/8 sm:block"></span>
 
         <!-- Room information -->
         <div class="min-w-0 flex-1">
@@ -417,7 +417,7 @@
             type="button"
             (click)="shareRoomOpen.set(true)"
             aria-label="Share room"
-            class="inline-flex size-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-primary/25 bg-primary/[0.09] text-xs font-semibold leading-none text-[#d8d0ff] outline-none transition-colors hover:border-primary/40 hover:bg-primary/[0.16] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-9 sm:w-auto sm:px-3"
+            class="inline-flex size-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-primary/25 bg-primary/9 text-xs font-semibold leading-none text-[#d8d0ff] outline-none transition-colors hover:border-primary/40 hover:bg-primary/16 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-9 sm:w-auto sm:px-3"
           >
             <app-icon name="qr" aria-hidden="true" class="size-3.5" />
             <span class="hidden sm:inline">Share room</span>
@@ -428,7 +428,7 @@
             type="button"
             (click)="membersPanelOpen.set(true)"
             [attr.aria-label]="'Show room members, ' + roomMemberCount() + ' members'"
-            class="inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.035] px-2.5 text-xs font-medium leading-none text-[#b8c1ce] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-9 sm:min-w-9"
+            class="inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/8 bg-white/[0.035] px-2.5 text-xs font-medium leading-none text-[#b8c1ce] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-9 sm:min-w-9"
           >
             <app-icon name="users" aria-hidden="true" class="size-3.5 shrink-0" />
 
@@ -438,14 +438,14 @@
           </button>
 
           <!-- Destructive action separator -->
-          <span aria-hidden="true" class="hidden h-6 w-px shrink-0 bg-white/[0.08] sm:block"></span>
+          <span aria-hidden="true" class="hidden h-6 w-px shrink-0 bg-white/8 sm:block"></span>
 
           <!-- Close or leave room -->
           <button
             type="button"
             (click)="requestRoomExit()"
             [attr.aria-label]="isOwner() ? 'Close room' : 'Leave room'"
-            class="inline-flex size-10 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-white/[0.08] bg-white/[0.035] text-xs font-medium leading-none text-[#b8c1ce] outline-none transition-colors hover:border-rose-400/25 hover:bg-rose-400/[0.08] hover:text-rose-200 focus-visible:ring-2 focus-visible:ring-rose-400/50 sm:h-9 sm:w-auto sm:px-3"
+            class="inline-flex size-10 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-white/8 bg-white/[0.035] text-xs font-medium leading-none text-[#b8c1ce] outline-none transition-colors hover:border-rose-400/25 hover:bg-rose-400/8 hover:text-rose-200 focus-visible:ring-2 focus-visible:ring-rose-400/50 sm:h-9 sm:w-auto sm:px-3"
           >
             <app-icon name="logout" aria-hidden="true" class="size-3.5 shrink-0" />
 
@@ -621,7 +621,7 @@
 
               <div
                 aria-hidden="true"
-                class="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(rgba(255,255,255,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.018)_1px,transparent_1px)] [background-size:42px_42px] [mask-image:linear-gradient(to_bottom,black,transparent_78%)]"
+                class="pointer-events-none absolute inset-0 opacity-40 bg-[linear-gradient(rgba(255,255,255,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.018)_1px,transparent_1px)] bg-size-[42px_42px] mask-[linear-gradient(to_bottom,black,transparent_78%)]"
               ></div>
 
               <div
@@ -636,7 +636,7 @@
                   >
                     <div class="min-w-0">
                       <span
-                        class="inline-flex items-center gap-2 rounded-full border border-sky-300/20 bg-sky-300/[0.07] px-3 py-1.5 text-[10px] font-semibold tracking-[0.05em] text-sky-200"
+                        class="inline-flex items-center gap-2 rounded-full border border-sky-300/20 bg-sky-300/[0.07] px-3 py-1.5 text-[10px] font-semibold tracking-wider text-sky-200"
                       >
                         <span
                           aria-hidden="true"
@@ -674,7 +674,7 @@
 
                       <div class="mt-6 flex max-w-xl items-center gap-3">
                         <span
-                          class="grid size-10 shrink-0 place-items-center rounded-xl bg-sky-300/[0.08] text-sky-200 sm:size-11"
+                          class="grid size-10 shrink-0 place-items-center rounded-xl bg-sky-300/8 text-sky-200 sm:size-11"
                         >
                           <app-icon
                             [name]="restoringCallSession() ? 'call' : 'refresh'"
@@ -685,10 +685,10 @@
 
                         <div class="min-w-0 flex-1">
                           <div
-                            class="h-2.5 w-32 max-w-full animate-pulse rounded-full bg-white/[0.09]"
+                            class="h-2.5 w-32 max-w-full animate-pulse rounded-full bg-white/9"
                           ></div>
                           <div
-                            class="mt-2 h-2 w-48 max-w-[82%] animate-pulse rounded-full bg-white/[0.055]"
+                            class="mt-2 h-2 w-48 max-w-[82%] animate-pulse rounded-full bg-white/5.5"
                           ></div>
                         </div>
 
@@ -704,7 +704,7 @@
                         (click)="toggleRoomChatAccess()"
                         [attr.aria-label]="chatOpen() ? 'Hide room chat' : 'Open room chat'"
                         [attr.aria-pressed]="chatOpen()"
-                        class="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/[0.09] bg-white/[0.035] px-4 text-xs font-medium text-[#c8d0dc] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:w-auto"
+                        class="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/9 bg-white/[0.035] px-4 text-xs font-medium text-[#c8d0dc] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:w-auto"
                         [class.border-primary/35]="chatOpen()"
                         [class.bg-primary/10]="chatOpen()"
                       >
@@ -714,7 +714,7 @@
                     </div>
 
                     <div
-                      class="relative mx-auto hidden aspect-square w-full max-w-[17rem] sm:block"
+                      class="relative mx-auto hidden aspect-square w-full max-w-68 sm:block"
                       aria-hidden="true"
                     >
                       <div
@@ -728,10 +728,10 @@
                       ></div>
 
                       <span
-                        class="absolute top-1/2 left-1/2 grid size-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-[1.5rem] bg-[#121827]/90 shadow-[0_20px_60px_rgba(0,0,0,0.38)]"
+                        class="absolute top-1/2 left-1/2 grid size-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-3xl bg-[#121827]/90 shadow-[0_20px_60px_rgba(0,0,0,0.38)]"
                       >
                         <span
-                          class="size-7 animate-spin rounded-full border-2 border-white/[0.1] border-t-sky-300"
+                          class="size-7 animate-spin rounded-full border-2 border-white/10 border-t-sky-300"
                         ></span>
                       </span>
 
@@ -752,7 +752,7 @@
                       <div
                         role="status"
                         aria-live="polite"
-                        class="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/[0.08] px-3 py-1.5 text-[10px] font-semibold tracking-[0.05em] text-emerald-200"
+                        class="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/8 px-3 py-1.5 text-[10px] font-semibold tracking-wider text-emerald-200"
                         [class.border-amber-300/25]="callFull()"
                         [class.bg-amber-300/8]="callFull()"
                         [class.text-amber-100]="callFull()"
@@ -794,7 +794,7 @@
 
                       <div class="mt-6 flex items-center gap-3">
                         <span
-                          class="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-400/[0.1] text-emerald-200 sm:size-11"
+                          class="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-400/10 text-emerald-200 sm:size-11"
                         >
                           <app-icon name="call" aria-hidden="true" class="size-4" />
                         </span>
@@ -857,7 +857,7 @@
                           (click)="toggleRoomChatAccess()"
                           [attr.aria-label]="chatOpen() ? 'Hide room chat' : 'Open room chat'"
                           [attr.aria-pressed]="chatOpen()"
-                          class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/[0.09] bg-white/[0.035] px-4 text-xs font-medium text-[#c8d0dc] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-12 sm:w-auto"
+                          class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/9 bg-white/[0.035] px-4 text-xs font-medium text-[#c8d0dc] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-12 sm:w-auto"
                           [class.border-primary/35]="chatOpen()"
                           [class.bg-primary/10]="chatOpen()"
                         >
@@ -875,7 +875,7 @@
                     </div>
 
                     <div
-                      class="relative mx-auto hidden aspect-square w-full max-w-[17rem] sm:block"
+                      class="relative mx-auto hidden aspect-square w-full max-w-68 sm:block"
                       aria-hidden="true"
                     >
                       <div
@@ -885,7 +885,7 @@
                         class="absolute inset-[17%] rounded-full border border-emerald-400/20"
                       ></div>
                       <div
-                        class="absolute inset-[31%] rounded-full bg-emerald-400/[0.055] shadow-[0_0_85px_rgba(52,211,153,0.16)]"
+                        class="absolute inset-[31%] rounded-full bg-emerald-400/5.5 shadow-[0_0_85px_rgba(52,211,153,0.16)]"
                       ></div>
 
                       <span
@@ -903,13 +903,13 @@
                       ></span>
 
                       <div
-                        class="absolute top-1/2 left-1/2 flex size-20 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-[1.5rem] bg-[#121827]/90 shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
+                        class="absolute top-1/2 left-1/2 flex size-20 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-3xl bg-[#121827]/90 shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
                       >
                         <span class="text-xl font-semibold tabular-nums text-white">
                           {{ callParticipantCount() }}/{{ callCapacity() }}
                         </span>
                         <span
-                          class="mt-0.5 text-[8px] font-semibold tracking-[0.1em] text-emerald-300 uppercase"
+                          class="mt-0.5 text-[8px] font-semibold tracking-widest text-emerald-300 uppercase"
                         >
                           {{ callFull() ? 'Full' : 'Live' }}
                         </span>
@@ -923,7 +923,7 @@
                   >
                     <div class="min-w-0">
                       <span
-                        class="inline-flex items-center gap-2 rounded-full border border-white/[0.09] bg-white/[0.045] px-3 py-1.5 text-[10px] font-semibold text-[#c3cad6]"
+                        class="inline-flex items-center gap-2 rounded-full border border-white/9 bg-white/4.5 px-3 py-1.5 text-[10px] font-semibold text-[#c3cad6]"
                       >
                         <span class="size-1.5 rounded-full bg-primary"></span>
                         Ready · 0/{{ callCapacity() }}
@@ -966,7 +966,7 @@
                           (click)="toggleRoomChatAccess()"
                           [attr.aria-label]="chatOpen() ? 'Hide room chat' : 'Open room chat'"
                           [attr.aria-pressed]="chatOpen()"
-                          class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/[0.09] bg-white/[0.035] px-4 text-xs font-medium text-[#c8d0dc] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-12 sm:w-auto"
+                          class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/9 bg-white/[0.035] px-4 text-xs font-medium text-[#c8d0dc] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-12 sm:w-auto"
                           [class.border-primary/35]="chatOpen()"
                           [class.bg-primary/10]="chatOpen()"
                         >
@@ -977,7 +977,7 @@
                     </div>
 
                     <div
-                      class="relative mx-auto hidden aspect-square w-full max-w-[17rem] sm:block"
+                      class="relative mx-auto hidden aspect-square w-full max-w-68 sm:block"
                       aria-hidden="true"
                     >
                       <div class="absolute inset-[4%] rounded-full border border-primary/15"></div>
@@ -986,7 +986,7 @@
                         class="absolute inset-[32%] rounded-full bg-primary/[0.07] shadow-[0_0_85px_rgba(124,92,252,0.18)]"
                       ></div>
                       <div
-                        class="absolute inset-0 animate-[spin_22s_linear_infinite] rounded-full border border-dashed border-white/[0.08]"
+                        class="absolute inset-0 animate-[spin_22s_linear_infinite] rounded-full border border-dashed border-white/8"
                       ></div>
 
                       <span
@@ -1000,7 +1000,7 @@
                         <app-icon name="screen-share" class="size-4" />
                       </span>
                       <span
-                        class="absolute top-1/2 left-1/2 grid size-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-[1.5rem] bg-[#121827]/90 shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
+                        class="absolute top-1/2 left-1/2 grid size-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-3xl bg-[#121827]/90 shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
                       >
                         <app-logo [size]="36" />
                       </span>
@@ -1010,7 +1010,7 @@
 
                 <!-- Shared capabilities: presented as part of the workspace, not as cards. -->
                 <div
-                  class="mt-8 grid gap-4 border-t border-white/[0.065] pt-5 sm:mt-10 sm:grid-cols-3 sm:gap-0 sm:pt-6"
+                  class="mt-8 grid gap-4 border-t border-white/6.5 pt-5 sm:mt-10 sm:grid-cols-3 sm:gap-0 sm:pt-6"
                 >
                   <div class="flex items-start gap-3 sm:pr-5">
                     <span
@@ -1028,7 +1028,7 @@
                     </div>
                   </div>
 
-                  <div class="flex items-start gap-3 sm:border-l sm:border-white/[0.065] sm:px-5">
+                  <div class="flex items-start gap-3 sm:border-l sm:border-white/6.5 sm:px-5">
                     <span
                       class="grid size-8 shrink-0 place-items-center rounded-lg bg-white/[0.035] text-[#a995ff]"
                     >
@@ -1044,7 +1044,7 @@
                     </div>
                   </div>
 
-                  <div class="flex items-start gap-3 sm:border-l sm:border-white/[0.065] sm:pl-5">
+                  <div class="flex items-start gap-3 sm:border-l sm:border-white/6.5 sm:pl-5">
                     <span
                       class="grid size-8 shrink-0 place-items-center rounded-lg bg-white/[0.035] text-[#a995ff]"
                     >
@@ -1116,7 +1116,7 @@
             role="dialog"
             aria-modal="true"
             aria-labelledby="members-panel-title"
-            class="absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col overflow-hidden rounded-t-2xl border-t border-white/[0.08] bg-[#0d121b] pb-[env(safe-area-inset-bottom)] shadow-[0_-24px_70px_rgba(0,0,0,0.48)] lg:inset-y-0 lg:right-0 lg:left-auto lg:max-h-none lg:w-[min(92vw,23.5rem)] lg:rounded-none lg:border-t-0 lg:border-l lg:pb-0 lg:shadow-[-24px_0_70px_rgba(0,0,0,0.48)]"
+            class="absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col overflow-hidden rounded-t-2xl border-t border-white/8 bg-[#0d121b] pb-[env(safe-area-inset-bottom)] shadow-[0_-24px_70px_rgba(0,0,0,0.48)] lg:inset-y-0 lg:right-0 lg:left-auto lg:max-h-none lg:w-[min(92vw,23.5rem)] lg:rounded-none lg:border-t-0 lg:border-l lg:pb-0 lg:shadow-[-24px_0_70px_rgba(0,0,0,0.48)]"
           >
             <!-- Drawer header -->
             <header
@@ -1124,7 +1124,7 @@
             >
               <div class="flex min-w-0 items-center gap-3">
                 <div
-                  class="grid size-9 shrink-0 place-items-center rounded-lg border border-white/[0.08] bg-white/[0.035] text-[#aeb8c8]"
+                  class="grid size-9 shrink-0 place-items-center rounded-lg border border-white/8 bg-white/[0.035] text-[#aeb8c8]"
                 >
                   <app-icon name="users" aria-hidden="true" class="size-4" />
                 </div>
@@ -1139,7 +1139,7 @@
                     </h2>
 
                     <span
-                      class="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-md bg-white/[0.055] px-1.5 text-[10px] font-medium tabular-nums text-[#bcc5d2]"
+                      class="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-md bg-white/5.5 px-1.5 text-[10px] font-medium tabular-nums text-[#bcc5d2]"
                       [attr.aria-label]="roomMemberCount() + ' members currently present'"
                     >
                       {{ roomMemberCount() }}
@@ -1156,7 +1156,7 @@
                 type="button"
                 (click)="membersPanelOpen.set(false)"
                 aria-label="Close members panel"
-                class="grid size-9 shrink-0 place-items-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-[#9ca7b8] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60"
+                class="grid size-9 shrink-0 place-items-center rounded-lg border border-white/8 bg-white/3 text-[#9ca7b8] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60"
               >
                 <app-icon name="close" aria-hidden="true" class="size-3.5" />
               </button>
@@ -1185,7 +1185,7 @@
               <button
                 type="button"
                 (click)="shareRoomOpen.set(true); membersPanelOpen.set(false)"
-                class="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-primary/25 bg-primary/[0.09] px-4 text-xs font-semibold text-[#d9d2ff] outline-none transition hover:border-primary/40 hover:bg-primary/[0.16] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60"
+                class="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-primary/25 bg-primary/9 px-4 text-xs font-semibold text-[#d9d2ff] outline-none transition hover:border-primary/40 hover:bg-primary/16 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60"
               >
                 <app-icon name="qr" aria-hidden="true" class="size-4" />
                 Share room
@@ -1241,7 +1241,7 @@
       }
 
       @if (confirmation(); as dialog) {
-        <div class="fixed inset-0 z-[70] grid place-items-center px-4 py-6">
+        <div class="fixed inset-0 z-70 grid place-items-center px-4 py-6">
           <button
             type="button"
             class="absolute inset-0 cursor-default bg-black/70 backdrop-blur-sm"
@@ -1254,15 +1254,15 @@
             aria-modal="true"
             aria-labelledby="room-confirmation-title"
             aria-describedby="room-confirmation-description"
-            class="relative w-full max-w-md rounded-2xl border border-white/[0.09] bg-[#0f141d] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.58)] sm:p-6"
+            class="relative w-full max-w-md rounded-2xl border border-white/9 bg-[#0f141d] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.58)] sm:p-6"
           >
             <div class="flex items-start gap-3.5">
               <span
                 [class]="
                   'grid size-10 shrink-0 place-items-center rounded-xl ' +
                   (confirmationIsDestructive()
-                    ? 'bg-rose-400/[0.1] text-rose-300'
-                    : 'bg-primary/[0.12] text-[#b9adff]')
+                    ? 'bg-rose-400/10 text-rose-300'
+                    : 'bg-primary/12 text-[#b9adff]')
                 "
               >
                 <app-icon
@@ -1307,7 +1307,7 @@
                   [formControl]="moderationReasonControl"
                   [maxlength]="maxModerationReasonLength"
                   placeholder="Briefly explain why"
-                  class="mt-2.5 h-10 w-full rounded-lg border border-white/[0.09] bg-[#090d14] px-3 text-xs text-white outline-none transition placeholder:text-[#536074] hover:border-white/[0.14] focus:border-primary/45 focus:ring-3 focus:ring-primary/[0.08]"
+                  class="mt-2.5 h-10 w-full rounded-lg border border-white/9 bg-[#090d14] px-3 text-xs text-white outline-none transition placeholder:text-[#536074] hover:border-white/[0.14] focus:border-primary/45 focus:ring-3 focus:ring-primary/8"
                 />
               </div>
             }
@@ -1317,7 +1317,7 @@
                 type="button"
                 (click)="cancelConfirmation()"
                 [disabled]="confirmationPending()"
-                class="inline-flex h-10 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 text-xs font-semibold text-[#c3ccd8] outline-none transition hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/55 disabled:cursor-not-allowed disabled:opacity-50"
+                class="inline-flex h-10 items-center justify-center rounded-lg border border-white/8 bg-white/3 px-4 text-xs font-semibold text-[#c3ccd8] outline-none transition hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/55 disabled:cursor-not-allowed disabled:opacity-50"
                 autofocus
               >
                 Cancel

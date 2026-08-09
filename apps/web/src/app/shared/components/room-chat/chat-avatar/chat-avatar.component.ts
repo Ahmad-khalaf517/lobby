@@ -94,7 +94,7 @@ export class ChatAvatarComponent {
         : this.status() === 'muted'
           ? 'bg-warning'
           : 'bg-[#687282]';
-    return `absolute -bottom-0.5 -right-0.5 size-2 rounded-full border-2 border-[#0f1117] ${color}`;
+    return `absolute -bottom-0.5 -right-0.5 size-2 rounded-full border-2 border-app-background ${color}`;
   });
 }
 

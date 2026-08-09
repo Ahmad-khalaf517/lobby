@@ -81,8 +81,8 @@ export class CallIconComponent {
         : this.variant() === 'danger'
           ? 'bg-rose-500 text-white shadow-[0_14px_30px_rgba(244,63,94,0.35)] hover:bg-rose-600'
           : this.active()
-            ? 'border border-[#7c5cfc]/60 bg-[#7c5cfc]/20 text-[#f4f1ff]'
-            : 'border border-white/8 bg-white/[0.03] text-[#c8cfdb] hover:border-white/20 hover:bg-white/10 hover:text-white';
+            ? 'border border-primary/60 bg-primary/20 text-[#f4f1ff]'
+            : 'border border-white/8 bg-white/3 text-[#c8cfdb] hover:border-white/20 hover:bg-white/10 hover:text-white';
 
     const disabledClass = this.disabled() ? 'pointer-events-none opacity-40' : '';
 

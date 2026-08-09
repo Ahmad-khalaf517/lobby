@@ -7,8 +7,8 @@
         [class]="
           'inline-flex h-7 items-center gap-1 rounded-lg border px-2 text-[11px] transition-colors ' +
           (reaction.reactedByMe
-            ? 'border-primary/45 bg-primary/[0.12] text-[#f2efff]'
-            : 'border-white/[0.08] bg-white/[0.025] text-[#cbd3df] hover:bg-white/[0.06]')
+            ? 'border-primary/45 bg-primary/12 text-[#f2efff]'
+            : 'border-white/8 bg-white/2.5 text-[#cbd3df] hover:bg-white/6')
         "
         [attr.aria-label]="'Toggle ' + reaction.emoji + ' reaction'"
       >
@@ -27,8 +27,8 @@
       aria-haspopup="dialog"
       aria-label="Add reaction"
       [class]="
-        'grid size-8 shrink-0 place-items-center rounded-md outline-none transition-colors hover:bg-white/[0.08] hover:text-white focus-visible:bg-white/[0.08] focus-visible:text-white focus-visible:ring-1 focus-visible:ring-violet-400/70 ' +
-        (menuOpen() ? 'bg-white/[0.08] text-white' : 'text-[#929db0]')
+        'grid size-8 shrink-0 place-items-center rounded-md outline-none transition-colors hover:bg-white/8 hover:text-white focus-visible:bg-white/8 focus-visible:text-white focus-visible:ring-1 focus-visible:ring-violet-400/70 ' +
+        (menuOpen() ? 'bg-white/8 text-white' : 'text-[#929db0]')
       "
     >
       <app-icon name="smile" aria-hidden="true" class="size-3.5" />
@@ -39,14 +39,14 @@
         data-message-reaction-menu
         role="dialog"
         aria-label="Choose a reaction"
-        class="absolute right-0 top-[calc(100%+0.5rem)] z-50 flex items-center gap-1 rounded-xl border border-white/[0.09] bg-[#171c27]/98 p-1.5 shadow-[0_20px_48px_rgba(0,0,0,0.46)] backdrop-blur-xl"
+        class="absolute right-0 top-[calc(100%+0.5rem)] z-50 flex items-center gap-1 rounded-xl border border-white/9 bg-[#171c27]/98 p-1.5 shadow-[0_20px_48px_rgba(0,0,0,0.46)] backdrop-blur-xl"
       >
         @for (emoji of emojis(); track emoji) {
           <button
             type="button"
             (click)="onReact(emoji)"
             [class]="
-              'grid size-8 place-items-center rounded-lg text-base outline-none transition duration-150 hover:scale-110 hover:bg-white/[0.08] focus-visible:scale-110 focus-visible:bg-white/[0.08] ' +
+              'grid size-8 place-items-center rounded-lg text-base outline-none transition duration-150 hover:scale-110 hover:bg-white/8 focus-visible:scale-110 focus-visible:bg-white/8 ' +
               (message().ownReaction === emoji ? 'bg-primary/[0.14] ring-1 ring-primary/35' : '')
             "
             [attr.aria-label]="'React with ' + emoji"

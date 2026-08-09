@@ -1,5 +1,5 @@
 @if (infoBannerText(); as bannerText) {
-  <div class="shrink-0 border-b border-white/[0.06] bg-primary/[0.035] px-4 py-2.5">
+  <div class="shrink-0 border-b border-white/6 bg-primary/[0.035] px-4 py-2.5">
     <p class="flex items-start gap-2 text-[11px] leading-5 text-[#8f9bad]">
       <app-icon name="info" class="mt-0.5 size-3.5 shrink-0 text-[#9c88ff]" />
       <span>{{ bannerText }}</span>
@@ -16,7 +16,7 @@
     <div class="grid min-h-64 place-items-center px-4 py-10 text-center">
       <div>
         <span
-          class="mx-auto grid size-11 place-items-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-[#8e7cff]"
+          class="mx-auto grid size-11 place-items-center rounded-xl border border-white/8 bg-white/3 text-[#8e7cff]"
         >
           <app-icon name="chat" class="size-4.5" />
         </span>
@@ -52,7 +52,7 @@
     <button
       type="button"
       (click)="jumpToNewestMessage()"
-      class="absolute -top-12 left-1/2 z-20 flex h-8 -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border border-white/[0.09] bg-[#171e2a]/96 px-3 text-[11px] font-medium text-[#d9deea] shadow-[0_12px_30px_rgba(0,0,0,0.42)] backdrop-blur-xl transition hover:bg-[#1d2635] hover:text-white"
+      class="absolute -top-12 left-1/2 z-20 flex h-8 -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border border-white/9 bg-[#171e2a]/96 px-3 text-[11px] font-medium text-[#d9deea] shadow-[0_12px_30px_rgba(0,0,0,0.42)] backdrop-blur-xl transition hover:bg-[#1d2635] hover:text-white"
     >
       <app-icon name="chevron-down" class="size-3.5" />
       @if (unreadCount() > 0) {
