@@ -1,3 +1,41 @@
-<div class="flex min-h-0 w-full flex-1 items-center justify-center bg-app-background p-6">
-  Account settings page
-</div>
+<main
+  class="min-h-0 w-full flex-1 overflow-y-auto bg-app-background p-4 text-app-foreground sm:p-6"
+>
+  <div class="mx-auto max-w-4xl">
+    <h1 class="text-xl font-semibold">Account settings</h1>
+    <p class="mt-1 text-sm text-app-muted">Manage your preferences and account security.</p>
+
+    <div class="mt-6 flex flex-col gap-5 md:flex-row">
+      <nav class="flex shrink-0 gap-2 md:w-44 md:flex-col" aria-label="Settings sections">
+        <button
+          type="button"
+          (click)="section.set('general')"
+          class="rounded-lg px-3 py-2 text-left text-sm transition"
+          [class.bg-primary]="section() === 'general'"
+          [class.text-white]="section() === 'general'"
+          [class.text-app-muted]="section() !== 'general'"
+        >
+          General
+        </button>
+        <button
+          type="button"
+          (click)="section.set('security')"
+          class="rounded-lg px-3 py-2 text-left text-sm transition"
+          [class.bg-primary]="section() === 'security'"
+          [class.text-white]="section() === 'security'"
+          [class.text-app-muted]="section() !== 'security'"
+        >
+          Security
+        </button>
+      </nav>
+
+      <section class="min-w-0 flex-1 rounded-2xl border border-app-border bg-surface p-5 sm:p-6">
+        @if (section() === 'general') {
+          <app-general-panel [active]="true" />
+        } @else {
+          <app-change-password-panel />
+        }
+      </section>
+    </div>
+  </div>
+</main>

@@ -1,0 +1,56 @@
+@if (chat.loading() && !chat.initialized()) {
+  <app-loading-state message="Loading channel messages…" />
+} @else {
+  @if (chat.error() || chat.hasFailedSends()) {
+    <div
+      class="flex shrink-0 items-center justify-between gap-3 border-b border-amber-400/20 bg-amber-400/8 px-4 py-2 text-xs text-amber-100"
+    >
+      <span class="min-w-0 truncate">
+        {{ chat.error() ?? 'One or more messages could not be sent.' }}
+      </span>
+      <button
+        type="button"
+        class="shrink-0 rounded-md border border-amber-300/25 px-2.5 py-1 font-semibold transition hover:bg-amber-300/10"
+        (click)="chat.hasFailedSends() ? retryFailedSends() : retry()"
+      >
+        Retry
+      </button>
+    </div>
+  }
+
+  @if (chat.hasMore()) {
+    <div class="flex shrink-0 justify-center border-b border-white/[0.05] px-3 py-1.5">
+      <button
+        type="button"
+        [disabled]="chat.loadingOlder()"
+        class="rounded-md px-3 py-1 text-[11px] font-medium text-app-muted transition hover:bg-surface-hover hover:text-app-foreground disabled:opacity-50"
+        (click)="loadOlder()"
+      >
+        {{ chat.loadingOlder() ? 'Loading…' : 'Load older messages' }}
+      </button>
+    </div>
+  }
+
+  <app-room-chat
+    [title]="title()"
+    [subtitle]="subtitle()"
+    [messages]="chat.chatMessages()"
+    [currentUserId]="currentUserId()"
+    [memberNames]="mentionNames()"
+    [infoBannerText]="
+      chat.initialized() && !chat.connected() ? 'Connecting realtime updates…' : null
+    "
+    [placeholder]="placeholder()"
+    [disabled]="chat.disabled()"
+    [showHeader]="showHeader()"
+    [showCloseButton]="showCloseButton()"
+    emptyStateVariant="channel"
+    emptyStateTitle=""
+    emptyStateSubtitle="No messages yet — say something to get started."
+    (sendMessage)="send($event)"
+    (reactToMessage)="react($event)"
+    (deleteMessage)="remove($event)"
+    (editMessage)="edit($event)"
+    (close)="close.emit()"
+  />
+}

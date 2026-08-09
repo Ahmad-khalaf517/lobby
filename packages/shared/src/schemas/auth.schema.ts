@@ -80,6 +80,14 @@ export const ResetPasswordRequestSchema = z
 
 export type ResetPasswordRequest = z.infer<typeof ResetPasswordRequestSchema>;
 
+export const ChangePasswordRequestSchema = ResetPasswordRequestSchema.and(
+  z.object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+  }),
+);
+
+export type ChangePasswordRequest = z.infer<typeof ChangePasswordRequestSchema>;
+
 export const AuthSessionResponseSchema = z.object({
   user: AuthUserSchema,
   accessToken: z.string().min(1),

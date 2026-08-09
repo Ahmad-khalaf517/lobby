@@ -1,5 +1,6 @@
 import type {
   AnonymousAuthRequest,
+  ChangePasswordRequest,
   ConfirmEmailRequest,
   EmailRequest,
   LoginRequest,
@@ -15,14 +16,19 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { isAuthRetryableFetchError } from '@supabase/supabase-js';
+import type { User } from '@supabase/supabase-js';
 
 import { SupabaseService } from '../database/supabase.service';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(
+    private readonly supabaseService: SupabaseService,
+    private readonly users: UsersService,
+  ) {}
 
   async login(dto: LoginRequest) {
     const supabase = this.supabaseService.createAuthClient();
@@ -35,6 +41,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
+    await this.ensureRegisteredProfile(data.session.user);
     return { user: data.session.user, session: data.session };
   }
 
@@ -66,6 +73,7 @@ export class AuthService {
       throw new BadRequestException(error?.message ?? 'Registration failed');
     }
 
+    if (data.session) await this.ensureRegisteredProfile(data.user);
     return { user: data.user, session: data.session };
   }
 
@@ -77,6 +85,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired session');
     }
 
+    await this.ensureRegisteredProfile(data.user);
     return { user: data.user };
   }
 
@@ -99,6 +108,7 @@ export class AuthService {
     }
 
     this.logger.debug('Auth session refresh succeeded');
+    await this.ensureRegisteredProfile(data.session.user);
     return { user: data.session.user, session: data.session };
   }
 
@@ -113,6 +123,7 @@ export class AuthService {
       throw new BadRequestException('The confirmation link is invalid or expired');
     }
 
+    await this.ensureRegisteredProfile(data.user);
     return { user: data.user, session: data.session };
   }
 
@@ -154,6 +165,7 @@ export class AuthService {
       throw new BadRequestException('The password reset link is invalid or expired');
     }
 
+    await this.ensureRegisteredProfile(data.user);
     return { user: data.user, session: data.session };
   }
 
@@ -170,6 +182,29 @@ export class AuthService {
 
     const { data, error } = await supabase.auth.updateUser({
       password: dto.password,
+    });
+
+    if (error || !data.user) {
+      throw new BadRequestException(error?.message ?? 'Password could not be updated');
+    }
+
+    return { user: data.user, session: sessionData.session };
+  }
+
+  async changePassword(dto: ChangePasswordRequest, accessToken: string, refreshToken: string) {
+    const supabase = this.supabaseService.createAuthClient();
+    const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+
+    if (sessionError || !sessionData.session) {
+      throw new UnauthorizedException('The signed-in session is invalid or expired');
+    }
+
+    const { data, error } = await supabase.auth.updateUser({
+      password: dto.password,
+      current_password: dto.currentPassword,
     });
 
     if (error || !data.user) {
@@ -202,6 +237,10 @@ export class AuthService {
 
   private webOrigin(): string {
     return (process.env.WEB_ORIGIN ?? 'http://localhost:4200').replace(/\/$/, '');
+  }
+
+  private async ensureRegisteredProfile(user: User): Promise<void> {
+    if (user.is_anonymous !== true) await this.users.ensureProfile(user);
   }
 
   tokenExpiresAt(accessToken: string): number | null {

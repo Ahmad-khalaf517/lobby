@@ -9,7 +9,16 @@ import {
   viewChild,
   type ElementRef,
 } from '@angular/core';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import {
+  CallStatusResponseSchema,
+  CallTokenResponseSchema,
+  type CallStatusResponse,
+} from '@lobby/shared';
+import { firstValueFrom } from 'rxjs';
+import { environment } from '../../../../environments/environment';
+import { SKIP_ERROR_TOAST } from '../../../core/auth-http-context';
 import type { Person } from '../../../shared/components/person-avatar/person.model';
 import { UserPopoverAvatarComponent } from '../../../shared/components/user-popover/user-popover-avatar.component';
 import {
@@ -22,21 +31,40 @@ import { formatMessageTime } from '../messages.util';
 import { DirectMessagesService } from '../messages.service';
 import { FriendsService } from '../../friends/friends.service';
 import { ProfilePopupService } from '../../profile/services/profile-popup.service';
+import { SessionScopeService } from '../../../core/session-scope.service';
+import {
+  CallControlBarComponent,
+  CallParticipantsSidebarComponent,
+  CallStageComponent,
+  LiveKitCallService,
+  VoiceParticipantTileComponent,
+} from '../../../shared/components/call-room';
+import { DashboardStore } from '../../dashboard/services/dashboard.store';
+import { AuthService } from '../../auth/services/auth';
 
 /**
  * Direct messages page (routes `/messages`, `/messages/:friendId`). Renders the
  * mockup's DM layout: a conversation sidebar, the selected conversation (header
  * with Call button, message list, composer), unread badges and presence dots.
  *
- * The page is a thin composer over <app-direct-messages-service> — conversations
- * and message history load over the DMs REST API, and message actions (reply /
- * edit / delete / reactions) are wired here (edit/delete/reactions are local-only
- * until the backend ships those endpoints).
+ * The page composes the direct-Supabase DM store with the shared LiveKit call
+ * service. NestJS only creates/discovers conversations and authorizes derived
+ * two-person call rooms; media and message persistence stay in their existing
+ * dedicated layers.
  */
 @Component({
   selector: 'app-messages-page',
   standalone: true,
-  imports: [RouterLink, MessageRowComponent, ChatReplyComponent, UserPopoverAvatarComponent],
+  imports: [
+    RouterLink,
+    MessageRowComponent,
+    ChatReplyComponent,
+    UserPopoverAvatarComponent,
+    CallControlBarComponent,
+    CallParticipantsSidebarComponent,
+    CallStageComponent,
+    VoiceParticipantTileComponent,
+  ],
   templateUrl: './messages-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'contents' },
@@ -49,6 +77,12 @@ export class MessagesPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly sessionScope = inject(SessionScopeService);
+  private readonly http = inject(HttpClient);
+  private readonly dashboardStore = inject(DashboardStore);
+  private readonly auth = inject(AuthService);
+  protected readonly call = inject(LiveKitCallService);
+  private readonly apiUrl = environment.apiUrl.replace(/\/$/, '');
 
   protected readonly conversationRows = this.service.conversationRows;
   protected readonly totalUnread = this.service.totalUnread;
@@ -64,6 +98,13 @@ export class MessagesPage {
   protected readonly openReactionMenuId = signal<string | null>(null);
   protected readonly openError = signal<string | null>(null);
   protected readonly headerMenuOpen = signal(false);
+  protected readonly dmCallStatus = signal<CallStatusResponse | null>(null);
+  protected readonly callJoining = signal(false);
+  protected readonly callError = signal<string | null>(null);
+  protected readonly callParticipantsOpen = signal(false);
+  private readonly activeDmCallConversationId = signal<string | null>(null);
+  private callRevision = 0;
+  private callStatusTimer: ReturnType<typeof setInterval> | null = null;
 
   protected readonly selectedPartner = computed<Person | null>(() => {
     const friendId = this.selectedFriendId();
@@ -80,6 +121,26 @@ export class MessagesPage {
     const friendId = this.selectedFriendId();
     return friendId ? this.service.messagesFor(friendId) : [];
   });
+  protected readonly historyHasMore = computed(() => {
+    const friendId = this.selectedFriendId();
+    return friendId ? (this.service.historyHasMoreRecord()[friendId] ?? false) : false;
+  });
+  protected readonly selectedConversation = computed(() => {
+    const friendId = this.selectedFriendId();
+    return friendId ? (this.service.conversationFor(friendId) ?? null) : null;
+  });
+  protected readonly isInDmCallHere = computed(
+    () =>
+      this.call.joined() &&
+      this.activeDmCallConversationId() === this.selectedConversation()?.conversationId,
+  );
+  protected readonly dmCallIsLive = computed(() => this.dmCallStatus()?.active === true);
+  protected readonly currentUserName = computed(() => {
+    const name = this.auth.user()?.userMetadata['name'];
+    return typeof name === 'string' && name.trim() ? name.trim() : 'You';
+  });
+  protected readonly callParticipants = this.call.participants;
+  protected readonly activeScreenShare = this.call.activeScreenShare;
 
   /** Whether the current user has blocked the selected partner. */
   protected readonly currentPartnerBlocked = computed<boolean>(() => {
@@ -91,6 +152,8 @@ export class MessagesPage {
   private readonly composerInput = viewChild<ElementRef<HTMLInputElement>>('composerInput');
 
   constructor() {
+    const unregister = this.sessionScope.registerCleanup(() => this.resetSelections());
+    this.destroyRef.onDestroy(unregister);
     void this.service.loadConversations();
     void this.friendsService.ensureLoaded();
 
@@ -103,6 +166,17 @@ export class MessagesPage {
 
     this.route.paramMap.subscribe((params) => {
       const friendId = params.get('friendId');
+      this.stopCallStatusPolling();
+      this.dmCallStatus.set(null);
+      this.callError.set(null);
+      const previousCallConversation = this.activeDmCallConversationId();
+      const nextConversation = friendId ? this.service.conversationFor(friendId) : null;
+      if (
+        previousCallConversation &&
+        (!nextConversation || nextConversation.conversationId !== previousCallConversation)
+      ) {
+        void this.leaveDmCall();
+      }
       this.service.setActiveConversation(friendId);
       if (!friendId) {
         this.selectedFriendId.set(null);
@@ -112,13 +186,37 @@ export class MessagesPage {
       void this.openConversation(friendId);
     });
 
-    this.destroyRef.onDestroy(() => this.service.setActiveConversation(null));
+    this.destroyRef.onDestroy(() => {
+      this.service.setActiveConversation(null);
+      this.stopCallStatusPolling();
+      if (this.activeDmCallConversationId()) void this.call.disconnect();
+    });
+  }
+
+  private resetSelections(): void {
+    this.service.setActiveConversation(null);
+    this.selectedFriendId.set(null);
+    this.seededPartner.set(null);
+    this.draft.set('');
+    this.pendingReply.set(null);
+    this.editingMessageId.set(null);
+    this.openReactionMenuId.set(null);
+    this.openError.set(null);
+    this.headerMenuOpen.set(false);
+    this.callRevision += 1;
+    this.stopCallStatusPolling();
+    this.activeDmCallConversationId.set(null);
+    this.dmCallStatus.set(null);
+    this.callJoining.set(false);
+    this.callError.set(null);
+    this.callParticipantsOpen.set(false);
   }
 
   private async openConversation(friendId: string): Promise<void> {
     this.openError.set(null);
     try {
       await this.service.openConversation(friendId);
+      this.startCallStatusPolling();
       this.openReactionMenuId.set(null);
       this.editingMessageId.set(null);
       this.pendingReply.set(null);
@@ -166,7 +264,8 @@ export class MessagesPage {
           ? { messageId: reply.messageId, authorName: reply.authorName, text: reply.text }
           : undefined,
       )
-      .then(() => this.scrollToBottom());
+      .then(() => this.scrollToBottom())
+      .catch(() => this.openError.set('Could not send that message.'));
     this.draft.set('');
     this.pendingReply.set(null);
   }
@@ -210,7 +309,9 @@ export class MessagesPage {
     if (this.pendingReply()?.messageId === messageId) {
       this.pendingReply.set(null);
     }
-    this.service.deleteMessage(friendId, messageId);
+    void this.service
+      .deleteMessage(friendId, messageId)
+      .catch(() => this.openError.set('Could not delete that message.'));
   }
 
   protected onReact(payload: { messageId: string; emoji: string }): void {
@@ -240,6 +341,11 @@ export class MessagesPage {
     return friendId ? (this.service.historyLoadingRecord()[friendId] ?? false) : false;
   }
 
+  protected loadOlder(): void {
+    const friendId = this.selectedFriendId();
+    if (friendId) void this.service.loadOlder(friendId);
+  }
+
   protected statusLabel(person: Person): string {
     if (person.status === 'online') {
       return 'Online';
@@ -255,9 +361,110 @@ export class MessagesPage {
     void this.router.navigate(['/app/messages']);
   }
 
-  /** Call button — UI only until the backend calling integration ships. */
   protected onCall(): void {
-    return;
+    void this.joinDmCall();
+  }
+
+  protected async joinDmCall(): Promise<void> {
+    if (this.callJoining() || this.isInDmCallHere() || this.currentPartnerBlocked()) return;
+    const scope = this.sessionScope.capture();
+    const conversation = this.selectedConversation();
+    if (!scope.userId || !conversation) return;
+
+    const revision = ++this.callRevision;
+    this.callJoining.set(true);
+    this.callError.set(null);
+    this.call.dismissError();
+    try {
+      const raw = await firstValueFrom(
+        this.http.post<unknown>(
+          `${this.apiUrl}/dm-conversations/${conversation.conversationId}/call-token`,
+          {},
+        ),
+      );
+      const response = CallTokenResponseSchema.parse(raw);
+      if (!this.sessionScope.isCurrent(scope) || revision !== this.callRevision) return;
+
+      if (this.dashboardStore.activeCall()) this.dashboardStore.clearActiveCall();
+      await this.call.connect(response);
+      if (!this.sessionScope.isCurrent(scope) || revision !== this.callRevision) {
+        if (this.call.roomName() === response.roomName) await this.call.disconnect();
+        return;
+      }
+      this.activeDmCallConversationId.set(conversation.conversationId);
+      this.dmCallStatus.set({
+        active: true,
+        participants: this.call.participants().length,
+        maxParticipants: 2,
+      });
+    } catch (error: unknown) {
+      if (this.sessionScope.isCurrent(scope) && revision === this.callRevision) {
+        this.callError.set(describeDmCallError(error));
+      }
+    } finally {
+      if (revision === this.callRevision) this.callJoining.set(false);
+    }
+  }
+
+  protected async leaveDmCall(): Promise<void> {
+    this.callRevision += 1;
+    const conversationId = this.activeDmCallConversationId();
+    this.activeDmCallConversationId.set(null);
+    this.callParticipantsOpen.set(false);
+    await this.call.disconnect();
+    if (conversationId === this.selectedConversation()?.conversationId) {
+      await this.refreshDmCallStatus();
+    }
+  }
+
+  protected toggleDmMic(): void {
+    void this.call.toggleMic();
+  }
+
+  protected toggleDmScreenShare(): void {
+    void this.call.toggleScreenShare();
+  }
+
+  private startCallStatusPolling(): void {
+    this.stopCallStatusPolling();
+    void this.refreshDmCallStatus();
+    this.callStatusTimer = setInterval(() => void this.refreshDmCallStatus(), 3_000);
+  }
+
+  private stopCallStatusPolling(): void {
+    if (this.callStatusTimer) clearInterval(this.callStatusTimer);
+    this.callStatusTimer = null;
+  }
+
+  private async refreshDmCallStatus(): Promise<void> {
+    const scope = this.sessionScope.capture();
+    const conversation = this.selectedConversation();
+    if (!scope.userId || !conversation) return;
+    if (this.isInDmCallHere()) {
+      this.dmCallStatus.set({
+        active: true,
+        participants: this.call.participants().length,
+        maxParticipants: 2,
+      });
+      return;
+    }
+    try {
+      const raw = await firstValueFrom(
+        this.http.get<unknown>(
+          `${this.apiUrl}/dm-conversations/${conversation.conversationId}/call-status`,
+          { context: new HttpContext().set(SKIP_ERROR_TOAST, true) },
+        ),
+      );
+      const status = CallStatusResponseSchema.parse(raw);
+      if (
+        this.sessionScope.isCurrent(scope) &&
+        this.selectedConversation()?.conversationId === conversation.conversationId
+      ) {
+        this.dmCallStatus.set(status);
+      }
+    } catch {
+      // Keep the last confirmed status through transient API/LiveKit failures.
+    }
   }
 
   protected toggleHeaderMenu(): void {
@@ -285,7 +492,9 @@ export class MessagesPage {
     const friendId = this.selectedFriendId();
     this.headerMenuOpen.set(false);
     if (friendId) {
-      void this.service.clearChatHistory(friendId);
+      void this.service
+        .clearChatHistory(friendId)
+        .catch(() => this.openError.set('Could not clear this conversation.'));
     }
   }
 
@@ -337,4 +546,17 @@ export class MessagesPage {
       element.scrollTop = element.scrollHeight;
     });
   }
+}
+
+function describeDmCallError(error: unknown): string {
+  if (typeof error === 'object' && error !== null) {
+    const response = (error as Record<string, unknown>)['error'];
+    if (typeof response === 'object' && response !== null) {
+      const message = (response as Record<string, unknown>)['message'];
+      if (typeof message === 'string' && message.trim()) return message;
+    }
+  }
+  return error instanceof Error && error.message
+    ? error.message
+    : 'Could not join this call. Please try again.';
 }

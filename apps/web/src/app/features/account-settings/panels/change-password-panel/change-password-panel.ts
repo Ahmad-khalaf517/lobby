@@ -7,20 +7,18 @@ import {
   viewChild,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { ChangePasswordRequestSchema, type ChangePasswordRequest } from '@lobby/shared';
 
 import { LobbyIconComponent } from '../../../../shared/ui/icon/lobby-icon.component';
 import { getAuthErrorMessage } from '../../../auth/utils/auth-error.util';
 import { mapZodFieldErrors } from '../../../auth/utils/zod-form-errors.util';
-import {
-  resetPasswordSchema,
-  ResetPasswordInput,
-} from '../../../auth/schemas/reset-password.schema';
 import { AuthService } from '../../../auth/services/auth';
 
 const changePasswordFields = [
+  'currentPassword',
   'password',
   'confirmPassword',
-] as const satisfies readonly (keyof ResetPasswordInput)[];
+] as const satisfies readonly (keyof ChangePasswordRequest)[];
 type ChangePasswordField = (typeof changePasswordFields)[number];
 
 @Component({
@@ -34,10 +32,13 @@ export class ChangePasswordPanelComponent {
   private readonly auth = inject(AuthService);
 
   private readonly passwordInput = viewChild<ElementRef<HTMLInputElement>>('passwordInput');
+  private readonly currentPasswordInput =
+    viewChild<ElementRef<HTMLInputElement>>('currentPasswordInput');
   private readonly confirmPasswordInput =
     viewChild<ElementRef<HTMLInputElement>>('confirmPasswordInput');
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
+    currentPassword: '',
     password: '',
     confirmPassword: '',
   });
@@ -89,8 +90,8 @@ export class ChangePasswordPanelComponent {
     this.form.disable({ emitEvent: false });
 
     try {
-      await this.auth.resetPassword(input.password, input.confirmPassword);
-      this.form.reset({ password: '', confirmPassword: '' });
+      await this.auth.changePassword(input.currentPassword, input.password, input.confirmPassword);
+      this.form.reset({ currentPassword: '', password: '', confirmPassword: '' });
       this.submitted.set(false);
     } catch (error: unknown) {
       const message = getAuthErrorMessage(error, 'password-update');
@@ -101,12 +102,12 @@ export class ChangePasswordPanelComponent {
     }
   }
 
-  private validateForm(): ResetPasswordInput | null {
+  private validateForm(): ChangePasswordRequest | null {
     for (const field of changePasswordFields) {
       this.form.controls[field].setErrors(null);
     }
 
-    const result = resetPasswordSchema.safeParse(this.form.getRawValue());
+    const result = ChangePasswordRequestSchema.safeParse(this.form.getRawValue());
 
     if (result.success) {
       return result.data;
@@ -126,7 +127,9 @@ export class ChangePasswordPanelComponent {
   private focusFirstInvalidField(): void {
     const field = changePasswordFields.find((candidate) => this.form.controls[candidate].invalid);
 
-    if (field === 'password') {
+    if (field === 'currentPassword') {
+      this.currentPasswordInput()?.nativeElement.focus();
+    } else if (field === 'password') {
       this.passwordInput()?.nativeElement.focus();
     } else if (field === 'confirmPassword') {
       this.confirmPasswordInput()?.nativeElement.focus();

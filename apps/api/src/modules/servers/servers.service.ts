@@ -88,6 +88,11 @@ export class ServersService {
     await this.serverMembersService.removeMember(serverId, userId);
   }
 
+  async deleteServer(serverId: string, userId: string): Promise<void> {
+    await this.assertOwner(serverId, userId);
+    await this.serversRepository.deleteServer(serverId);
+  }
+
   /** Channel creation/rename/delete are owner-only — membership alone isn't enough. */
   async createChannel(channel: ChannelInsert): Promise<Channel> {
     await this.assertOwner(channel.server_id, channel.created_by);

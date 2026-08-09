@@ -79,6 +79,14 @@ export class ServersService {
     );
   }
 
+  async leaveServer(serverId: string): Promise<void> {
+    await firstValueFrom(this.http.post<unknown>(`${this.apiUrl}/servers/${serverId}/leave`, {}));
+  }
+
+  async deleteServer(serverId: string): Promise<void> {
+    await firstValueFrom(this.http.delete<unknown>(`${this.apiUrl}/servers/${serverId}`));
+  }
+
   async createChannel(serverId: string, name: string): Promise<Channel> {
     const body = CreateChannelRequestSchema.parse({ name });
     const raw = await firstValueFrom(

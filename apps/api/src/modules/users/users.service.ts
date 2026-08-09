@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import type { User } from '@supabase/supabase-js';
 import type { UpdateUserProfileRequest, UploadUserAvatarRequest, UserProfile } from '@lobby/shared';
 import { MAX_AVATAR_FILE_SIZE_BYTES } from '@lobby/shared';
 import { UsersRepository } from './users.repository';
@@ -8,8 +9,14 @@ import { toUserProfile } from './users.mappers';
 export class UsersService {
   constructor(private readonly usersRepository: UsersRepository) {}
 
-  getProfile(userId: string): Promise<UserProfile> {
-    return this.usersRepository.findOrCreateProfile(userId);
+  async getProfile(userId: string): Promise<UserProfile> {
+    const profile = await this.usersRepository.findProfile(userId);
+    if (!profile) throw new NotFoundException('Profile not found');
+    return profile;
+  }
+
+  ensureProfile(user: User): Promise<UserProfile> {
+    return this.usersRepository.ensureProfile(user);
   }
 
   updateProfile(userId: string, changes: UpdateUserProfileRequest): Promise<UserProfile> {

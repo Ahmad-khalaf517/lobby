@@ -1,35 +1,10 @@
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+﻿export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: '14.15';
-  };
-  graphql_public: {
-    Tables: {
-      [_ in never]: never;
-    };
-    Views: {
-      [_ in never]: never;
-    };
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json;
-          operationName?: string;
-          query?: string;
-          variables?: Json;
-        };
-        Returns: Json;
-      };
-    };
-    Enums: {
-      [_ in never]: never;
-    };
-    CompositeTypes: {
-      [_ in never]: never;
-    };
   };
   public: {
     Tables: {
@@ -116,40 +91,40 @@ export type Database = {
       };
       channel_members: {
         Row: {
-          id: string;
           channel_id: string;
-          user_id: string;
-          role: Database['public']['Enums']['channel_role'];
-          joined_at: string;
-          left_at?: string | null;
-          removed_at?: string | null;
-          removed_reason?: string | null;
           created_at: string;
-          updated_at: string;
+          id: string;
+          joined_at: string;
+          left_at: string | null;
+          removed_at: string | null;
+          removed_reason: string | null;
+          role: Database['public']['Enums']['channel_role'];
+          updated_at: string | null;
+          user_id: string;
         };
         Insert: {
-          id?: string;
           channel_id: string;
-          user_id: string;
-          role: Database['public']['Enums']['channel_role'];
+          created_at?: string;
+          id?: string;
           joined_at?: string;
           left_at?: string | null;
           removed_at?: string | null;
           removed_reason?: string | null;
-          created_at: string;
-          updated_at?: string;
+          role: Database['public']['Enums']['channel_role'];
+          updated_at?: string | null;
+          user_id: string;
         };
         Update: {
-          id?: string;
           channel_id?: string;
-          user_id?: string;
-          role?: Database['public']['Enums']['channel_role'];
+          created_at?: string;
+          id?: string;
           joined_at?: string;
           left_at?: string | null;
           removed_at?: string | null;
           removed_reason?: string | null;
-          created_at?: string;
-          updated_at?: string;
+          role?: Database['public']['Enums']['channel_role'];
+          updated_at?: string | null;
+          user_id?: string;
         };
         Relationships: [
           {
@@ -171,41 +146,41 @@ export type Database = {
       channels: {
         Row: {
           created_at: string;
+          created_by: string;
           id: string;
           name: string;
           server_id: string;
-          created_by: string;
-          updated_at: string;
+          updated_at: string | null;
         };
         Insert: {
           created_at?: string;
+          created_by: string;
           id?: string;
           name: string;
           server_id: string;
-          created_by: string;
-          updated_at?: string;
+          updated_at?: string | null;
         };
         Update: {
           created_at?: string;
+          created_by?: string;
           id?: string;
           name?: string;
-          server_id?: string | null;
-          created_by?: string | null;
-          updated_at?: string;
+          server_id?: string;
+          updated_at?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: 'channels_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'channels_server_id_fkey';
             columns: ['server_id'];
             isOneToOne: false;
             referencedRelation: 'servers';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'channels_created_by_id_fkey';
-            columns: ['created_by'];
-            isOneToOne: false;
-            referencedRelation: 'users';
             referencedColumns: ['id'];
           },
         ];
@@ -215,22 +190,34 @@ export type Database = {
           created_at: string;
           id: string;
           updated_at: string;
+          user_a_cleared_at: string | null;
           user_a_id: string;
+          user_a_last_read_at: string | null;
+          user_b_cleared_at: string | null;
           user_b_id: string;
+          user_b_last_read_at: string | null;
         };
         Insert: {
           created_at?: string;
           id?: string;
           updated_at?: string;
+          user_a_cleared_at?: string | null;
           user_a_id: string;
+          user_a_last_read_at?: string | null;
+          user_b_cleared_at?: string | null;
           user_b_id: string;
+          user_b_last_read_at?: string | null;
         };
         Update: {
           created_at?: string;
           id?: string;
           updated_at?: string;
+          user_a_cleared_at?: string | null;
           user_a_id?: string;
+          user_a_last_read_at?: string | null;
+          user_b_cleared_at?: string | null;
           user_b_id?: string;
+          user_b_last_read_at?: string | null;
         };
         Relationships: [
           {
@@ -251,29 +238,38 @@ export type Database = {
       };
       dm_messages: {
         Row: {
+          client_message_id: string | null;
           content: string;
           conversation_id: string;
           created_at: string;
+          edited_at: string | null;
           id: string;
           reaction_emoji: string | null;
+          reaction_user_id: string | null;
           reply_to: string | null;
           sender_id: string;
         };
         Insert: {
+          client_message_id?: string | null;
           content: string;
           conversation_id: string;
           created_at?: string;
+          edited_at?: string | null;
           id?: string;
           reaction_emoji?: string | null;
+          reaction_user_id?: string | null;
           reply_to?: string | null;
           sender_id: string;
         };
         Update: {
+          client_message_id?: string | null;
           content?: string;
           conversation_id?: string;
           created_at?: string;
+          edited_at?: string | null;
           id?: string;
           reaction_emoji?: string | null;
+          reaction_user_id?: string | null;
           reply_to?: string | null;
           sender_id?: string;
         };
@@ -290,6 +286,13 @@ export type Database = {
             columns: ['reply_to'];
             isOneToOne: false;
             referencedRelation: 'dm_messages';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'dm_messages_reaction_user_id_fkey';
+            columns: ['reaction_user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
             referencedColumns: ['id'];
           },
           {
@@ -355,7 +358,7 @@ export type Database = {
       };
       message_reactions: {
         Row: {
-          channel_id: string | null;
+          channel_id: string;
           channel_member_id: string;
           created_at: string;
           emoji: string;
@@ -364,7 +367,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
-          channel_id: string | null;
+          channel_id: string;
           channel_member_id: string;
           created_at?: string;
           emoji: string;
@@ -373,7 +376,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
-          channel_id: string | null;
+          channel_id?: string;
           channel_member_id?: string;
           created_at?: string;
           emoji?: string;
@@ -383,25 +386,18 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: 'message_reactions_channel_id_fkey';
-            columns: ['channel_id'];
-            isOneToOne: false;
-            referencedRelation: 'channels';
-            referencedColumns: ['id'];
-          },
-          {
             foreignKeyName: 'message_reactions_channel_member_id_fkey';
-            columns: ['channel_member_id'];
+            columns: ['channel_id', 'channel_member_id'];
             isOneToOne: false;
             referencedRelation: 'channel_members';
-            referencedColumns: ['id'];
+            referencedColumns: ['channel_id', 'id'];
           },
           {
             foreignKeyName: 'message_reactions_message_id_fkey';
-            columns: ['message_id'];
+            columns: ['channel_id', 'message_id'];
             isOneToOne: false;
             referencedRelation: 'messages';
-            referencedColumns: ['id'];
+            referencedColumns: ['channel_id', 'id'];
           },
         ];
       };
@@ -456,10 +452,10 @@ export type Database = {
           },
           {
             foreignKeyName: 'messages_sender_id_fkey';
-            columns: ['sender_id'];
+            columns: ['channel_id', 'sender_id'];
             isOneToOne: false;
             referencedRelation: 'channel_members';
-            referencedColumns: ['id'];
+            referencedColumns: ['channel_id', 'id'];
           },
         ];
       };
@@ -545,7 +541,7 @@ export type Database = {
         Insert: {
           id?: string;
           joined_at?: string;
-          role?: Database['public']['Enums']['server_role'];
+          role: Database['public']['Enums']['server_role'];
           server_id: string;
           user_id: string;
         };
@@ -640,15 +636,237 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      clear_dm_conversation: {
+        Args: { p_conversation_id: string };
+        Returns: undefined;
+      };
+      create_dm_message: {
+        Args: {
+          p_client_message_id: string;
+          p_content: string;
+          p_conversation_id: string;
+          p_reply_to?: string;
+        };
+        Returns: {
+          client_message_id: string | null;
+          content: string;
+          conversation_id: string;
+          created_at: string;
+          edited_at: string | null;
+          id: string;
+          reaction_emoji: string | null;
+          reaction_user_id: string | null;
+          reply_to: string | null;
+          sender_id: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'dm_messages';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      delete_dm_message: {
+        Args: { p_conversation_id: string; p_message_id: string };
+        Returns: string;
+      };
+      edit_dm_message: {
+        Args: { p_content: string; p_conversation_id: string; p_message_id: string };
+        Returns: {
+          client_message_id: string | null;
+          content: string;
+          conversation_id: string;
+          created_at: string;
+          edited_at: string | null;
+          id: string;
+          reaction_emoji: string | null;
+          reaction_user_id: string | null;
+          reply_to: string | null;
+          sender_id: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'dm_messages';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      mark_dm_conversation_read: {
+        Args: { p_conversation_id: string };
+        Returns: undefined;
+      };
+      require_dm_participant: {
+        Args: { p_conversation_id: string };
+        Returns: {
+          created_at: string;
+          id: string;
+          updated_at: string;
+          user_a_cleared_at: string | null;
+          user_a_id: string;
+          user_a_last_read_at: string | null;
+          user_b_cleared_at: string | null;
+          user_b_id: string;
+          user_b_last_read_at: string | null;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'dm_conversations';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      toggle_dm_message_reaction: {
+        Args: { p_conversation_id: string; p_emoji: string; p_message_id: string };
+        Returns: {
+          client_message_id: string | null;
+          content: string;
+          conversation_id: string;
+          created_at: string;
+          edited_at: string | null;
+          id: string;
+          reaction_emoji: string | null;
+          reaction_user_id: string | null;
+          reply_to: string | null;
+          sender_id: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'dm_messages';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      create_authenticated_channel_message: {
+        Args: {
+          p_channel_id: string;
+          p_client_message_id: string;
+          p_content: string;
+          p_reply_to?: string;
+        };
+        Returns: {
+          channel_id: string;
+          client_message_id: string | null;
+          content: string;
+          created_at: string;
+          deleted_at: string | null;
+          edited_at: string | null;
+          id: string;
+          reply_to: string | null;
+          sender_id: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'messages';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      delete_authenticated_channel_message: {
+        Args: { p_channel_id: string; p_message_id: string };
+        Returns: {
+          channel_id: string;
+          client_message_id: string | null;
+          content: string;
+          created_at: string;
+          deleted_at: string | null;
+          edited_at: string | null;
+          id: string;
+          reply_to: string | null;
+          sender_id: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'messages';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      edit_authenticated_channel_message: {
+        Args: { p_channel_id: string; p_content: string; p_message_id: string };
+        Returns: {
+          channel_id: string;
+          client_message_id: string | null;
+          content: string;
+          created_at: string;
+          deleted_at: string | null;
+          edited_at: string | null;
+          id: string;
+          reply_to: string | null;
+          sender_id: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'messages';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      is_authenticated_channel_member: {
+        Args: { target_channel_id: string };
+        Returns: boolean;
+      };
+      join_authenticated_channel_chat: {
+        Args: { p_channel_id: string };
+        Returns: {
+          channel_id: string;
+          created_at: string;
+          id: string;
+          joined_at: string;
+          left_at: string | null;
+          removed_at: string | null;
+          removed_reason: string | null;
+          role: Database['public']['Enums']['channel_role'];
+          updated_at: string | null;
+          user_id: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'channel_members';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      list_authenticated_channel_chat_members: {
+        Args: { p_channel_id: string };
+        Returns: {
+          avatar_url: string;
+          channel_member_id: string;
+          display_name: string;
+          user_id: string;
+        }[];
+      };
+      require_authenticated_channel_member: {
+        Args: { p_channel_id: string };
+        Returns: {
+          channel_id: string;
+          created_at: string;
+          id: string;
+          joined_at: string;
+          left_at: string | null;
+          removed_at: string | null;
+          removed_reason: string | null;
+          role: Database['public']['Enums']['channel_role'];
+          updated_at: string | null;
+          user_id: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'channel_members';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      toggle_authenticated_channel_message_reaction: {
+        Args: { p_channel_id: string; p_emoji: string; p_message_id: string };
+        Returns: boolean;
+      };
     };
     Enums: {
-      server_role: 'owner' | 'member';
+      channel_role: 'owner' | 'member';
       guest_room_end_reason: 'expired' | 'closed_by_owner' | 'empty' | 'moderation';
       guest_room_message_type: 'text' | 'system' | 'file' | 'image';
       guest_room_status: 'active' | 'expired' | 'ended';
       message_type: 'text' | 'system' | 'file' | 'image';
-      channel_role: 'owner' | 'member';
       notification_type:
         | 'friend_request'
         | 'friend_accept'
@@ -658,6 +876,7 @@ export type Database = {
         | 'message'
         | 'reaction'
         | 'system';
+      server_role: 'owner' | 'member';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -777,14 +996,13 @@ export type CompositeTypes<
     : never;
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
+      channel_role: ['owner', 'member'],
       guest_room_end_reason: ['expired', 'closed_by_owner', 'empty', 'moderation'],
       guest_room_message_type: ['text', 'system', 'file', 'image'],
       guest_room_status: ['active', 'expired', 'ended'],
+      message_type: ['text', 'system', 'file', 'image'],
       notification_type: [
         'friend_request',
         'friend_accept',
@@ -795,6 +1013,7 @@ export const Constants = {
         'reaction',
         'system',
       ],
+      server_role: ['owner', 'member'],
     },
   },
 } as const;

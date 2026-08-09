@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   ElementRef,
   HostListener,
@@ -28,6 +29,8 @@ import { DashboardStore, type ServerMemberWithProfile } from '../../services/das
 import { PromptModalComponent } from '../prompt-modal/prompt-modal.component';
 import { ProfilePopupComponent } from '../../../profile/profile-popup/profile-popup';
 import { SettingsPopupComponent } from '../../../account-settings/settings-popup/settings-popup';
+import { SessionScopeService } from '../../../../core/session-scope.service';
+import { LiveKitCallService } from '../../../../shared/components/call-room/services/livekit-call.service';
 
 @Component({
   selector: 'app-dashboard-header',
@@ -58,18 +61,28 @@ export class AppHeaderComponent {
   private readonly profileService = inject(ProfileService);
   private readonly friendsService = inject(FriendsService);
   private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly sessionScope = inject(SessionScopeService);
+  private readonly call = inject(LiveKitCallService);
   // Not read directly here — injecting forces these singletons to construct
   // (and start their realtime subscriptions) as soon as the dashboard shell
   // mounts, so a DM/friend-request toast can fire from any page in /app.
   private readonly directMessages = inject(DirectMessagesService);
-  private readonly notificationsRealtime = inject(NotificationsService);
+  private readonly notificationsService = inject(NotificationsService);
+  protected readonly notifications = this.notificationsService.notifications;
+  protected readonly notificationsLoading = this.notificationsService.loading;
+  protected readonly notificationsError = this.notificationsService.error;
+  protected readonly notificationUnreadCount = this.notificationsService.unreadCount;
   protected readonly notificationsOpen = signal(false);
   protected readonly accountMenuOpen = signal(false);
+  protected readonly serverLifecycleBusy = signal(false);
 
   protected readonly myProfile = signal<UserProfile | null>(null);
   protected readonly currentUserId = computed(() => this.auth.user()?.id ?? '');
 
   constructor() {
+    const unregister = this.sessionScope.registerCleanup(() => this.resetSelections());
+    this.destroyRef.onDestroy(unregister);
     // Reload once whenever both profile-editing surfaces are closed — this
     // covers the initial load and picks up an avatar/name change made in
     // either the profile popup or the settings popup's profile panel.
@@ -84,9 +97,26 @@ export class AppHeaderComponent {
     });
   }
 
+  private resetSelections(): void {
+    if (this.memberSearchTimer) clearTimeout(this.memberSearchTimer);
+    this.memberSearchTimer = null;
+    this.myProfile.set(null);
+    this.notificationsOpen.set(false);
+    this.accountMenuOpen.set(false);
+    this.membersPanelOpen.set(false);
+    this.addMemberOpen.set(false);
+    this.memberQuery.set('');
+    this.memberSearchResults.set([]);
+    this.memberSearching.set(false);
+    this.memberActionError.set(null);
+    this.renameModalOpen.set(false);
+    this.renameError.set(null);
+  }
+
   private async loadMyProfile(userId: string): Promise<void> {
     try {
-      this.myProfile.set(await this.profileService.getProfile(userId));
+      const profile = await this.profileService.getProfile(userId);
+      if (this.currentUserId() === userId) this.myProfile.set(profile);
     } catch {
       // Avatar is decorative here — silently keep showing initials on failure.
     }
@@ -250,6 +280,31 @@ export class AppHeaderComponent {
     );
   }
 
+  protected async leaveOrDeleteServer(): Promise<void> {
+    const server = this.activeServer();
+    if (!server || this.serverLifecycleBusy()) return;
+    const owner = this.isServerOwner();
+    const verb = owner ? 'delete' : 'leave';
+    if (!window.confirm(`Are you sure you want to ${verb} ${server.name}?`)) return;
+
+    this.serverLifecycleBusy.set(true);
+    try {
+      if (this.dashboardStore.activeCall()?.serverId === server.id) {
+        await this.call.disconnect();
+        this.dashboardStore.clearActiveCall();
+      }
+      if (owner) await this.dashboardStore.deleteServer(server.id);
+      else await this.dashboardStore.leaveServer(server.id);
+      this.closeMembersPanel();
+      await this.router.navigate(['/app']);
+      this.toast.success(owner ? 'Space deleted.' : 'You left the space.');
+    } catch {
+      this.toast.error(owner ? 'Could not delete this space.' : 'Could not leave this space.');
+    } finally {
+      this.serverLifecycleBusy.set(false);
+    }
+  }
+
   protected openMyProfile(): void {
     this.accountMenuOpen.set(false);
     const userId = this.currentUserId();
@@ -258,12 +313,21 @@ export class AppHeaderComponent {
 
   protected openSettings(): void {
     this.accountMenuOpen.set(false);
-    this.settingsPopup.open('profile');
+    void this.router.navigate(['/app/settings']);
   }
 
   protected toggleNotifications(): void {
     this.accountMenuOpen.set(false);
     this.notificationsOpen.update((value) => !value);
+    if (this.notificationsOpen()) void this.notificationsService.load();
+  }
+
+  protected markNotificationRead(id: string): void {
+    void this.notificationsService.markRead(id).catch(() => undefined);
+  }
+
+  protected markAllNotificationsRead(): void {
+    void this.notificationsService.markAllRead().catch(() => undefined);
   }
 
   protected toggleAccountMenu(): void {
@@ -273,8 +337,11 @@ export class AppHeaderComponent {
 
   protected async logout(): Promise<void> {
     this.accountMenuOpen.set(false);
-    await this.auth.logout();
-    await this.router.navigateByUrl('/login');
+    try {
+      await this.auth.logout();
+    } finally {
+      await this.router.navigateByUrl('/login');
+    }
   }
 
   @HostListener('document:click', ['$event'])

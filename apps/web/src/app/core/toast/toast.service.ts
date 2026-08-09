@@ -63,6 +63,12 @@ export class ToastService {
     toast?.onClick?.();
   }
 
+  dismissNotifications(): void {
+    for (const toast of this._toasts()) {
+      if (toast.variant === 'notification') this.dismiss(toast.id);
+    }
+  }
+
   private show(message: string, variant: ToastVariant, options: ToastOptions = {}): void {
     const id = this.nextId++;
     const toast: ToastMessage = { id, variant, message, ...options };

@@ -1,15 +1,16 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 
-/**
- * Placeholder for /app/settings — profile/account settings UI and API are
- * owned by someone else; this just gives the rail's settings button a real
- * route instead of a 404.
- */
+import { ChangePasswordPanelComponent } from '../../account-settings/panels/change-password-panel/change-password-panel';
+import { GeneralPanelComponent } from '../../account-settings/panels/general-panel/general-panel';
+
 @Component({
-  selector: 'app-settings-stub-page',
+  selector: 'app-settings-page',
   standalone: true,
+  imports: [GeneralPanelComponent, ChangePasswordPanelComponent],
   templateUrl: './settings-stub-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'contents' },
 })
-export class SettingsStubPage {}
+export class SettingsStubPage {
+  protected readonly section = signal<'general' | 'security'>('general');
+}

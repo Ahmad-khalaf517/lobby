@@ -42,6 +42,15 @@ export class ServerRailComponent {
     // clear it themselves.
   }
 
+  protected toggleMic(): void {
+    void this.call.toggleMic();
+  }
+
+  protected leaveCall(): void {
+    this.store.clearActiveCall();
+    void this.call.disconnect();
+  }
+
   /** Links straight to a channel once we know one (cached from a prior visit); falls back to the bare server route, which redirects. */
   protected serverLink(server: Server): (string | undefined)[] {
     const channelId = this.store.firstChannelId(server.id);

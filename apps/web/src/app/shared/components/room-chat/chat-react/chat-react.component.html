@@ -27,11 +27,11 @@
       aria-haspopup="dialog"
       aria-label="Add reaction"
       [class]="
-        'grid size-8 shrink-0 place-items-center rounded-md outline-none transition-colors hover:bg-white/8 hover:text-white focus-visible:bg-white/8 focus-visible:text-white focus-visible:ring-1 focus-visible:ring-violet-400/70 ' +
+        'grid size-9 shrink-0 place-items-center rounded-md outline-none transition-colors hover:bg-white/8 hover:text-white focus-visible:bg-white/8 focus-visible:text-white focus-visible:ring-1 focus-visible:ring-violet-400/70 ' +
         (menuOpen() ? 'bg-white/8 text-white' : 'text-[#929db0]')
       "
     >
-      <app-icon name="smile" aria-hidden="true" class="size-3.5" />
+      <app-icon name="smile" aria-hidden="true" class="size-4.5" [size]="18" />
     </button>
 
     @if (menuOpen()) {

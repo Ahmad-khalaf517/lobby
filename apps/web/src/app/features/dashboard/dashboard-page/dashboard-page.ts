@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   DestroyRef,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -15,6 +16,7 @@ import { CreateServerModalComponent } from '../components/create-server-modal/cr
 import { JoinServerModalComponent } from '../components/join-server-modal/join-server-modal.component';
 import { ServerRailComponent } from '../components/server-rail/server-rail.component';
 import { DashboardStore } from '../services/dashboard.store';
+import { SessionScopeService } from '../../../core/session-scope.service';
 
 const SERVER_ID_PATTERN = /\/app\/servers\/([^/]+)/;
 
@@ -35,6 +37,7 @@ export class DashboardPage {
   protected readonly store = inject(DashboardStore);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly sessionScope = inject(SessionScopeService);
 
   protected readonly activeServerId = signal(this.extractServerId(this.router.url));
   protected readonly mobileSidebarOpen = signal(false);
@@ -44,7 +47,15 @@ export class DashboardPage {
   );
 
   constructor() {
-    void this.store.ensureLoaded();
+    const unregister = this.sessionScope.registerCleanup(() => {
+      this.activeServerId.set(null);
+      this.mobileSidebarOpen.set(false);
+    });
+    this.destroyRef.onDestroy(unregister);
+
+    effect(() => {
+      if (this.sessionScope.userId()) void this.store.ensureLoaded();
+    });
 
     this.router.events
       .pipe(

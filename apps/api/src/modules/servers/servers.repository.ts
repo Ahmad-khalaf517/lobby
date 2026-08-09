@@ -70,6 +70,11 @@ export class ServersRepository {
     return toServer(data);
   }
 
+  async deleteServer(id: string): Promise<void> {
+    const { error } = await this.supabase.client.from('servers').delete().eq('id', id);
+    if (error) throw error;
+  }
+
   async listServersForUser(userId: string): Promise<Server[]> {
     const { data, error } = await this.supabase.client
       .from('server_members')

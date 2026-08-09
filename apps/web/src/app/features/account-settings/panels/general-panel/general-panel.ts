@@ -4,6 +4,7 @@ import {
   computed,
   effect,
   inject,
+  input,
   signal,
 } from '@angular/core';
 
@@ -27,6 +28,7 @@ interface SettingsGroup {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GeneralPanelComponent {
+  readonly active = input(false);
   private readonly popup = inject(SettingsPopupService);
   private readonly accountSettingsService = inject(AccountSettingsService);
   private readonly auth = inject(AuthService);
@@ -60,7 +62,7 @@ export class GeneralPanelComponent {
 
   constructor() {
     effect(() => {
-      if (this.popup.isOpen() && this.popup.section() === 'general') {
+      if (this.active() || (this.popup.isOpen() && this.popup.section() === 'general')) {
         void this.loadSettings();
       }
     });

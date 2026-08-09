@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, HostListener, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  HostListener,
+  inject,
+  signal,
+} from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import type { UserProfile } from '@lobby/shared';
 import { AuthService } from '../../auth/services/auth';
@@ -11,6 +18,7 @@ import { UserPopoverAvatarComponent } from '../../../shared/components/user-popo
 import type { Friend } from '../friends.models';
 import { FriendsService } from '../friends.service';
 import { LobbyIconComponent } from '../../../shared/ui/icon/lobby-icon.component';
+import { SessionScopeService } from '../../../core/session-scope.service';
 
 export type FriendsTab = 'all' | 'pending' | 'blocked';
 
@@ -34,6 +42,8 @@ export class FriendsPage {
   private readonly profilePopup = inject(ProfilePopupService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly sessionScope = inject(SessionScopeService);
 
   protected readonly friends = this.friendsService.friends;
   protected readonly pendingIncoming = this.friendsService.pendingIncoming;
@@ -54,7 +64,21 @@ export class FriendsPage {
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
+    const unregister = this.sessionScope.registerCleanup(() => this.resetSelections());
+    this.destroyRef.onDestroy(unregister);
     void this.friendsService.load();
+  }
+
+  private resetSelections(): void {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = null;
+    this.activeTab.set('all');
+    this.addFriendQuery.set('');
+    this.addFriendNotice.set(null);
+    this.addFriendOpen.set(true);
+    this.moreMenuFor.set(null);
+    this.searchResults.set([]);
+    this.searching.set(false);
   }
 
   protected setTab(tab: FriendsTab): void {

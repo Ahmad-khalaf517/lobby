@@ -6,6 +6,7 @@ import {
   AnonymousAuthRequestSchema,
   AuthMessageResponseSchema,
   AuthSessionResponseSchema,
+  ChangePasswordRequestSchema,
   ConfirmEmailRequestSchema,
   CurrentUserResponseSchema,
   EmailRequestSchema,
@@ -24,6 +25,7 @@ import {
 
 import { environment } from '../../../../environments/environment';
 import { SKIP_AUTH_REFRESH } from '../../../core/auth-http-context';
+import { SessionScopeService } from '../../../core/session-scope.service';
 import { SupabaseSessionService } from '../../../core/supabase/supabase-session.service';
 
 export type AuthStatus =
@@ -34,6 +36,7 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly supabase = inject(SupabaseSessionService);
+  private readonly sessionScope = inject(SessionScopeService);
   private readonly apiUrl = environment.apiUrl.replace(/\/$/, '');
   private readonly authStatus = signal<AuthStatus>('initializing');
   private readonly authenticatedUser = signal<AuthUser | null>(null);
@@ -131,28 +134,45 @@ export class AuthService {
     );
   }
 
-  refreshSession(): Promise<AuthSessionResponse> {
-    this.refreshRequest ??= this.performRefresh().finally(() => {
-      this.refreshRequest = null;
+  async changePassword(
+    currentPassword: string,
+    password: string,
+    confirmPassword: string,
+  ): Promise<AuthMessageResponse> {
+    return this.authMessage('/auth/change-password', {
+      ...ChangePasswordRequestSchema.parse({ currentPassword, password, confirmPassword }),
     });
-    return this.refreshRequest;
+  }
+
+  refreshSession(): Promise<AuthSessionResponse> {
+    if (this.refreshRequest) return this.refreshRequest;
+    const expectedRevision = this.sessionRevision;
+    const request = this.performRefresh(expectedRevision).finally(() => {
+      if (this.refreshRequest === request) this.refreshRequest = null;
+    });
+    this.refreshRequest = request;
+    return request;
   }
 
   async logout(): Promise<AuthMessageResponse> {
+    // Invalidate pending work before waiting on the network. The API cookies
+    // remain available for the server-side token revocation request.
+    await this.markUnauthenticated();
     const response = await firstValueFrom(
       this.http.post<unknown>(`${this.apiUrl}/auth/logout`, {}),
     );
     const result = AuthMessageResponseSchema.parse(response);
-    await this.markUnauthenticated();
     return result;
   }
 
   async markUnauthenticated(): Promise<void> {
     this.clearRefreshTimer();
     this.sessionRevision += 1;
+    this.refreshRequest = null;
     this.authenticatedUser.set(null);
     this.authStatus.set('unauthenticated');
     this.currentSession = null;
+    await this.sessionScope.transitionTo(null);
     await this.supabase.clearSession();
   }
 
@@ -173,33 +193,37 @@ export class AuthService {
           await this.setSession(await this.fetchRefreshedSession());
           return;
         } catch (refreshError: unknown) {
-          if (this.isSignedOutResponse(refreshError)) {
-            await this.markUnauthenticated();
-            return;
-          }
-          this.markInitializationFailed(refreshError);
+          console.error('Lobby could not refresh the current session.', refreshError);
+          await this.markUnauthenticated();
           return;
         }
       }
 
-      this.markInitializationFailed(error);
+      await this.markInitializationFailed(error);
     }
   }
 
-  private async performRefresh(): Promise<AuthSessionResponse> {
+  private async performRefresh(expectedRevision: number): Promise<AuthSessionResponse> {
     try {
       const result = await this.fetchRefreshedSession();
-      await this.setSession(result);
+      await this.setSession(result, expectedRevision);
       return result;
     } catch (error: unknown) {
-      if (this.isSignedOutResponse(error)) await this.markUnauthenticated();
+      await this.markUnauthenticated();
       throw error;
     }
   }
 
-  private async setSession(result: AuthSessionResponse): Promise<void> {
+  private async setSession(result: AuthSessionResponse, expectedRevision?: number): Promise<void> {
+    if (expectedRevision !== undefined && expectedRevision !== this.sessionRevision) {
+      throw new Error('The authenticated session changed while the request was pending.');
+    }
     this.clearRefreshTimer();
     await this.supabase.setAccessToken(result.accessToken);
+    if (expectedRevision !== undefined && expectedRevision !== this.sessionRevision) {
+      throw new Error('The authenticated session changed while the request was pending.');
+    }
+    await this.sessionScope.transitionTo(result.user.id);
     this.sessionRevision += 1;
     this.authenticatedUser.set(result.user);
     this.currentSession = result;
@@ -231,20 +255,15 @@ export class AuthService {
     return AuthMessageResponseSchema.parse(response);
   }
 
-  private isSignedOutResponse(error: unknown): boolean {
-    return (
-      error instanceof HttpErrorResponse &&
-      (error.status === 400 || error.status === 401 || error.status === 403)
-    );
-  }
-
-  private markInitializationFailed(error: unknown): void {
+  private async markInitializationFailed(error: unknown): Promise<void> {
     console.error('Lobby could not restore the current session.', error);
     this.clearRefreshTimer();
     this.sessionRevision += 1;
     this.authenticatedUser.set(null);
     this.authStatus.set('error');
     this.currentSession = null;
+    await this.sessionScope.transitionTo(null);
+    await this.supabase.clearSession();
   }
 
   private clearRefreshTimer(): void {

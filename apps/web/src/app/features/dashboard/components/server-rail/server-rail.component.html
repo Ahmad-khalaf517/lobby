@@ -8,7 +8,7 @@
 }
 
 <aside
-  class="fixed inset-y-0 left-0 z-40 flex w-57.5 -translate-x-full flex-col border-r border-[#232a38] bg-[#11161f] py-4 transition-transform duration-200 lg:static lg:z-auto lg:w-16 lg:translate-x-0"
+  class="fixed inset-y-0 left-0 z-40 flex w-57.5 -translate-x-full flex-col border-r border-white/[0.065] bg-[#0b1018]/98 py-3 shadow-[18px_0_55px_rgba(0,0,0,0.18)] backdrop-blur-xl transition-transform duration-200 lg:static lg:z-auto lg:w-18 lg:translate-x-0 lg:shadow-none"
   [class.translate-x-0]="mobileOpen()"
 >
   <div class="px-4 pb-3 pt-1 lg:hidden">
@@ -16,7 +16,7 @@
     <p class="mt-1 truncate text-[10px] text-app-muted/75">Your communities</p>
   </div>
 
-  <nav aria-label="Spaces" class="min-h-0 flex-1 space-y-1 overflow-y-auto px-2 lobby-scrollbar">
+  <nav aria-label="Spaces" class="min-h-0 flex-1 space-y-1 overflow-y-auto px-2.5 lobby-scrollbar">
     @for (server of store.servers(); track server.id) {
       <a
         [routerLink]="serverLink(server)"
@@ -28,7 +28,7 @@
       >
         <span
           aria-hidden="true"
-          class="absolute -left-2 top-1/2 w-1 -translate-y-1/2 rounded-r-full bg-primary transition-all duration-200"
+          class="absolute -left-2.5 top-1/2 w-1 -translate-y-1/2 rounded-r-full bg-primary shadow-[0_0_14px_rgba(124,92,252,0.55)] transition-all duration-200"
           [class.h-6]="server.id === activeServerId()"
           [class.h-0]="server.id !== activeServerId()"
         ></span>
@@ -43,6 +43,8 @@
       </a>
     }
 
+    <div class="mx-2 my-2 h-px bg-white/[0.065]"></div>
+
     <a
       routerLink="/app/friends"
       routerLinkActive
@@ -54,7 +56,7 @@
     >
       <span
         aria-hidden="true"
-        class="absolute -left-2 top-1/2 w-1 -translate-y-1/2 rounded-r-full bg-primary transition-all duration-200"
+        class="absolute -left-2.5 top-1/2 w-1 -translate-y-1/2 rounded-r-full bg-primary shadow-[0_0_14px_rgba(124,92,252,0.55)] transition-all duration-200"
         [class.h-6]="friendsLink.isActive"
         [class.h-0]="!friendsLink.isActive"
       ></span>
@@ -69,7 +71,88 @@
         >Friends</span
       >
     </a>
+
+    <a
+      routerLink="/app/messages"
+      routerLinkActive
+      #messagesLink="routerLinkActive"
+      title="Messages"
+      class="relative flex h-12 items-center gap-3 rounded-xl px-2 transition hover:bg-surface-hover lg:justify-center"
+      [class.text-app-foreground]="messagesLink.isActive"
+      [class.text-app-muted]="!messagesLink.isActive"
+    >
+      <span
+        aria-hidden="true"
+        class="absolute -left-2.5 top-1/2 w-1 -translate-y-1/2 rounded-r-full bg-primary shadow-[0_0_14px_rgba(124,92,252,0.55)] transition-all duration-200"
+        [class.h-6]="messagesLink.isActive"
+        [class.h-0]="!messagesLink.isActive"
+      ></span>
+      <div
+        class="grid size-8 shrink-0 place-items-center rounded-lg bg-surface transition"
+        [class.ring-2]="messagesLink.isActive"
+        [class.ring-primary/60]="messagesLink.isActive"
+      >
+        <app-icon name="chat" [size]="15" />
+      </div>
+      <span class="truncate text-[13px] lg:hidden" [class.font-medium]="messagesLink.isActive"
+        >Messages</span
+      >
+    </a>
   </nav>
+
+  @if (store.activeCall(); as activeCall) {
+    <div
+      class="mx-2 mb-2 shrink-0 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.07] p-2"
+    >
+      <a
+        [routerLink]="['/app/servers', activeCall.serverId, 'channels', activeCall.channelId]"
+        (click)="closeMobile.emit()"
+        class="flex min-w-0 items-center gap-2 rounded-lg text-left lg:justify-center"
+        [title]="activeCall.serverName + ' · #' + activeCall.channelName"
+      >
+        <span
+          class="relative grid size-8 shrink-0 place-items-center rounded-lg bg-emerald-400/12 text-emerald-300"
+        >
+          <app-icon name="call" [size]="14" />
+          <span
+            class="absolute -right-0.5 -bottom-0.5 size-2 rounded-full border-2 border-[#11161f]"
+            [class.bg-emerald-400]="call.joined()"
+            [class.bg-amber-400]="!call.joined()"
+          ></span>
+        </span>
+        <span class="min-w-0 lg:hidden">
+          <span class="block truncate text-[11px] font-semibold text-emerald-200">
+            {{ call.joined() ? 'Voice connected' : 'Rejoin call' }}
+          </span>
+          <span class="block truncate text-[10px] text-app-muted">
+            {{ activeCall.serverName }} · #{{ activeCall.channelName }}
+          </span>
+        </span>
+      </a>
+
+      <div class="mt-2 flex gap-1 lg:flex-col">
+        <button
+          type="button"
+          (click)="toggleMic()"
+          [disabled]="!call.connected() || call.micPending()"
+          class="grid h-8 flex-1 place-items-center rounded-lg bg-white/5 text-app-muted transition hover:bg-white/10 hover:text-white disabled:opacity-40 lg:w-full"
+          [attr.aria-label]="call.micEnabled() ? 'Mute microphone' : 'Unmute microphone'"
+          [title]="call.micEnabled() ? 'Mute microphone' : 'Unmute microphone'"
+        >
+          <app-icon [name]="call.micEnabled() ? 'mic' : 'mic-off'" [size]="13" />
+        </button>
+        <button
+          type="button"
+          (click)="leaveCall()"
+          class="grid h-8 flex-1 place-items-center rounded-lg bg-rose-500/15 text-rose-300 transition hover:bg-rose-500/25 hover:text-rose-200 lg:w-full"
+          aria-label="Leave call"
+          title="Leave call"
+        >
+          <app-icon name="leave-call" [size]="13" />
+        </button>
+      </div>
+    </div>
+  }
 
   <div class="relative mt-2 shrink-0 px-2">
     <button

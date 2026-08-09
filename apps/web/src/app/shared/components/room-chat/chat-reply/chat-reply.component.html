@@ -2,7 +2,7 @@
   @if (docked()) {
     <!-- Sits as the top section of the composer's own rounded box (see [docked]). -->
     <div class="flex items-center gap-2 border-b border-white/8 px-4 py-2.5">
-      <app-icon name="reply" class="size-3.5 shrink-0 text-app-muted" />
+      <app-icon name="reply" class="size-4 shrink-0 text-app-muted" [size]="16" />
       <p class="min-w-0 flex-1 truncate text-xs text-app-muted">
         Replying to
         <span class="font-semibold text-app-foreground">{{ preview.authorName }}</span>
@@ -10,11 +10,11 @@
       <button
         type="button"
         (click)="cancelReply.emit()"
-        class="grid size-6 shrink-0 place-items-center rounded-md text-app-muted outline-none transition-colors hover:bg-white/8 hover:text-app-foreground"
+        class="grid size-9 shrink-0 place-items-center rounded-md text-app-muted outline-none transition-colors hover:bg-white/8 hover:text-app-foreground"
         aria-label="Cancel reply"
         title="Cancel reply"
       >
-        <app-icon name="close" class="size-3.5" />
+        <app-icon name="close" class="size-4.5" [size]="18" />
       </button>
     </div>
   } @else {
@@ -32,11 +32,11 @@
         <button
           type="button"
           (click)="cancelReply.emit()"
-          class="grid size-8 shrink-0 place-items-center rounded-md text-[#7d8898] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:bg-white/[0.07] focus-visible:text-white"
+          class="grid size-9 shrink-0 place-items-center rounded-md text-[#7d8898] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:bg-white/[0.07] focus-visible:text-white"
           aria-label="Cancel reply"
           title="Cancel reply"
         >
-          <app-icon name="close" class="size-4" />
+          <app-icon name="close" class="size-4.5" [size]="18" />
         </button>
       </div>
     </div>
@@ -46,8 +46,8 @@
     type="button"
     (click)="onReply()"
     aria-label="Reply to message"
-    class="grid size-8 shrink-0 place-items-center rounded-md text-[#929db0] outline-none transition-colors hover:bg-white/8 hover:text-white focus-visible:bg-white/8 focus-visible:text-white focus-visible:ring-1 focus-visible:ring-violet-400/70"
+    class="grid size-9 shrink-0 place-items-center rounded-md text-[#929db0] outline-none transition-colors hover:bg-white/8 hover:text-white focus-visible:bg-white/8 focus-visible:text-white focus-visible:ring-1 focus-visible:ring-violet-400/70"
   >
-    <app-icon name="reply" aria-hidden="true" class="size-3.5" />
+    <app-icon name="reply" aria-hidden="true" class="size-4.5" [size]="18" />
   </button>
 }

@@ -3,10 +3,11 @@ import type { AccountSetting, UpdateAccountSettingsRequest } from '@lobby/shared
 import { UpdateAccountSettingsRequestSchema } from '@lobby/shared';
 import { SameUserGuard } from '../../common/guards/same-user.guard';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
+import { RegisteredUserGuard } from '../../common/guards/registered-user.guard';
 import { ZodValidationPipe } from '../../zod-validation.pipe';
 import { AccountSettingsService } from './account-settings.service';
 
-@UseGuards(SupabaseAuthGuard, SameUserGuard)
+@UseGuards(SupabaseAuthGuard, RegisteredUserGuard, SameUserGuard)
 @Controller('users/:userId/account-settings')
 export class AccountSettingsController {
   constructor(private readonly accountSettings: AccountSettingsService) {}

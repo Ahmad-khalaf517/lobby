@@ -1,7 +1,7 @@
 @if (infoBannerText(); as bannerText) {
   <div class="shrink-0 border-b border-white/6 bg-primary/[0.035] px-4 py-2.5">
     <p class="flex items-start gap-2 text-[11px] leading-5 text-[#8f9bad]">
-      <app-icon name="info" class="mt-0.5 size-3.5 shrink-0 text-[#9c88ff]" />
+      <app-icon name="info" class="mt-0.5 size-4 shrink-0 text-[#9c88ff]" [size]="16" />
       <span>{{ bannerText }}</span>
     </p>
   </div>
@@ -25,7 +25,11 @@
           [class.mx-auto]="emptyStateVariant() === 'centered'"
           class="grid size-11 place-items-center rounded-xl border border-white/[0.06] bg-surface text-[#a99bff]"
         >
-          <app-icon [name]="emptyStateVariant() === 'channel' ? 'hash' : 'chat'" [size]="16" />
+          <app-icon
+            [name]="emptyStateVariant() === 'channel' ? 'hash' : 'chat'"
+            class="size-4.5"
+            [size]="18"
+          />
         </span>
         @if (emptyStateTitle()) {
           <p class="mt-4 text-lg font-semibold text-app-foreground">{{ emptyStateTitle() }}</p>
@@ -66,9 +70,9 @@
     <button
       type="button"
       (click)="jumpToNewestMessage()"
-      class="absolute -top-12 left-1/2 z-20 flex h-8 -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border border-white/9 bg-[#171e2a]/96 px-3 text-[11px] font-medium text-[#d9deea] shadow-[0_12px_30px_rgba(0,0,0,0.42)] backdrop-blur-xl transition hover:bg-[#1d2635] hover:text-white"
+      class="absolute -top-12 left-1/2 z-20 flex h-9 -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border border-white/9 bg-[#171e2a]/96 px-3.5 text-[11px] font-medium text-[#d9deea] shadow-[0_12px_30px_rgba(0,0,0,0.42)] backdrop-blur-xl transition hover:bg-[#1d2635] hover:text-white"
     >
-      <app-icon name="chevron-down" class="size-3.5" />
+      <app-icon name="chevron-down" class="size-4" [size]="16" />
       @if (unreadCount() > 0) {
         <span>{{ unreadCount() }} new message{{ unreadCount() === 1 ? '' : 's' }}</span>
       } @else {

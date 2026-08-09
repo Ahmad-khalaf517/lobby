@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterOutlet } from '@angular/router';
 import { LoadingStateComponent } from '../../../shared/ui/loading-state/loading-state.component';
 import { DashboardStore } from '../services/dashboard.store';
 import { ServersService } from '../services/servers.service';
+import { SessionScopeService } from '../../../core/session-scope.service';
 
 /**
  * Owns just enough server-level state to redirect a bare
@@ -26,6 +27,7 @@ export class ServerShell {
   private readonly serversService = inject(ServersService);
   private readonly dashboardStore = inject(DashboardStore);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly sessionScope = inject(SessionScopeService);
 
   protected readonly loading = signal(true);
 
@@ -37,6 +39,7 @@ export class ServerShell {
   }
 
   private async redirectToFirstChannelIfBare(serverId: string): Promise<void> {
+    const scope = this.sessionScope.capture();
     if (this.route.snapshot.firstChild !== null) {
       this.loading.set(false);
       return;
@@ -45,6 +48,7 @@ export class ServerShell {
     this.loading.set(true);
     try {
       const server = await this.serversService.getServer(serverId);
+      if (!this.sessionScope.isCurrent(scope)) return;
       this.dashboardStore.cacheChannels(server.id, server.channels);
       if (server.channels.length > 0) {
         await this.router.navigate(['/app/servers', server.id, 'channels', server.channels[0].id], {

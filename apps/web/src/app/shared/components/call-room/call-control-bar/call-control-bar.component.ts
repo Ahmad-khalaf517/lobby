@@ -21,6 +21,7 @@ export class CallControlBarComponent {
   screenShareDisabledReason = input<string | null>(null);
   participantCount = input(0);
   chatOpen = input(false);
+  showRoomChatToggle = input(true);
 
   /** Opt-in — guest rooms show their own chat-panel toggle in the page header instead. */
   showChatToggle = input(false);

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { UserProfile } from '@lobby/shared';
+import type { User } from '@supabase/supabase-js';
 import type { Database } from '../../database/database.types';
 import { SupabaseService } from '../database/supabase.service';
 import { toUserProfile } from './users.mappers';
@@ -14,22 +15,24 @@ const AVATAR_BUCKET = 'avatars';
 export class UsersRepository {
   constructor(private readonly supabase: SupabaseService) {}
 
-  /**
-   * Profiles are scaffolded lazily: the first time a user is looked up
-   * with no row yet, one is created with sane defaults. Mirrors
-   * ServersRepository#ensureUserExists so both modules stay consistent.
-   */
-  async findOrCreateProfile(userId: string): Promise<UserProfile> {
+  async findProfile(userId: string): Promise<UserProfile | null> {
     const existing = await this.findRow(userId);
-    if (existing) {
-      return toUserProfile(existing);
-    }
+    return existing ? toUserProfile(existing) : null;
+  }
 
-    const fallbackName = `User ${userId.slice(0, 8)}`;
+  /** Provisioning belongs to successful registered authentication, never GET. */
+  async ensureProfile(user: User): Promise<UserProfile> {
+    const existing = await this.findRow(user.id);
+    if (existing) return toUserProfile(existing);
+
+    const metadataName = user.user_metadata?.['name'];
+    const fallbackName = `User ${user.id.slice(0, 8)}`;
+    const displayName =
+      typeof metadataName === 'string' && metadataName.trim() ? metadataName.trim() : fallbackName;
     const insert: UserInsert = {
-      id: userId,
-      name: fallbackName,
-      user_name: fallbackName.toLowerCase().replace(/\s+/g, '_'),
+      id: user.id,
+      name: displayName,
+      user_name: `user_${user.id.replace(/-/g, '').slice(0, 12)}`,
     };
 
     const { data, error } = await this.supabase.client
@@ -46,9 +49,6 @@ export class UsersRepository {
     userId: string,
     changes: { displayName?: string; bio?: string | null; userName?: string },
   ): Promise<UserProfile> {
-    // Make sure the row exists before updating (first save for this account).
-    await this.findOrCreateProfile(userId);
-
     const update: UserUpdate = {};
     if (changes.displayName !== undefined) update.name = changes.displayName;
     if (changes.bio !== undefined) update.bio = changes.bio;
@@ -66,8 +66,6 @@ export class UsersRepository {
   }
 
   async updateAvatarUrl(userId: string, avatarUrl: string | null): Promise<UserProfile> {
-    await this.findOrCreateProfile(userId);
-
     const update: UserUpdate = { avatar_url: avatarUrl };
     const { data, error } = await this.supabase.client
       .from('users')

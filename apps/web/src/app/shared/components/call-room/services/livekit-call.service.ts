@@ -10,6 +10,7 @@ import {
 } from 'livekit-client';
 
 import type { CallConnectionState, CallParticipant } from '../models/call-participant.model';
+import { SessionScopeService } from '../../../../core/session-scope.service';
 
 export type LiveKitConnectionDetails = {
   livekitUrl: string;
@@ -35,9 +36,11 @@ type AttachedRoomListeners = {
 @Injectable({ providedIn: 'root' })
 export class LiveKitCallService {
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly sessionScope = inject(SessionScopeService);
   private room: Room | null = null;
   private readonly roomListeners = new WeakMap<Room, AttachedRoomListeners>();
   private readonly audioElements = new Map<string, HTMLAudioElement>();
+  private screenShareConflictResolutionPending = false;
 
   private readonly _roomName = signal('Live room');
   private readonly _connectionState = signal<CallConnectionState>('idle');
@@ -76,9 +79,9 @@ export class LiveKitCallService {
     sharerName: string;
     isLocal: boolean;
   }>(() => {
-    const sharer = this._participants().find(
-      (participant) => participant.screenShareTrack !== null,
-    );
+    const sharer = this._participants()
+      .filter((participant) => participant.screenShareTrack !== null)
+      .sort((left, right) => left.id.localeCompare(right.id))[0];
     return {
       track: sharer?.screenShareTrack ?? null,
       sharerName: sharer?.name ?? '',
@@ -101,6 +104,10 @@ export class LiveKitCallService {
     }
     return null;
   });
+
+  constructor() {
+    this.sessionScope.registerCleanup(() => this.disconnect());
+  }
 
   async connect(details: LiveKitConnectionDetails): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) return;
@@ -202,6 +209,7 @@ export class LiveKitCallService {
     this._participants.set([]);
     this._micPending.set(false);
     this._screenSharePending.set(false);
+    this.screenShareConflictResolutionPending = false;
     this.cleanupAudioElements();
 
     if (!room) return;
@@ -335,6 +343,7 @@ export class LiveKitCallService {
         this._participants.set([]);
         this._micPending.set(false);
         this._screenSharePending.set(false);
+        this.screenShareConflictResolutionPending = false;
         this._connectionState.set('disconnected');
         break;
       case ConnectionState.Connecting:
@@ -371,6 +380,35 @@ export class LiveKitCallService {
       left.isLocal ? -1 : right.isLocal ? 1 : left.name.localeCompare(right.name),
     );
     this._participants.set(participants);
+    this.resolveScreenShareConflict(room, participants);
+  }
+
+  private resolveScreenShareConflict(room: Room, participants: CallParticipant[]): void {
+    const sharers = participants
+      .filter((participant) => participant.screenShareTrack !== null)
+      .sort((left, right) => left.id.localeCompare(right.id));
+    const local = sharers.find((participant) => participant.isLocal);
+
+    // Normal starts are blocked before publishing. If two users start in the
+    // same instant, every client chooses the same identity as the winner and
+    // only the losing client stops its own track.
+    if (
+      sharers.length < 2 ||
+      !local ||
+      local.id === sharers[0]?.id ||
+      this.screenShareConflictResolutionPending
+    ) {
+      return;
+    }
+
+    this.screenShareConflictResolutionPending = true;
+    void room.localParticipant
+      .setScreenShareEnabled(false)
+      .catch(() => undefined)
+      .finally(() => {
+        this.screenShareConflictResolutionPending = false;
+        this.refreshParticipants(room);
+      });
   }
 
   private cleanupAudioElements(): void {
