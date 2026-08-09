@@ -1,0 +1,231 @@
+@if (server() === null) {
+  <app-loading-state message="Opening this channel…" />
+} @else {
+  <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-app-background">
+    <nav
+      aria-label="Channels"
+      class="flex h-12 shrink-0 items-center gap-1 border-b border-[#232a38] px-3 sm:px-5"
+    >
+      <div
+        #tabScroller
+        class="relative flex h-full min-w-0 flex-1 items-center gap-1 overflow-x-auto lobby-scrollbar"
+      >
+        @for (tabChannel of server()?.channels ?? []; track tabChannel.id) {
+          <div class="group relative flex h-full shrink-0 items-center">
+            <a
+              #tabLink
+              [routerLink]="['/app/servers', server()?.id, 'channels', tabChannel.id]"
+              routerLinkActive="text-app-foreground font-medium"
+              [attr.aria-current]="tabChannel.id === channelId() ? 'page' : null"
+              class="flex h-8 shrink-0 items-center gap-1.5 px-3 text-[13px] text-app-muted transition hover:text-app-foreground"
+              [class.pr-6]="isOwner()"
+            >
+              <app-icon name="hash" [size]="14" class="shrink-0" />
+              {{ tabChannel.name }}
+            </a>
+
+            @if (isOwner()) {
+              <button
+                type="button"
+                data-channel-menu-scope
+                (click)="toggleChannelMenu(tabChannel.id, $event)"
+                aria-label="Channel options"
+                class="absolute right-0.5 grid size-6 shrink-0 place-items-center rounded-md text-app-muted opacity-0 transition hover:bg-surface-hover hover:text-app-foreground group-hover:opacity-100 focus-visible:opacity-100"
+                [class.opacity-100]="channelMenuOpenFor() === tabChannel.id"
+              >
+                <app-icon name="more-vertical" [size]="13" />
+              </button>
+            }
+          </div>
+        }
+
+        @if (tabIndicator(); as indicator) {
+          <span
+            class="pointer-events-none absolute bottom-0 h-0.5 rounded-full bg-blue-500 transition-[left,width] duration-200 ease-out"
+            [style.left.px]="indicator.left"
+            [style.width.px]="indicator.width"
+          ></span>
+        }
+      </div>
+
+      <div class="ml-1 flex shrink-0 items-center gap-1">
+        @if (!showSplitView()) {
+          @if (channelStatus() === null) {
+            <span
+              class="grid size-8 shrink-0 place-items-center text-app-muted"
+              aria-label="Checking call status"
+              title="Checking call status"
+            >
+              <span class="size-1.5 animate-pulse rounded-full bg-app-muted/60"></span>
+            </span>
+          } @else {
+            <button
+              type="button"
+              [disabled]="callJoining()"
+              aria-label="Start call"
+              title="Start call"
+              class="grid relative size-8 shrink-0 place-items-center rounded-lg transition hover:bg-surface-hover hover:text-app-foreground disabled:opacity-60"
+              [class]="callJoining() ? 'text-muted' : 'bg-green-500 text-white'"
+            >
+              @if (callJoining()) {
+                <span
+                  class="size-3.5 animate-spin rounded-full border-2 border-app-white border-t-app-muted"
+                ></span>
+              } @else {
+                <app-icon name="call" [size]="15" />
+              }
+            </button>
+          }
+        }
+
+        <button
+          type="button"
+          aria-label="Add channel"
+          (click)="startAddingChannel()"
+          class="grid size-8 shrink-0 place-items-center rounded-lg text-app-muted transition hover:bg-surface-hover hover:text-app-foreground"
+          title="Add Channel"
+        >
+          <app-icon name="plus" [size]="15" />
+        </button>
+
+        <button
+          type="button"
+          (click)="mobileChatOpen.set(true)"
+          aria-label="Open chat"
+          class="grid size-8 shrink-0 place-items-center rounded-lg text-app-muted transition hover:bg-surface-hover hover:text-app-foreground lg:hidden"
+        >
+          <app-icon name="chat" [size]="15" />
+        </button>
+      </div>
+    </nav>
+
+    @if (callError()) {
+      <div
+        class="border-b border-destructive/20 bg-destructive/10 px-5 py-2 text-xs text-destructive"
+      >
+        {{ callError() }}
+      </div>
+    }
+
+    <div #callWorkspace class="flex min-h-0 flex-1 overflow-hidden bg-app-background">
+      @if (!showSplitView()) {
+        <app-room-chat
+          [showHeader]="false"
+          emptyStateVariant="channel"
+          emptyStateTitle=""
+          emptyStateSubtitle="No messages yet — say something to get started."
+          [placeholder]="'Message #' + (channel()?.name ?? 'channel')"
+          [showCloseButton]="false"
+        />
+      } @else {
+        @if (!chatCollapsed()) {
+          <aside
+            class="hidden w-[380px] shrink-0 border-l border-[#171d2a] bg-[#0d121b] lg:flex lg:flex-col"
+          >
+            <app-room-chat
+              [title]="channel()?.name ?? 'Channel'"
+              [subtitle]="roster().length + ' member' + (roster().length === 1 ? '' : 's')"
+              emptyStateVariant="channel"
+              emptyStateTitle=""
+              emptyStateSubtitle="No messages yet — say something to get started."
+              [placeholder]="'Message #' + (channel()?.name ?? 'channel')"
+              [showCloseButton]="false"
+            />
+          </aside>
+        }
+      }
+    </div>
+  </div>
+
+  @if (mobileChatOpen()) {
+    <div class="fixed inset-0 z-50 flex flex-col bg-app-background lg:hidden">
+      <app-room-chat
+        [title]="channel()?.name ?? 'Channel'"
+        [subtitle]="roster().length + ' member' + (roster().length === 1 ? '' : 's')"
+        emptyStateVariant="channel"
+        emptyStateTitle=""
+        emptyStateSubtitle="No messages yet — say something to get started."
+        [placeholder]="'Message #' + (channel()?.name ?? 'channel')"
+        [showCloseButton]="true"
+        (close)="mobileChatOpen.set(false)"
+      />
+    </div>
+  }
+
+  @if (channelMenuOpenFor(); as menuChannelId) {
+    <div
+      data-channel-menu-scope
+      class="fixed z-50 w-44 space-y-0.5 rounded-xl border border-[#232a38] bg-[#0d121b] p-1.5 shadow-2xl"
+      [style.top.px]="channelMenuPosition()?.top"
+      [style.left.px]="channelMenuPosition()?.left"
+    >
+      @for (menuChannel of server()?.channels ?? []; track menuChannel.id) {
+        @if (menuChannel.id === menuChannelId) {
+          <button
+            type="button"
+            (click)="renameChannel(menuChannel)"
+            class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] text-app-foreground transition hover:bg-surface-hover"
+          >
+            <app-icon name="edit" [size]="13" />
+            Rename
+          </button>
+          <button
+            type="button"
+            (click)="requestDeleteChannel(menuChannel)"
+            class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] text-destructive transition hover:bg-destructive/10"
+          >
+            <app-icon name="delete" [size]="13" />
+            Delete
+          </button>
+        }
+      }
+    </div>
+  }
+
+  <app-confirm-modal
+    [open]="deleteTarget() !== null"
+    title="Delete channel"
+    icon="delete"
+    [message]="
+      'Delete #' +
+      (deleteTarget()?.name ?? '') +
+      '? Messages in this channel will be gone for good.'
+    "
+    confirmLabel="Delete channel"
+    savingLabel="Deleting…"
+    [saving]="deleteSaving()"
+    [errorMessage]="deleteError()"
+    (confirmed)="submitDeleteChannel()"
+    (cancel)="cancelDeleteChannel()"
+  />
+
+  <app-prompt-modal
+    [open]="renameTarget() !== null"
+    title="Rename channel"
+    [subtitle]="renameTarget() ? '#' + renameTarget()!.name : null"
+    icon="hash"
+    label="Channel name"
+    [initialValue]="renameTarget()?.name ?? ''"
+    [maxLength]="maxChannelNameLength"
+    [saving]="renameSaving()"
+    [errorMessage]="renameError()"
+    (save)="submitRenameChannel($event)"
+    (cancel)="cancelRenameChannel()"
+  />
+
+  <app-prompt-modal
+    [open]="addChannelOpen()"
+    title="Create channel"
+    subtitle="Channels are text + audio"
+    icon="hash"
+    label="Channel name"
+    placeholder="#general"
+    confirmLabel="Create channel"
+    savingLabel="Creating…"
+    [maxLength]="maxChannelNameLength"
+    [saving]="addChannelSaving()"
+    [errorMessage]="addChannelError()"
+    (save)="submitNewChannel($event)"
+    (cancel)="cancelAddingChannel()"
+  />
+}

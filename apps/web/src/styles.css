@@ -52,6 +52,17 @@ select {
   font: inherit;
 }
 
+/* Browsers default <button> to `cursor: default`, not `pointer` — unlike
+   <a>, so every icon/button control in the app needs this to actually read
+   as clickable. Set once here instead of per-button so nothing gets missed. */
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
 app-root {
   display: block;
 }
@@ -101,6 +112,7 @@ body:has(.lobby-navbar) app-route-progress {
     opacity: 0;
     transform: translateX(-1.25rem);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -179,7 +191,7 @@ body:has(.lobby-navbar) app-route-progress {
   }
 
   .auth-submit {
-    @apply inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(124,92,252,0.24)] transition hover:bg-[#8b6dff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b69cff]/70 disabled:cursor-not-allowed disabled:opacity-65;
+    @apply inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(124, 92, 252, 0.24)] transition hover:bg-[#8b6dff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b69cff]/70 disabled:cursor-not-allowed disabled:opacity-65;
   }
 
   .auth-spinner {
@@ -192,6 +204,7 @@ body:has(.lobby-navbar) app-route-progress {
   100% {
     transform: translate3d(0, 0, 0);
   }
+
   50% {
     transform: translate3d(0, -7px, 0);
   }
@@ -202,6 +215,7 @@ body:has(.lobby-navbar) app-route-progress {
     opacity: 0;
     transform: translateY(12px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -229,4 +243,20 @@ body:has(.lobby-navbar) app-route-progress {
     min-width: 2.25rem;
     min-height: 2.25rem;
   }
+}
+
+@keyframes lobby-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@utility lobby-toast-in {
+  animation: lobby-toast-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
 }

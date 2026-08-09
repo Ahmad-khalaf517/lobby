@@ -94,6 +94,16 @@ export class RoomChatComponent {
   /** Shows/hides the close button in the header. */
   showCloseButton = input<boolean>(true);
 
+  /** Allows page shells that already own the room header to avoid a duplicate header band. */
+  showHeader = input<boolean>(true);
+
+  /** Empty-state presentation: centered for panels, channel intro for full-page conversation views. */
+  emptyStateVariant = input<'centered' | 'channel'>('centered');
+  emptyStateTitle = input<string>('Start the conversation');
+  emptyStateSubtitle = input<string>(
+    'Messages, replies, and reactions will appear here in realtime.',
+  );
+
   /** Emoji set for the reaction menu + composer picker. */
   emojis = input<string[]>(DEFAULT_CHAT_EMOJIS);
 

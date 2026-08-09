@@ -54,7 +54,7 @@
         (input)="onComposerInput()"
         (keydown)="onMentionKeydown($event)"
         (blur)="onComposerBlur()"
-        class="h-10 min-w-0 flex-1 bg-transparent px-2 text-[13px] leading-none text-[#eef1f6] outline-none placeholder:text-[#626f82]"
+        class="h-14 min-w-0 flex-1 bg-transparent px-2 text-[13px] leading-none text-[#eef1f6] outline-none placeholder:text-[#6f7b8e]"
       />
 
       <div #emojiPickerHost class="relative flex shrink-0">
@@ -67,7 +67,7 @@
           [attr.aria-expanded]="emojiPickerOpen()"
           aria-haspopup="true"
         >
-          <app-icon name="smile" class="size-4" />
+          <app-icon name="smile" [size]="16" />
         </button>
 
         @if (emojiPickerOpen()) {
@@ -99,7 +99,7 @@
         aria-label="Send message"
         title="Send"
       >
-        <app-icon name="send" class="size-3.5" />
+        <app-icon name="send" [size]="16" />
       </button>
     </div>
   </div>

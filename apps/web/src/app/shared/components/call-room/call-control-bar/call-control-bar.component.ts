@@ -22,6 +22,10 @@ export class CallControlBarComponent {
   participantCount = input(0);
   chatOpen = input(false);
 
+  /** Opt-in — guest rooms show their own chat-panel toggle in the page header instead. */
+  showChatToggle = input(false);
+  chatVisible = input(true);
+
   readonly toggleMic = output<void>();
   readonly toggleScreenShare = output<void>();
   readonly toggleParticipants = output<void>();

@@ -40,6 +40,11 @@ import {
 })
 export class ChatSidebarComponent {
   infoBannerText = input<string | null>(null);
+  emptyStateVariant = input<'centered' | 'channel'>('centered');
+  emptyStateTitle = input<string>('Start the conversation');
+  emptyStateSubtitle = input<string>(
+    'Messages, replies, and reactions will appear here in realtime.',
+  );
   messages = input<ChatMessage[]>([]);
   currentUserId = input<string>('');
   memberNames = input<string[]>([]);

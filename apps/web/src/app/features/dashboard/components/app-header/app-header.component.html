@@ -1,0 +1,311 @@
+<header
+  class="flex h-16 shrink-0 items-center gap-3 border-b border-[#232a38] bg-app-background px-3 sm:px-5"
+>
+  <button
+    type="button"
+    aria-label="Open sidebar"
+    (click)="menuToggle.emit()"
+    class="grid size-9 shrink-0 place-items-center rounded-xl text-app-muted transition hover:bg-surface-hover lg:hidden"
+  >
+    <app-icon name="menu" [size]="18" />
+  </button>
+
+  <div class="grid size-10 shrink-0 place-items-center rounded-xl bg-surface">
+    <app-logo [size]="18" [decorative]="true" />
+  </div>
+
+  <p class="shrink-0 text-base font-semibold text-app-foreground">Lobby</p>
+
+  <div class="hidden h-7 w-px shrink-0 bg-app-border sm:block"></div>
+
+  <div class="relative hidden min-w-0 leading-tight sm:block">
+    @if (activeServer(); as server) {
+      <div class="flex items-center gap-1.5">
+        <p class="truncate text-[13px] font-semibold text-app-foreground">{{ server.name }}</p>
+        @if (isServerOwner()) {
+          <button
+            type="button"
+            (click)="renameServer()"
+            aria-label="Rename space"
+            title="Rename space"
+            class="grid size-5 shrink-0 place-items-center rounded text-app-muted transition hover:bg-surface-hover hover:text-app-foreground"
+          >
+            <app-icon name="edit" [size]="14" />
+          </button>
+        }
+      </div>
+    } @else {
+      <p class="truncate text-[13px] font-semibold text-app-foreground">Your spaces</p>
+    }
+    <p class="truncate text-[11px] text-app-muted/80">Community workspace</p>
+  </div>
+
+  <div class="ml-auto flex items-center gap-3">
+    @if (activeServer(); as server) {
+      <div class="relative">
+        <button
+          type="button"
+          (click)="openMembersPanel()"
+          [attr.aria-label]="'Show space members, ' + roster().length + ' members'"
+          title="Space members"
+          class="relative grid size-9 place-items-center rounded-xl text-app-muted transition hover:bg-surface-hover"
+        >
+          <app-icon name="users" [size]="14" />
+          <span class="absolute right-2 top-2 text-sm size-1.5 rounded-full bg-green-500"></span>
+          <!-- <span class="absolute right-2 top-0 text-sm size-1.5 rounded-full text-green-500">{{
+            roster().length
+          }}</span> -->
+        </button>
+      </div>
+    }
+
+    <div class="relative">
+      <button
+        type="button"
+        aria-label="Notifications"
+        (click)="toggleNotifications()"
+        class="relative grid size-9 place-items-center rounded-xl text-app-muted transition hover:bg-surface-hover"
+      >
+        <app-icon name="bell" [size]="16" />
+        <span class="absolute right-2 top-2 size-1.5 rounded-full bg-destructive"></span>
+      </button>
+
+      @if (notificationsOpen()) {
+        <div
+          class="absolute right-0 top-[calc(100%+6px)] z-30 w-64 rounded-xl border border-[#171d2a] bg-[#0d121b] p-4 shadow-2xl"
+        >
+          <p class="text-sm font-medium text-app-foreground">Notifications</p>
+          <p class="mt-2 text-xs text-app-muted">You're all caught up — nothing new yet.</p>
+        </div>
+      }
+    </div>
+
+    <div class="relative">
+      <button
+        type="button"
+        aria-haspopup="true"
+        [attr.aria-expanded]="accountMenuOpen()"
+        (click)="toggleAccountMenu()"
+        class="flex items-center gap-2 rounded-xl py-1 pr-1.5 pl-1 transition hover:bg-surface-hover"
+      >
+        <app-chat-avatar
+          [name]="displayName()"
+          [avatarUrl]="myProfile()?.avatarUrl ?? null"
+          size="sm"
+          [status]="'online'"
+        />
+      </button>
+
+      @if (accountMenuOpen()) {
+        <div
+          class="absolute right-0 top-[calc(100%+6px)] z-30 w-52 space-y-0.5 rounded-xl border border-[#171d2a] bg-[#0d121b] p-1.5 shadow-2xl"
+        >
+          <button
+            type="button"
+            (click)="openMyProfile()"
+            class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] text-app-foreground transition hover:bg-surface-hover"
+          >
+            <app-icon name="user" [size]="16" />
+            My profile
+          </button>
+          <button
+            type="button"
+            (click)="openSettings()"
+            class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] text-app-foreground transition hover:bg-surface-hover"
+          >
+            <app-icon name="settings" [size]="16" />
+            Account settings
+          </button>
+          <button
+            type="button"
+            (click)="logout()"
+            class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] text-destructive transition hover:bg-surface-hover"
+          >
+            <app-icon name="logout" [size]="16" />
+            Log out
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</header>
+
+@if (membersPanelOpen()) {
+  <div class="fixed inset-0 z-50">
+    <button
+      type="button"
+      class="absolute inset-0 cursor-default bg-black/65 backdrop-blur-[2px]"
+      (click)="closeMembersPanel()"
+      aria-label="Close space members panel"
+    ></button>
+
+    <aside
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="space-members-panel-title"
+      class="absolute inset-y-0 right-0 flex w-[min(92vw,23.5rem)] flex-col overflow-hidden border-l border-[#171d2a] bg-[#0d121b] shadow-[-24px_0_70px_rgba(0,0,0,0.48)]"
+    >
+      <header
+        class="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-[#171d2a] px-4"
+      >
+        <div class="flex min-w-0 items-center gap-3">
+          <div
+            class="grid size-9 shrink-0 place-items-center rounded-lg border border-app-border bg-surface text-app-muted"
+          >
+            <app-icon name="users" [size]="16" />
+          </div>
+          <div class="min-w-0">
+            <div class="flex min-w-0 items-center gap-2">
+              <h2
+                id="space-members-panel-title"
+                class="truncate text-sm font-semibold text-app-foreground"
+              >
+                Space members
+              </h2>
+              <span
+                class="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-md bg-surface px-1.5 text-[10px] font-medium tabular-nums text-app-muted"
+              >
+                {{ roster().length }}
+              </span>
+            </div>
+            <p class="mt-0.5 truncate text-[10px] text-app-muted">
+              Everyone in {{ activeServer()?.name ?? 'this space' }}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          (click)="closeMembersPanel()"
+          aria-label="Close members panel"
+          class="grid size-9 shrink-0 place-items-center rounded-lg text-app-muted transition hover:bg-surface-hover hover:text-app-foreground"
+        >
+          <app-icon name="close" [size]="14" />
+        </button>
+      </header>
+
+      <div class="min-h-0 flex-1 overflow-y-auto p-3 lobby-scrollbar">
+        <!-- Anyone can copy + share the invite link; joining itself needs no extra grant. -->
+        <button
+          type="button"
+          (click)="copyJoinLink()"
+          class="mb-3 flex w-full items-center gap-2.5 rounded-lg border border-dashed border-app-border px-3 py-2.5 text-left text-[12px] text-app-muted transition hover:border-primary/40 hover:bg-surface-hover hover:text-app-foreground"
+        >
+          <app-icon name="link" [size]="14" />
+          <span class="min-w-0 flex-1 truncate">Copy join link</span>
+          <app-icon name="copy" [size]="13" />
+        </button>
+
+        @if (isServerOwner()) {
+          <div class="mb-3 rounded-lg border border-app-border">
+            <button
+              type="button"
+              (click)="toggleAddMember()"
+              class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-[12px] font-medium text-app-foreground transition hover:bg-surface-hover"
+            >
+              <app-icon name="user-plus" [size]="14" />
+              <span class="flex-1">Add member</span>
+              <app-icon
+                name="chevron-down"
+                [size]="13"
+                class="text-app-muted transition"
+                [class.rotate-180]="addMemberOpen()"
+              />
+            </button>
+
+            @if (addMemberOpen()) {
+              <div class="space-y-2 border-t border-app-border p-3">
+                <input
+                  type="text"
+                  placeholder="Search by username"
+                  [value]="memberQuery()"
+                  (input)="onMemberSearchInput($event)"
+                  class="min-h-9 w-full rounded-lg border border-white/10 bg-[#16161d] px-3 text-[13px] text-app-foreground outline-none transition placeholder:text-[#687282] focus:border-primary/50"
+                />
+
+                @if (memberSearching()) {
+                  <p class="px-1 text-[12px] text-app-muted">Searching…</p>
+                } @else if (memberSearchResults().length > 0) {
+                  <div class="space-y-1.5">
+                    @for (result of memberSearchResults(); track result.userId) {
+                      <div class="flex items-center gap-2.5 rounded-lg bg-[#141821] px-2.5 py-2">
+                        <app-chat-avatar
+                          [name]="result.displayName"
+                          [avatarUrl]="result.avatarUrl"
+                          size="sm"
+                        />
+                        <span class="min-w-0 flex-1 truncate text-[12px] text-app-foreground">{{
+                          result.displayName
+                        }}</span>
+                        <button
+                          type="button"
+                          (click)="addMember(result)"
+                          [disabled]="addingMemberId() === result.userId"
+                          class="shrink-0 rounded-lg bg-primary px-2.5 py-1.5 text-[11px] font-medium text-white transition hover:bg-[#8b6dff] disabled:opacity-60"
+                        >
+                          {{ addingMemberId() === result.userId ? 'Adding…' : 'Add' }}
+                        </button>
+                      </div>
+                    }
+                  </div>
+                } @else if (memberQuery().trim().length > 0) {
+                  <p class="px-1 text-[12px] text-app-muted">No matching users.</p>
+                }
+
+                @if (memberActionError(); as error) {
+                  <p class="px-1 text-[12px] text-destructive">{{ error }}</p>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        @for (member of roster(); track member.id) {
+          <div
+            class="flex items-center gap-3 rounded-lg px-2.5 py-2 transition hover:bg-surface-hover"
+          >
+            <app-chat-avatar [name]="member.name" [avatarUrl]="member.avatarUrl" size="sm" />
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-[13px] text-app-foreground">{{ member.name }}</p>
+            </div>
+            @if (member.userId === currentUserId()) {
+              <span class="shrink-0 text-[10px] font-medium text-app-muted">YOU</span>
+            }
+            @if (member.role === 'owner') {
+              <span class="shrink-0 text-[10px] font-medium text-primary">OWNER</span>
+            }
+            @if (isServerOwner() && member.userId !== currentUserId()) {
+              <button
+                type="button"
+                (click)="removeMember(member)"
+                [disabled]="removingMemberId() === member.userId"
+                [attr.aria-label]="'Remove ' + member.name"
+                title="Remove member"
+                class="grid size-7 shrink-0 place-items-center rounded-lg text-app-muted transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-60"
+              >
+                <app-icon name="user-minus" [size]="13" />
+              </button>
+            }
+          </div>
+        } @empty {
+          <p class="px-2.5 py-6 text-center text-[12px] text-app-muted">No members to show yet.</p>
+        }
+      </div>
+    </aside>
+  </div>
+}
+
+<app-prompt-modal
+  [open]="renameModalOpen()"
+  title="Rename space"
+  [subtitle]="activeServer()?.name ?? null"
+  icon="layout-grid"
+  label="Space name"
+  [initialValue]="activeServer()?.name ?? ''"
+  [maxLength]="maxServerNameLength"
+  [saving]="renameSaving()"
+  [errorMessage]="renameError()"
+  (save)="submitRenameServer($event)"
+  (cancel)="cancelRenameServer()"
+/>
+<app-settings-popup />
+<app-profile-popup />

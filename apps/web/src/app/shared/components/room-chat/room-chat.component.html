@@ -1,36 +1,41 @@
-<div class="flex min-h-0 min-w-0 flex-1 flex-col bg-[#0d121b]">
-  <header
-    class="flex h-14 shrink-0 items-center gap-3 border-b border-white/[0.07] bg-[#0e131d]/94 px-4 backdrop-blur-xl"
-  >
-    <div class="flex shrink-0 items-center">
-      <ng-content select="[chat-header-leading]" />
-    </div>
+<div class="flex min-h-0 min-w-0 flex-1 flex-col bg-app-background">
+  @if (showHeader()) {
+    <header
+      class="flex h-14 shrink-0 items-center gap-3 border-b border-white/[0.07] bg-[#0e131d]/94 px-4 backdrop-blur-xl"
+    >
+      <div class="flex shrink-0 items-center">
+        <ng-content select="[chat-header-leading]" />
+      </div>
 
-    <div class="min-w-0 flex-1">
-      <p class="truncate text-sm font-semibold leading-5 text-white">{{ title() }}</p>
-      @if (subtitle()) {
-        <p class="truncate text-[10px] font-normal leading-4 text-[#748095]">{{ subtitle() }}</p>
-      }
-    </div>
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-sm font-semibold leading-5 text-white">{{ title() }}</p>
+        @if (subtitle()) {
+          <p class="truncate text-[10px] font-normal leading-4 text-[#748095]">{{ subtitle() }}</p>
+        }
+      </div>
 
-    <div class="flex shrink-0 items-center gap-2">
-      <ng-content select="[chat-header-extra]" />
-      @if (showCloseButton()) {
-        <button
-          type="button"
-          (click)="onClose()"
-          aria-label="Close chat"
-          title="Close chat"
-          class="grid size-8 place-items-center rounded-lg border border-white/8 bg-white/2.5 text-[#9da8b8] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60"
-        >
-          <app-icon name="close" class="size-3.5" />
-        </button>
-      }
-    </div>
-  </header>
+      <div class="flex shrink-0 items-center gap-2">
+        <ng-content select="[chat-header-extra]" />
+        @if (showCloseButton()) {
+          <button
+            type="button"
+            (click)="onClose()"
+            aria-label="Close chat"
+            title="Close chat"
+            class="grid size-8 place-items-center rounded-lg border border-white/8 bg-white/2.5 text-[#9da8b8] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60"
+          >
+            <app-icon name="close" class="size-3.5" />
+          </button>
+        }
+      </div>
+    </header>
+  }
 
   <app-chat-sidebar
     [infoBannerText]="infoBannerText()"
+    [emptyStateVariant]="emptyStateVariant()"
+    [emptyStateTitle]="emptyStateTitle()"
+    [emptyStateSubtitle]="emptyStateSubtitle()"
     [messages]="messages()"
     [currentUserId]="currentUserId()"
     [memberNames]="memberNames()"

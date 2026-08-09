@@ -95,7 +95,75 @@ export const routes: Routes = [
     title: 'Dashboard | Lobby',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./features/lobby/lobby-page/lobby-page').then((component) => component.LobbyPage),
+      import('./features/dashboard/dashboard-page/dashboard-page').then(
+        (component) => component.DashboardPage,
+      ),
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./features/dashboard/dashboard-home-page/dashboard-home-page').then(
+            (component) => component.DashboardHomePage,
+          ),
+      },
+      {
+        path: 'join/:inviteCode',
+        title: 'Join Space | Lobby',
+        loadComponent: () =>
+          import('./features/dashboard/join-link-page/join-link-page').then(
+            (component) => component.JoinLinkPage,
+          ),
+      },
+      {
+        path: 'servers/:serverId',
+        loadComponent: () =>
+          import('./features/dashboard/server-shell/server-shell').then(
+            (component) => component.ServerShell,
+          ),
+        children: [
+          {
+            path: 'channels/:channelId',
+            loadComponent: () =>
+              import('./features/dashboard/channel-view/channel-view').then(
+                (component) => component.ChannelView,
+              ),
+          },
+        ],
+      },
+      {
+        path: 'friends',
+        title: 'Friends | Lobby',
+        loadComponent: () =>
+          import('./features/friends/friends-page/friends-page').then(
+            (component) => component.FriendsPage,
+          ),
+      },
+      {
+        path: 'messages',
+        title: 'Messages | Lobby',
+        loadComponent: () =>
+          import('./features/messages/messages-page/messages-page').then(
+            (component) => component.MessagesPage,
+          ),
+      },
+      {
+        path: 'messages/:friendId',
+        title: 'Messages | Lobby',
+        loadComponent: () =>
+          import('./features/messages/messages-page/messages-page').then(
+            (component) => component.MessagesPage,
+          ),
+      },
+      {
+        path: 'settings',
+        title: 'Settings | Lobby',
+        loadComponent: () =>
+          import('./features/dashboard/settings-stub-page/settings-stub-page').then(
+            (component) => component.SettingsStubPage,
+          ),
+      },
+    ],
   },
   {
     path: 'unauthorized',

@@ -9,3 +9,7 @@ export type GuestChannel = GuestDatabase['guest']['Tables']['channels']['Row'];
 export type GuestChannelMember = GuestDatabase['guest']['Tables']['channel_members']['Row'];
 export type GuestMessage = GuestDatabase['guest']['Tables']['messages']['Row'];
 export type GuestMessageReaction = GuestDatabase['guest']['Tables']['message_reactions']['Row'];
+
+export type DmConversationRow = PublicDatabase['public']['Tables']['dm_conversations']['Row'];
+export type DmMessageRow = PublicDatabase['public']['Tables']['dm_messages']['Row'];
+export type NotificationRow = PublicDatabase['public']['Tables']['notifications']['Row'];

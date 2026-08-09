@@ -1,0 +1,42 @@
+<div class="flex min-h-0 w-full flex-1 items-center justify-center bg-app-background p-6">
+  @if (store.loading()) {
+    <app-loading-state message="Loading your servers" />
+  } @else if (store.servers().length === 0) {
+    <div
+      class="flex w-full max-w-sm flex-col items-center gap-4 rounded-2xl border border-[#171d2a] bg-[#0d121b] p-8 text-center"
+    >
+      <div class="grid size-14 place-items-center rounded-2xl bg-primary/15 text-primary">
+        <app-icon name="users" [size]="26" />
+      </div>
+      <div>
+        <p class="text-base font-medium text-app-foreground">No servers yet</p>
+        <p class="mt-1 text-sm text-app-muted">
+          Create your own server or join one with an invite code.
+        </p>
+      </div>
+      <div class="flex w-full gap-2">
+        <button
+          type="button"
+          (click)="store.openJoinModal()"
+          class="h-10 flex-1 rounded-xl border border-[#171d2a] text-sm text-app-foreground transition hover:bg-surface-hover"
+        >
+          Join with code
+        </button>
+        <button
+          type="button"
+          (click)="store.openCreateModal()"
+          class="h-10 flex-1 rounded-xl bg-primary text-sm font-medium text-white transition hover:bg-primary-hover"
+        >
+          Create server
+        </button>
+      </div>
+    </div>
+  } @else {
+    <div class="flex items-center gap-2 text-sm text-app-muted">
+      <span
+        class="size-3.5 animate-spin rounded-full border-2 border-white/15 border-t-primary"
+      ></span>
+      Opening your server…
+    </div>
+  }
+</div>

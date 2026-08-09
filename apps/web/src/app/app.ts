@@ -1,14 +1,14 @@
 import { DOCUMENT } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-
 import { AppLoadingService } from './core/loading/app-loading.service';
 import { RouteProgressComponent } from './core/loading/route-progress.component';
+import { ToastContainerComponent } from './core/toast/toast-container.component';
 import { AuthService } from './features/auth/services/auth';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouteProgressComponent],
+  imports: [RouterOutlet, RouteProgressComponent, ToastContainerComponent],
   templateUrl: './app.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

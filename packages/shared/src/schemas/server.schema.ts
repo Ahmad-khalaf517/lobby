@@ -48,3 +48,8 @@ export const JoinServerRequestSchema = z.object({
   inviteCode: z.string().min(1),
 });
 export type JoinServerRequest = z.infer<typeof JoinServerRequestSchema>;
+
+export const ServerMemberListResponseSchema = z.object({
+  members: z.array(ServerMemberSchema),
+});
+export type ServerMemberListResponse = z.infer<typeof ServerMemberListResponseSchema>;

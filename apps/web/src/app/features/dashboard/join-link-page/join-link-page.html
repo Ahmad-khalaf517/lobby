@@ -1,0 +1,45 @@
+<div class="flex min-h-0 w-full flex-1 items-center justify-center bg-app-background p-6">
+  <div class="w-full max-w-sm space-y-4 text-center">
+    @switch (status()) {
+      @case ('joining') {
+        <div
+          class="mx-auto grid size-12 place-items-center rounded-2xl border border-app-border bg-surface text-app-muted"
+        >
+          <app-icon name="link" [size]="20" />
+        </div>
+        <div>
+          <p class="text-sm font-medium text-app-foreground">
+            {{ server() ? 'Joined ' + server()?.name + ' — taking you there…' : 'Joining space…' }}
+          </p>
+          <p class="mt-1 text-xs text-app-muted">This only takes a second.</p>
+        </div>
+      }
+      @case ('error') {
+        <div
+          class="mx-auto grid size-12 place-items-center rounded-2xl border border-destructive/30 bg-destructive/10 text-destructive"
+        >
+          <app-icon name="warning" [size]="20" />
+        </div>
+        <div>
+          <p class="text-sm font-medium text-app-foreground">Couldn't join this space</p>
+          <p class="mt-1 text-xs text-app-muted">The invite link may be invalid or expired.</p>
+        </div>
+        <div class="flex items-center justify-center gap-2">
+          <button
+            type="button"
+            (click)="join()"
+            class="rounded-lg bg-primary px-3.5 py-2 text-xs font-medium text-white transition hover:bg-[#8b6dff]"
+          >
+            Try again
+          </button>
+          <a
+            routerLink="/app"
+            class="rounded-lg border border-app-border px-3.5 py-2 text-xs font-medium text-app-foreground transition hover:bg-surface-hover"
+          >
+            Back to dashboard
+          </a>
+        </div>
+      }
+    }
+  </div>
+</div>

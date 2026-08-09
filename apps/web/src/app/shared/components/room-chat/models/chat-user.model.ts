@@ -11,6 +11,8 @@ export interface ChatUser {
   name: string;
   /** Override the initials shown on the avatar (defaults to a derivation of `name`). */
   initials?: string;
+  /** Real photo, if the person has one. Falls back to initials when null/omitted. */
+  avatarUrl?: string | null;
   /** Override the avatar gradient color (defaults to a name-hashed hsla color). */
   avatarColor?: string;
   /** Optional presence dot (online / muted) on the avatar. Omit for no dot. */

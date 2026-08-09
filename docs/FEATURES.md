@@ -22,6 +22,7 @@
 - Email/password registration and login through Supabase Auth.
 - Email confirmation, session refresh, logout, and password recovery.
 - Registered application/server modules remain behind NestJS boundaries.
+- View and edit user profile; manage account settings (notifications, app preferences).
 
 ## Architecture constraints
 
