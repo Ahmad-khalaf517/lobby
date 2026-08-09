@@ -121,30 +121,32 @@
 
     <span class="mx-0.5 h-7 w-px bg-white/8"></span>
 
-    <!-- Room chat -->
-    <div class="group/control relative">
-      <button
-        type="button"
-        (click)="toggleChat.emit()"
-        [attr.aria-label]="chatOpen() ? 'Hide room chat' : 'Open room chat'"
-        [attr.aria-pressed]="chatOpen()"
-        [class]="
-          'grid size-11 shrink-0 place-items-center rounded-xl border outline-none transition-colors duration-150 sm:size-12 ' +
-          (chatOpen()
-            ? 'border-primary/35 bg-primary/[0.14] text-[#d8d0ff] focus-visible:ring-2 focus-visible:ring-violet-400/60'
-            : 'border-white/8 bg-white/5.5 text-[#e0e4eb] hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60')
-        "
-      >
-        <app-icon name="chat" aria-hidden="true" class="size-4" />
-      </button>
+    @if (showRoomChatToggle()) {
+      <!-- Room chat -->
+      <div class="group/control relative">
+        <button
+          type="button"
+          (click)="toggleChat.emit()"
+          [attr.aria-label]="chatOpen() ? 'Hide room chat' : 'Open room chat'"
+          [attr.aria-pressed]="chatOpen()"
+          [class]="
+            'grid size-11 shrink-0 place-items-center rounded-xl border outline-none transition-colors duration-150 sm:size-12 ' +
+            (chatOpen()
+              ? 'border-primary/35 bg-primary/[0.14] text-[#d8d0ff] focus-visible:ring-2 focus-visible:ring-violet-400/60'
+              : 'border-white/8 bg-white/5.5 text-[#e0e4eb] hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60')
+          "
+        >
+          <app-icon name="chat" aria-hidden="true" class="size-4" />
+        </button>
 
-      <span
-        role="tooltip"
-        class="pointer-events-none absolute bottom-[calc(100%+0.55rem)] left-1/2 z-50 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-white/8 bg-[#171c25] px-2 py-1.5 text-[10px] font-medium leading-none text-[#d8dde5] shadow-xl group-hover/control:block group-focus-within/control:block"
-      >
-        {{ chatOpen() ? 'Hide room chat' : 'Open room chat' }}
-      </span>
-    </div>
+        <span
+          role="tooltip"
+          class="pointer-events-none absolute bottom-[calc(100%+0.55rem)] left-1/2 z-50 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-white/8 bg-[#171c25] px-2 py-1.5 text-[10px] font-medium leading-none text-[#d8dde5] shadow-xl group-hover/control:block group-focus-within/control:block"
+        >
+          {{ chatOpen() ? 'Hide room chat' : 'Open room chat' }}
+        </span>
+      </div>
+    }
 
     <!-- Participants -->
     <div class="group/control relative">

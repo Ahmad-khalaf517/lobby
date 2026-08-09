@@ -10,7 +10,6 @@ import {
   inject,
   signal,
   viewChild,
-  viewChildren,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink, RouterLinkActive } from '@angular/router';
@@ -132,9 +131,6 @@ export class ChannelView {
     () => this.channelStatus()?.maxParticipants ?? MAX_CALL_PARTICIPANTS,
   );
 
-  protected readonly tabLinks = viewChildren<ElementRef<HTMLElement>>('tabLink');
-  protected readonly tabScroller = viewChild<ElementRef<HTMLElement>>('tabScroller');
-  protected readonly tabIndicator = signal<{ left: number; width: number } | null>(null);
   private readonly callWorkspace = viewChild<ElementRef<HTMLElement>>('callWorkspace');
 
   protected readonly participants = this.call.participants;
@@ -174,15 +170,6 @@ export class ChannelView {
         void this.loadServerAndPoll(this.serverId, channelId);
         void this.channelChat.open(channelId).catch(() => undefined);
       }
-    });
-
-    // Re-measures the active tab's position once the DOM reflects it — after
-    // the channel list renders and each time the active channel changes —
-    // so the shared underline can animate from its old spot to the new one.
-    effect(() => {
-      this.channelId();
-      this.tabLinks();
-      queueMicrotask(() => this.measureTabIndicator());
     });
 
     effect(() => {
@@ -239,6 +226,10 @@ export class ChannelView {
   }
 
   protected toggleChatPanel(): void {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      this.mobileChatOpen.set(true);
+      return;
+    }
     this.chatCollapsed.update((collapsed) => !collapsed);
   }
 
@@ -588,27 +579,6 @@ export class ChannelView {
 
   private assertCurrent(scope: SessionScope): void {
     if (!this.sessionScope.isCurrent(scope)) throw new Error('The authenticated account changed.');
-  }
-
-  private measureTabIndicator(): void {
-    const channels = this.server()?.channels ?? [];
-    const activeIndex = channels.findIndex((candidate) => candidate.id === this.channelId());
-    const link = this.tabLinks()[activeIndex]?.nativeElement;
-    const scroller = this.tabScroller()?.nativeElement;
-    if (activeIndex === -1 || !link || !scroller) {
-      this.tabIndicator.set(null);
-      return;
-    }
-
-    // getBoundingClientRect (not offsetLeft) so this stays correct regardless
-    // of the positioned wrapper each tab now sits in (for the owner "⋯" menu)
-    // — offsetLeft would be relative to that wrapper, not the scroller.
-    const scrollerRect = scroller.getBoundingClientRect();
-    const linkRect = link.getBoundingClientRect();
-    this.tabIndicator.set({
-      left: linkRect.left - scrollerRect.left + scroller.scrollLeft,
-      width: linkRect.width,
-    });
   }
 }
 

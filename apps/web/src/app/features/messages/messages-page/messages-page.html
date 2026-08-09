@@ -1,8 +1,11 @@
-<main class="flex min-h-0 min-w-0 flex-1 flex-col bg-app-background text-app-foreground">
+<main class="flex min-h-0 min-w-0 flex-1 flex-col bg-[#080c13] text-app-foreground">
   <!-- Slim page header -->
-  <header class="shrink-0 border-b border-white/8 bg-[#0b0d13]">
-    <div class="flex h-16 w-full items-center gap-3 px-4 sm:px-6">
-      <h1 class="text-lg font-semibold text-white">Messages</h1>
+  <header class="shrink-0 border-b border-white/[0.065] bg-[#0b1018]/90 backdrop-blur-xl">
+    <div class="flex h-15 w-full items-center gap-3 px-4 sm:px-5">
+      <div>
+        <h1 class="text-[15px] font-semibold text-white">Messages</h1>
+        <p class="mt-0.5 text-[10px] text-[#737f91]">Private conversations</p>
+      </div>
       @if (totalUnread() > 0) {
         <span
           class="min-w-4.5 h-4.5 rounded-full bg-primary px-1 text-[11px] font-medium text-[#0b0d13] grid place-items-center"
@@ -30,17 +33,17 @@
   </header>
 
   <!-- DM panel -->
-  <div class="flex min-h-0 flex-1 p-4 sm:p-6">
+  <div class="flex min-h-0 flex-1 p-0 sm:p-3 lg:p-4">
     <section
-      class="flex w-full min-h-0 flex-1 flex-col overflow-visible rounded-2xl border border-white/10 bg-[#0f1117] shadow-[0_25px_70px_rgba(0,0,0,0.28)] lg:overflow-hidden lg:flex-row"
+      class="flex w-full min-h-0 flex-1 flex-col overflow-visible bg-[#0d121b] sm:rounded-2xl sm:border sm:border-white/[0.07] sm:shadow-[0_22px_65px_rgba(0,0,0,0.24)] lg:overflow-hidden lg:flex-row"
     >
       <!-- Conversation sidebar -->
       <aside
-        class="w-full flex-col border-b border-white/8 bg-[#0b0d13] lg:flex lg:w-60 lg:shrink-0 lg:border-b-0 lg:border-r"
+        class="w-full flex-col border-b border-white/[0.065] bg-[#0b1018] lg:flex lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r"
         [class.flex]="selectedFriendId() === null"
         [class.hidden]="selectedFriendId() !== null"
       >
-        <div class="flex h-16 shrink-0 items-center gap-2 border-b border-white/8 px-4">
+        <div class="flex h-14 shrink-0 items-center gap-2 border-b border-white/[0.065] px-4">
           <p class="text-sm font-semibold text-app-foreground">Direct messages</p>
         </div>
         <div class="lobby-scrollbar flex-1 space-y-1 overflow-y-auto p-2.5">
@@ -92,7 +95,7 @@
       </aside>
 
       <!-- Chat pane -->
-      <div class="flex min-h-[65vh] min-w-0 flex-1 flex-col bg-[#0f1117] lg:min-h-0">
+      <div class="flex min-h-[65vh] min-w-0 flex-1 flex-col bg-[#0d121b] lg:min-h-0">
         @if (selectedPartner(); as partner) {
           <!-- Conversation header -->
           <div

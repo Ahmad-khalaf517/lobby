@@ -10,15 +10,15 @@
     ></div>
 
     <header
-      class="relative flex h-16 shrink-0 items-center gap-3 border-b border-white/[0.065] bg-[#0b1018]/86 px-3 backdrop-blur-xl sm:px-5"
+      class="relative flex h-15 shrink-0 items-center gap-2 border-b border-white/[0.065] bg-[#0b1018]/88 px-2.5 backdrop-blur-xl sm:gap-3 sm:px-4"
     >
       <span
-        class="grid size-9 shrink-0 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-[#b9adff] shadow-[0_8px_28px_rgba(124,92,252,0.10)]"
+        class="order-1 grid size-8 shrink-0 place-items-center rounded-lg border border-primary/20 bg-primary/10 text-[#b9adff] shadow-[0_8px_28px_rgba(124,92,252,0.10)]"
       >
         <app-icon name="hash" [size]="16" />
       </span>
 
-      <div class="min-w-0">
+      <div class="order-1 min-w-0 max-w-36 sm:max-w-52">
         <div class="flex min-w-0 items-center gap-2">
           <h1 class="truncate text-[15px] font-semibold tracking-[-0.015em] text-white">
             {{ channel()?.name ?? 'Channel' }}
@@ -37,7 +37,20 @@
         </p>
       </div>
 
-      <div class="ml-auto flex shrink-0 items-center gap-1.5">
+      @if (isOwner()) {
+        <button
+          type="button"
+          data-channel-menu-scope
+          (click)="toggleChannelMenu(channelId() ?? '', $event)"
+          aria-label="Current channel options"
+          title="Channel options"
+          class="order-1 grid size-7 shrink-0 place-items-center rounded-lg text-app-muted transition hover:bg-white/[0.05] hover:text-white"
+        >
+          <app-icon name="more" [size]="13" />
+        </button>
+      }
+
+      <div class="order-3 ml-auto flex shrink-0 items-center gap-1.5">
         @if (!isInCallHere()) {
           <button
             type="button"
@@ -57,7 +70,7 @@
               </span>
             }
           </button>
-        } @else {
+        } @else if (activeScreenShare().track) {
           <button
             type="button"
             (click)="toggleFullscreen()"
@@ -71,73 +84,66 @@
           </button>
         }
 
-        <button
-          type="button"
-          (click)="mobileChatOpen.set(true)"
-          aria-label="Open chat"
-          class="grid size-9 place-items-center rounded-xl border border-white/8 bg-white/[0.035] text-app-muted transition hover:bg-white/[0.07] hover:text-white lg:hidden"
-        >
-          <app-icon name="chat" [size]="14" />
-        </button>
+        @if (isInCallHere() && activeScreenShare().track) {
+          <button
+            type="button"
+            (click)="mobileChatOpen.set(true)"
+            aria-label="Open chat"
+            class="grid size-9 place-items-center rounded-xl border border-white/8 bg-white/[0.035] text-app-muted transition hover:bg-white/[0.07] hover:text-white lg:hidden"
+          >
+            <app-icon name="chat" [size]="14" />
+          </button>
+        }
 
-        <button
-          type="button"
-          aria-label="Add channel"
-          (click)="startAddingChannel()"
-          class="grid size-9 place-items-center rounded-xl border border-white/8 bg-white/[0.035] text-app-muted transition hover:border-primary/25 hover:bg-primary/10 hover:text-white"
-          title="Add channel"
-        >
-          <app-icon name="plus" [size]="14" />
-        </button>
+        @if (isOwner()) {
+          <button
+            type="button"
+            aria-label="Add channel"
+            (click)="startAddingChannel()"
+            class="grid size-9 place-items-center rounded-xl border border-white/8 bg-white/[0.035] text-app-muted transition hover:border-primary/25 hover:bg-primary/10 hover:text-white"
+            title="Add channel"
+          >
+            <app-icon name="plus" [size]="14" />
+          </button>
+        }
       </div>
-    </header>
 
-    <nav
-      aria-label="Channels"
-      class="relative flex h-11 shrink-0 items-center gap-1 border-b border-white/[0.06] bg-[#0a0f17]/72 px-3 sm:px-5"
-    >
-      <div
-        #tabScroller
-        class="relative flex h-full min-w-0 flex-1 items-center gap-1 overflow-x-auto lobby-scrollbar"
-      >
-        @for (tabChannel of server()?.channels ?? []; track tabChannel.id) {
-          <div class="group relative flex h-full shrink-0 items-center">
-            <a
-              #tabLink
-              [routerLink]="['/app/servers', server()?.id, 'channels', tabChannel.id]"
-              routerLinkActive="text-app-foreground font-medium"
-              [attr.aria-current]="tabChannel.id === channelId() ? 'page' : null"
-              class="flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-3 text-[12px] text-app-muted transition hover:bg-white/[0.035] hover:text-app-foreground"
-              [class.pr-6]="isOwner()"
-            >
-              <app-icon name="hash" [size]="14" class="shrink-0" />
-              {{ tabChannel.name }}
-            </a>
+      <nav aria-label="Channels" class="order-2 flex h-full min-w-0 flex-1 items-center gap-1">
+        <div
+          class="relative flex h-full min-w-0 flex-1 items-center gap-1 overflow-x-auto lobby-scrollbar"
+        >
+          @for (tabChannel of server()?.channels ?? []; track tabChannel.id) {
+            @if (tabChannel.id !== channelId()) {
+              <div class="group relative flex h-full shrink-0 items-center">
+                <a
+                  [routerLink]="['/app/servers', server()?.id, 'channels', tabChannel.id]"
+                  routerLinkActive="text-app-foreground font-medium"
+                  [attr.aria-current]="tabChannel.id === channelId() ? 'page' : null"
+                  class="flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-3 text-[12px] text-app-muted transition hover:bg-white/[0.035] hover:text-app-foreground"
+                  [class.pr-6]="isOwner()"
+                >
+                  <app-icon name="hash" [size]="14" class="shrink-0" />
+                  {{ tabChannel.name }}
+                </a>
 
-            @if (isOwner()) {
-              <button
-                type="button"
-                data-channel-menu-scope
-                (click)="toggleChannelMenu(tabChannel.id, $event)"
-                aria-label="Channel options"
-                class="absolute right-0.5 grid size-6 shrink-0 place-items-center rounded-md text-app-muted opacity-0 transition hover:bg-surface-hover hover:text-app-foreground group-hover:opacity-100 focus-visible:opacity-100"
-                [class.opacity-100]="channelMenuOpenFor() === tabChannel.id"
-              >
-                <app-icon name="more" [size]="13" />
-              </button>
+                @if (isOwner()) {
+                  <button
+                    type="button"
+                    data-channel-menu-scope
+                    (click)="toggleChannelMenu(tabChannel.id, $event)"
+                    aria-label="Channel options"
+                    class="absolute right-0.5 grid size-6 shrink-0 place-items-center rounded-md text-app-muted opacity-0 transition hover:bg-surface-hover hover:text-app-foreground group-hover:opacity-100 focus-visible:opacity-100"
+                    [class.opacity-100]="channelMenuOpenFor() === tabChannel.id"
+                  >
+                    <app-icon name="more" [size]="13" />
+                  </button>
+                }
+              </div>
             }
-          </div>
-        }
-
-        @if (tabIndicator(); as indicator) {
-          <span
-            class="pointer-events-none absolute bottom-0 h-0.5 rounded-full bg-primary shadow-[0_0_12px_rgba(124,92,252,0.55)] transition-[left,width] duration-200 ease-out"
-            [style.left.px]="indicator.left"
-            [style.width.px]="indicator.width"
-          ></span>
-        }
-      </div>
-    </nav>
+          }
+        </div>
+      </nav>
+    </header>
 
     @if (displayedCallError(); as error) {
       <div
@@ -148,45 +154,13 @@
     }
 
     <div #callWorkspace class="relative flex min-h-0 flex-1 overflow-hidden bg-[#080c13]">
-      <section class="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-        @if (isInCallHere()) {
-          @if (activeScreenShare().track) {
-            <app-call-stage
-              [screenShareTrack]="activeScreenShare().track"
-              [sharerName]="activeScreenShare().sharerName"
-              [isLocalSharing]="activeScreenShare().isLocal"
-            />
-          } @else {
-            <div class="min-h-0 flex-1 overflow-y-auto px-5 pb-28 pt-6 lobby-scrollbar sm:px-8">
-              <div class="mx-auto max-w-5xl">
-                <div class="mb-5 flex items-center justify-between gap-4">
-                  <div class="min-w-0">
-                    <p
-                      class="text-[10px] font-semibold tracking-[0.14em] text-emerald-400 uppercase"
-                    >
-                      {{
-                        call.connectionState() === 'reconnecting' ? 'Reconnecting' : 'Live audio'
-                      }}
-                    </p>
-                    <h2 class="mt-1 truncate text-xl font-semibold text-white">
-                      #{{ channel()?.name }}
-                    </h2>
-                  </div>
-                  <span
-                    class="shrink-0 rounded-full border border-white/8 bg-white/4 px-3 py-1.5 text-xs text-[#9ba6b7]"
-                  >
-                    {{ participantCount() }}/{{ callCapacity() }} in call
-                  </span>
-                </div>
-
-                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  @for (participant of participants(); track participant.id) {
-                    <app-voice-participant-tile [participant]="participant" />
-                  }
-                </div>
-              </div>
-            </div>
-          }
+      @if (isInCallHere() && activeScreenShare().track) {
+        <section class="relative min-w-0 flex-1 overflow-hidden p-2 sm:p-3">
+          <app-call-stage
+            [screenShareTrack]="activeScreenShare().track"
+            [sharerName]="activeScreenShare().sharerName"
+            [isLocalSharing]="activeScreenShare().isLocal"
+          />
 
           <app-call-control-bar
             [currentUserName]="currentUserName()"
@@ -200,138 +174,124 @@
             [screenShareDisabledReason]="call.screenShareDisabledReason()"
             [participantCount]="participantCount()"
             [chatOpen]="!chatCollapsed()"
+            [showRoomChatToggle]="true"
             (toggleMic)="toggleMic()"
             (toggleScreenShare)="toggleScreenShare()"
             (toggleParticipants)="toggleParticipantsPanel()"
             (toggleChat)="toggleChatPanel()"
             (leave)="leaveCall()"
           />
-        } @else {
-          <div
-            class="grid min-h-0 flex-1 place-items-center overflow-y-auto p-4 lobby-scrollbar sm:p-6 lg:p-8"
+        </section>
+
+        @if (!chatCollapsed()) {
+          <aside
+            class="hidden w-[min(34vw,390px)] min-w-[320px] shrink-0 border-l border-white/[0.065] bg-[#0d121b]/92 shadow-[-20px_0_60px_rgba(0,0,0,0.20)] backdrop-blur-xl lg:flex lg:flex-col"
           >
-            <section
-              class="relative w-full max-w-5xl overflow-hidden rounded-[1.75rem] border border-white/[0.075] bg-[#0e141e]/84 p-7 text-center shadow-[0_30px_90px_rgba(0,0,0,0.34)] sm:p-10"
+            <app-channel-chat-panel
+              [title]="channel()?.name ?? 'Channel'"
+              [subtitle]="roster().length + ' member' + (roster().length === 1 ? '' : 's')"
+              [placeholder]="'Message #' + (channel()?.name ?? 'channel')"
+              [showHeader]="false"
+              [showCloseButton]="false"
+              [currentUserId]="currentUserId()"
+              [memberNames]="chatMemberNames()"
+            />
+          </aside>
+        }
+      } @else {
+        <section class="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+          @if (isInCallHere()) {
+            <div
+              class="relative h-[13.5rem] shrink-0 overflow-hidden border-b border-white/[0.065] bg-[radial-gradient(circle_at_12%_20%,rgba(124,92,252,0.13),transparent_30%),linear-gradient(180deg,#0d131d,#0a0f17)] sm:h-[14.5rem]"
             >
+              <div class="flex items-center justify-between gap-3 px-4 pt-3 sm:px-5">
+                <div class="flex min-w-0 items-center gap-2">
+                  <span class="relative flex size-2 shrink-0">
+                    <span
+                      class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-45"
+                    ></span>
+                    <span class="relative inline-flex size-2 rounded-full bg-emerald-400"></span>
+                  </span>
+                  <p class="truncate text-[11px] font-semibold text-[#dfe5ed]">
+                    {{
+                      call.connectionState() === 'reconnecting'
+                        ? 'Reconnecting to voice'
+                        : 'Voice call in progress'
+                    }}
+                  </p>
+                </div>
+                <span
+                  class="shrink-0 rounded-full border border-white/8 bg-white/[0.035] px-2.5 py-1 text-[10px] tabular-nums text-[#8f9aac]"
+                >
+                  {{ participantCount() }}/{{ callCapacity() }} connected
+                </span>
+              </div>
+
               <div
-                class="pointer-events-none absolute -top-32 -right-20 size-96 rounded-full bg-primary/10 blur-[110px]"
-                aria-hidden="true"
-              ></div>
-              <div
-                class="pointer-events-none absolute top-1/2 left-1/2 size-72 -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/10"
-                aria-hidden="true"
-              ></div>
+                class="lobby-scrollbar flex min-w-0 gap-2 overflow-x-auto px-4 pb-20 pt-3 sm:px-5"
+              >
+                @for (participant of participants(); track participant.id) {
+                  <div class="w-52 shrink-0 sm:w-60">
+                    <app-voice-participant-tile [participant]="participant" />
+                  </div>
+                }
+              </div>
+
+              <app-call-control-bar
+                [currentUserName]="currentUserName()"
+                [enabled]="call.connected()"
+                [micEnabled]="call.micEnabled()"
+                [micPending]="call.micPending()"
+                [screenShareActive]="call.screenShareActive()"
+                [screenSharePending]="call.screenSharePending()"
+                [screenShareSupported]="call.screenShareSupported()"
+                [screenShareDisabled]="
+                  call.anotherParticipantSharing() && !call.screenShareActive()
+                "
+                [screenShareDisabledReason]="call.screenShareDisabledReason()"
+                [participantCount]="participantCount()"
+                [chatOpen]="true"
+                [showRoomChatToggle]="false"
+                (toggleMic)="toggleMic()"
+                (toggleScreenShare)="toggleScreenShare()"
+                (toggleParticipants)="toggleParticipantsPanel()"
+                (leave)="leaveCall()"
+              />
+            </div>
+          } @else if (callIsLive()) {
+            <div
+              class="flex shrink-0 items-center gap-3 border-b border-emerald-400/14 bg-emerald-400/[0.055] px-4 py-2 sm:px-5"
+            >
               <span
-                class="relative mx-auto grid size-14 place-items-center rounded-2xl border border-primary/20 bg-primary/12 text-[#b9adff] shadow-[0_18px_60px_rgba(124,92,252,0.18)]"
+                class="grid size-7 shrink-0 place-items-center rounded-lg bg-emerald-400/10 text-emerald-300"
               >
-                <app-icon name="call" [size]="20" />
+                <app-icon name="call" [size]="13" />
               </span>
-              <p
-                class="mt-5 text-[10px] font-semibold tracking-[0.14em] text-emerald-400 uppercase"
-              >
-                {{
-                  callIsLive()
-                    ? 'Call in progress'
-                    : hasCallContextHere()
-                      ? 'Call disconnected'
-                      : 'Audio channel'
-                }}
-              </p>
-              <h2
-                class="relative mt-3 text-2xl font-semibold tracking-[-0.035em] text-white sm:text-4xl"
-              >
-                {{
-                  callIsLive()
-                    ? 'Join the conversation'
-                    : hasCallContextHere()
-                      ? 'Rejoin your call'
-                      : 'Start an audio call'
-                }}
-              </h2>
-              <p class="relative mx-auto mt-4 max-w-xl text-sm leading-7 text-[#8995a8]">
-                {{ channelStatus()?.participants ?? 0 }}/{{ callCapacity() }} participants. Audio
-                and screen sharing only—no camera.
+              <p class="min-w-0 flex-1 truncate text-[11px] text-[#aab4c2]">
+                <span class="font-semibold text-emerald-300">Voice call live</span>
+                · {{ channelStatus()?.participants ?? 0 }} connected
               </p>
               <button
                 type="button"
                 (click)="joinCall()"
                 [disabled]="callJoining() || (channelStatus()?.participants ?? 0) >= callCapacity()"
-                class="relative mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(124,92,252,0.24)] transition hover:-translate-y-0.5 hover:bg-[#896aff] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-55"
+                class="shrink-0 rounded-lg bg-emerald-400/12 px-3 py-1.5 text-[10px] font-semibold text-emerald-200 transition hover:bg-emerald-400/20 disabled:opacity-50"
               >
-                @if (callJoining()) {
-                  <span
-                    class="size-4 animate-spin rounded-full border-2 border-white/25 border-t-white"
-                  ></span>
-                  Connecting…
-                } @else {
-                  <app-icon name="call" [size]="16" />
-                  {{
-                    hasCallContextHere() ? 'Rejoin call' : callIsLive() ? 'Join call' : 'Start call'
-                  }}
-                }
+                Join
               </button>
+            </div>
+          }
 
-              <div
-                class="relative mt-9 grid gap-4 border-t border-white/[0.065] pt-6 text-left sm:grid-cols-3 sm:gap-0"
-              >
-                <div class="flex items-start gap-3 sm:pr-5">
-                  <span
-                    class="grid size-8 shrink-0 place-items-center rounded-lg bg-white/[0.04] text-[#aa9cff]"
-                  >
-                    <app-icon name="mic" [size]="14" />
-                  </span>
-                  <div>
-                    <p class="text-xs font-semibold text-white">Audio first</p>
-                    <p class="mt-1 text-[10px] leading-5 text-[#718095]">
-                      Clear voice without camera permissions.
-                    </p>
-                  </div>
-                </div>
-                <div class="flex items-start gap-3 sm:border-l sm:border-white/[0.065] sm:px-5">
-                  <span
-                    class="grid size-8 shrink-0 place-items-center rounded-lg bg-white/[0.04] text-[#aa9cff]"
-                  >
-                    <app-icon name="screen-share" [size]="14" />
-                  </span>
-                  <div>
-                    <p class="text-xs font-semibold text-white">Focused sharing</p>
-                    <p class="mt-1 text-[10px] leading-5 text-[#718095]">
-                      One presenter owns the main stage.
-                    </p>
-                  </div>
-                </div>
-                <div class="flex items-start gap-3 sm:border-l sm:border-white/[0.065] sm:pl-5">
-                  <span
-                    class="grid size-8 shrink-0 place-items-center rounded-lg bg-white/[0.04] text-[#aa9cff]"
-                  >
-                    <app-icon name="chat" [size]="14" />
-                  </span>
-                  <div>
-                    <p class="text-xs font-semibold text-white">Persistent chat</p>
-                    <p class="mt-1 text-[10px] leading-5 text-[#718095]">
-                      Replies and reactions stay beside the call.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </section>
-          </div>
-        }
-      </section>
-
-      @if (!chatCollapsed()) {
-        <aside
-          class="hidden w-[min(36vw,400px)] min-w-[340px] shrink-0 border-l border-white/[0.065] bg-[#0d121b]/88 shadow-[-20px_0_60px_rgba(0,0,0,0.18)] backdrop-blur-xl lg:flex lg:flex-col"
-        >
           <app-channel-chat-panel
             [title]="channel()?.name ?? 'Channel'"
             [subtitle]="roster().length + ' member' + (roster().length === 1 ? '' : 's')"
             [placeholder]="'Message #' + (channel()?.name ?? 'channel')"
+            [showHeader]="false"
             [showCloseButton]="false"
             [currentUserId]="currentUserId()"
             [memberNames]="chatMemberNames()"
           />
-        </aside>
+        </section>
       }
     </div>
   </div>
