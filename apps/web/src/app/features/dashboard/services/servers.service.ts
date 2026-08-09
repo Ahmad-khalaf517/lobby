@@ -8,6 +8,7 @@ import {
   JoinServerRequestSchema,
   ServerListResponseSchema,
   ServerMemberListResponseSchema,
+  ServerMemberSchema,
   ServerSchema,
   ServerWithChannelsSchema,
   UpdateChannelRequestSchema,
@@ -61,6 +62,21 @@ export class ServersService {
       this.http.get<unknown>(`${this.apiUrl}/servers/${serverId}/members`),
     );
     return ServerMemberListResponseSchema.parse(raw).members;
+  }
+
+  /** Owner-only server-side; the UI hides the affordance for non-owners. */
+  async addMember(serverId: string, memberUserId: string): Promise<ServerMember> {
+    const raw = await firstValueFrom(
+      this.http.post<unknown>(`${this.apiUrl}/servers/${serverId}/members/${memberUserId}`, {}),
+    );
+    return ServerMemberSchema.parse(raw);
+  }
+
+  /** Owner-only server-side; the UI hides the affordance for non-owners. */
+  async removeMember(serverId: string, memberUserId: string): Promise<void> {
+    await firstValueFrom(
+      this.http.delete<unknown>(`${this.apiUrl}/servers/${serverId}/members/${memberUserId}`),
+    );
   }
 
   async createChannel(serverId: string, name: string): Promise<Channel> {

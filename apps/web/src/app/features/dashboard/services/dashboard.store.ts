@@ -1,7 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import type { Channel, Server, ServerMember } from '@lobby/shared';
 
-import { SupabaseSessionService } from '../../../core/supabase/supabase-session.service';
+import { ProfileService } from '../../profile/services/profile.service';
 import { ServersService } from './servers.service';
 
 /** Human-friendly context for whichever channel the user is currently voice-connected to, shown by the rail's persistent call widget. */
@@ -32,7 +32,7 @@ export type ServerMemberWithProfile = ServerMember & {
 @Injectable({ providedIn: 'root' })
 export class DashboardStore {
   private readonly serversService = inject(ServersService);
-  private readonly supabaseSession = inject(SupabaseSessionService);
+  private readonly profileService = inject(ProfileService);
 
   private readonly _servers = signal<Server[]>([]);
   private readonly _loading = signal(false);
@@ -134,27 +134,44 @@ export class DashboardStore {
       const members = await this.serversService.listMembers(serverId);
       const userIds = [...new Set(members.map((member) => member.userId))];
 
-      const profiles = new Map<string, { name: string; avatar_url: string | null }>();
-      if (userIds.length > 0) {
-        const { data, error } = await this.supabaseSession.client
-          .from('users')
-          .select('id, name, avatar_url')
-          .in('id', userIds);
-        if (error) throw error;
-        for (const row of data ?? []) {
-          profiles.set(row.id, { name: row.name, avatar_url: row.avatar_url });
+      // Resolved via the API's per-user profile endpoint (service-role, no RLS)
+      // rather than a direct Supabase read — a member's row on `public.users`
+      // isn't necessarily readable to every other member under RLS, which
+      // silently produced empty results (member showed as "Member", no avatar).
+      const profiles = new Map<string, { name: string; avatarUrl: string | null }>();
+      const results = await Promise.allSettled(
+        userIds.map((id) => this.profileService.getProfile(id)),
+      );
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          profiles.set(userIds[index], {
+            name: result.value.displayName,
+            avatarUrl: result.value.avatarUrl,
+          });
         }
-      }
+      });
 
       const withProfiles: ServerMemberWithProfile[] = members.map((member) => ({
         ...member,
         name: profiles.get(member.userId)?.name ?? 'Member',
-        avatarUrl: profiles.get(member.userId)?.avatar_url ?? null,
+        avatarUrl: profiles.get(member.userId)?.avatarUrl ?? null,
       }));
 
       this._membersByServer.update((current) => ({ ...current, [serverId]: withProfiles }));
     } finally {
       this.membersLoading.delete(serverId);
     }
+  }
+
+  /** Owner-only; the UI hides the affordance for non-owners. Refreshes the roster on success. */
+  async addMember(serverId: string, memberUserId: string): Promise<void> {
+    await this.serversService.addMember(serverId, memberUserId);
+    await this.loadMembers(serverId, true);
+  }
+
+  /** Owner-only; the UI hides the affordance for non-owners. Refreshes the roster on success. */
+  async removeMember(serverId: string, memberUserId: string): Promise<void> {
+    await this.serversService.removeMember(serverId, memberUserId);
+    await this.loadMembers(serverId, true);
   }
 }

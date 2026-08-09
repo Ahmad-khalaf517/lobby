@@ -45,7 +45,7 @@
       <div class="relative">
         <button
           type="button"
-          (click)="membersPanelOpen.set(true)"
+          (click)="openMembersPanel()"
           [attr.aria-label]="'Show space members, ' + roster().length + ' members'"
           title="Space members"
           class="relative grid size-9 place-items-center rounded-xl text-app-muted transition hover:bg-surface-hover"
@@ -135,7 +135,7 @@
     <button
       type="button"
       class="absolute inset-0 cursor-default bg-black/65 backdrop-blur-[2px]"
-      (click)="membersPanelOpen.set(false)"
+      (click)="closeMembersPanel()"
       aria-label="Close space members panel"
     ></button>
 
@@ -175,7 +175,7 @@
         </div>
         <button
           type="button"
-          (click)="membersPanelOpen.set(false)"
+          (click)="closeMembersPanel()"
           aria-label="Close members panel"
           class="grid size-9 shrink-0 place-items-center rounded-lg text-app-muted transition hover:bg-surface-hover hover:text-app-foreground"
         >
@@ -183,12 +183,87 @@
         </button>
       </header>
 
-      <div class="min-h-0 flex-1 overflow-y-auto p-2 lobby-scrollbar">
+      <div class="min-h-0 flex-1 overflow-y-auto p-3 lobby-scrollbar">
+        <!-- Anyone can copy + share the invite link; joining itself needs no extra grant. -->
+        <button
+          type="button"
+          (click)="copyJoinLink()"
+          class="mb-3 flex w-full items-center gap-2.5 rounded-lg border border-dashed border-app-border px-3 py-2.5 text-left text-[12px] text-app-muted transition hover:border-primary/40 hover:bg-surface-hover hover:text-app-foreground"
+        >
+          <app-icon name="link" [size]="14" />
+          <span class="min-w-0 flex-1 truncate">Copy join link</span>
+          <app-icon name="copy" [size]="13" />
+        </button>
+
+        @if (isServerOwner()) {
+          <div class="mb-3 rounded-lg border border-app-border">
+            <button
+              type="button"
+              (click)="toggleAddMember()"
+              class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-[12px] font-medium text-app-foreground transition hover:bg-surface-hover"
+            >
+              <app-icon name="user-plus" [size]="14" />
+              <span class="flex-1">Add member</span>
+              <app-icon
+                name="chevron-down"
+                [size]="13"
+                class="text-app-muted transition"
+                [class.rotate-180]="addMemberOpen()"
+              />
+            </button>
+
+            @if (addMemberOpen()) {
+              <div class="space-y-2 border-t border-app-border p-3">
+                <input
+                  type="text"
+                  placeholder="Search by username"
+                  [value]="memberQuery()"
+                  (input)="onMemberSearchInput($event)"
+                  class="min-h-9 w-full rounded-lg border border-white/10 bg-[#16161d] px-3 text-[13px] text-app-foreground outline-none transition placeholder:text-[#687282] focus:border-primary/50"
+                />
+
+                @if (memberSearching()) {
+                  <p class="px-1 text-[12px] text-app-muted">Searching…</p>
+                } @else if (memberSearchResults().length > 0) {
+                  <div class="space-y-1.5">
+                    @for (result of memberSearchResults(); track result.userId) {
+                      <div class="flex items-center gap-2.5 rounded-lg bg-[#141821] px-2.5 py-2">
+                        <app-chat-avatar
+                          [name]="result.displayName"
+                          [avatarUrl]="result.avatarUrl"
+                          size="sm"
+                        />
+                        <span class="min-w-0 flex-1 truncate text-[12px] text-app-foreground">{{
+                          result.displayName
+                        }}</span>
+                        <button
+                          type="button"
+                          (click)="addMember(result)"
+                          [disabled]="addingMemberId() === result.userId"
+                          class="shrink-0 rounded-lg bg-primary px-2.5 py-1.5 text-[11px] font-medium text-white transition hover:bg-[#8b6dff] disabled:opacity-60"
+                        >
+                          {{ addingMemberId() === result.userId ? 'Adding…' : 'Add' }}
+                        </button>
+                      </div>
+                    }
+                  </div>
+                } @else if (memberQuery().trim().length > 0) {
+                  <p class="px-1 text-[12px] text-app-muted">No matching users.</p>
+                }
+
+                @if (memberActionError(); as error) {
+                  <p class="px-1 text-[12px] text-destructive">{{ error }}</p>
+                }
+              </div>
+            }
+          </div>
+        }
+
         @for (member of roster(); track member.id) {
           <div
             class="flex items-center gap-3 rounded-lg px-2.5 py-2 transition hover:bg-surface-hover"
           >
-            <app-chat-avatar [name]="member.name" size="sm" />
+            <app-chat-avatar [name]="member.name" [avatarUrl]="member.avatarUrl" size="sm" />
             <div class="min-w-0 flex-1">
               <p class="truncate text-[13px] text-app-foreground">{{ member.name }}</p>
             </div>
@@ -197,6 +272,18 @@
             }
             @if (member.role === 'owner') {
               <span class="shrink-0 text-[10px] font-medium text-primary">OWNER</span>
+            }
+            @if (isServerOwner() && member.userId !== currentUserId()) {
+              <button
+                type="button"
+                (click)="removeMember(member)"
+                [disabled]="removingMemberId() === member.userId"
+                [attr.aria-label]="'Remove ' + member.name"
+                title="Remove member"
+                class="grid size-7 shrink-0 place-items-center rounded-lg text-app-muted transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-60"
+              >
+                <app-icon name="user-minus" [size]="13" />
+              </button>
             }
           </div>
         } @empty {

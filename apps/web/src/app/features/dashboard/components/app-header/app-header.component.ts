@@ -22,8 +22,9 @@ import { ProfilePopupService } from '../../../profile/services/profile-popup.ser
 import { ProfileService } from '../../../profile/services/profile.service';
 import { SettingsPopupService } from '../../../account-settings/services/settings-popup.service';
 import { DirectMessagesService } from '../../../messages/messages.service';
+import { FriendsService } from '../../../friends/friends.service';
 import { NotificationsService } from '../../../friends/notifications.service';
-import { DashboardStore } from '../../services/dashboard.store';
+import { DashboardStore, type ServerMemberWithProfile } from '../../services/dashboard.store';
 import { PromptModalComponent } from '../prompt-modal/prompt-modal.component';
 import { ProfilePopupComponent } from '../../../profile/profile-popup/profile-popup';
 import { SettingsPopupComponent } from '../../../account-settings/settings-popup/settings-popup';
@@ -55,6 +56,7 @@ export class AppHeaderComponent {
   private readonly profilePopup = inject(ProfilePopupService);
   private readonly settingsPopup = inject(SettingsPopupService);
   private readonly profileService = inject(ProfileService);
+  private readonly friendsService = inject(FriendsService);
   private readonly toast = inject(ToastService);
   // Not read directly here — injecting forces these singletons to construct
   // (and start their realtime subscriptions) as soon as the dashboard shell
@@ -113,6 +115,15 @@ export class AppHeaderComponent {
 
   protected readonly membersPanelOpen = signal(false);
 
+  protected readonly addMemberOpen = signal(false);
+  protected readonly memberQuery = signal('');
+  protected readonly memberSearchResults = signal<UserProfile[]>([]);
+  protected readonly memberSearching = signal(false);
+  protected readonly memberActionError = signal<string | null>(null);
+  protected readonly addingMemberId = signal<string | null>(null);
+  protected readonly removingMemberId = signal<string | null>(null);
+  private memberSearchTimer: ReturnType<typeof setTimeout> | null = null;
+
   protected readonly renameModalOpen = signal(false);
   protected readonly renameSaving = signal(false);
   protected readonly renameError = signal<string | null>(null);
@@ -147,6 +158,96 @@ export class AppHeaderComponent {
     } finally {
       this.renameSaving.set(false);
     }
+  }
+
+  protected openMembersPanel(): void {
+    const server = this.activeServer();
+    if (server) void this.dashboardStore.loadMembers(server.id);
+    this.membersPanelOpen.set(true);
+  }
+
+  protected closeMembersPanel(): void {
+    this.membersPanelOpen.set(false);
+    this.addMemberOpen.set(false);
+    this.memberQuery.set('');
+    this.memberSearchResults.set([]);
+    this.memberActionError.set(null);
+  }
+
+  protected toggleAddMember(): void {
+    this.addMemberOpen.update((open) => !open);
+    this.memberActionError.set(null);
+  }
+
+  protected onMemberSearchInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.memberQuery.set(value);
+    if (this.memberSearchTimer) clearTimeout(this.memberSearchTimer);
+    this.memberSearchTimer = setTimeout(() => void this.runMemberSearch(value), 300);
+  }
+
+  private async runMemberSearch(query: string): Promise<void> {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      this.memberSearchResults.set([]);
+      this.memberSearching.set(false);
+      return;
+    }
+    this.memberSearching.set(true);
+    this.memberActionError.set(null);
+    try {
+      const results = await this.friendsService.searchUsers(trimmed);
+      const memberIds = new Set(this.roster().map((member) => member.userId));
+      this.memberSearchResults.set(results.filter((result) => !memberIds.has(result.userId)));
+    } catch {
+      this.memberSearchResults.set([]);
+    } finally {
+      this.memberSearching.set(false);
+    }
+  }
+
+  protected async addMember(profile: UserProfile): Promise<void> {
+    const server = this.activeServer();
+    if (!server) return;
+
+    this.addingMemberId.set(profile.userId);
+    this.memberActionError.set(null);
+    try {
+      await this.dashboardStore.addMember(server.id, profile.userId);
+      this.memberSearchResults.update((results) =>
+        results.filter((result) => result.userId !== profile.userId),
+      );
+      this.toast.success(`${profile.displayName} added to ${server.name}`);
+    } catch {
+      this.memberActionError.set(`Could not add ${profile.displayName}.`);
+    } finally {
+      this.addingMemberId.set(null);
+    }
+  }
+
+  protected async removeMember(member: ServerMemberWithProfile): Promise<void> {
+    const server = this.activeServer();
+    if (!server) return;
+
+    this.removingMemberId.set(member.userId);
+    try {
+      await this.dashboardStore.removeMember(server.id, member.userId);
+      this.toast.success(`${member.name} removed from ${server.name}`);
+    } catch {
+      this.toast.error(`Could not remove ${member.name}.`);
+    } finally {
+      this.removingMemberId.set(null);
+    }
+  }
+
+  protected copyJoinLink(): void {
+    const server = this.activeServer();
+    if (!server) return;
+    const link = `${window.location.origin}/app/join/${server.inviteCode}`;
+    void navigator.clipboard.writeText(link).then(
+      () => this.toast.success('Join link copied to clipboard'),
+      () => this.toast.error('Could not copy the join link.'),
+    );
   }
 
   protected openMyProfile(): void {

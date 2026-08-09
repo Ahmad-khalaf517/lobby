@@ -106,6 +106,14 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'join/:inviteCode',
+        title: 'Join Space | Lobby',
+        loadComponent: () =>
+          import('./features/dashboard/join-link-page/join-link-page').then(
+            (component) => component.JoinLinkPage,
+          ),
+      },
+      {
         path: 'servers/:serverId',
         loadComponent: () =>
           import('./features/dashboard/server-shell/server-shell').then(
