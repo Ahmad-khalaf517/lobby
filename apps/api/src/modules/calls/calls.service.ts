@@ -26,6 +26,7 @@ type GuestChannel = GuestDatabase['guest']['Tables']['channels']['Row'];
 type ServerChannel = PublicDatabase['public']['Tables']['channels']['Row'];
 type ServerChannelMember = PublicDatabase['public']['Tables']['channel_members']['Row'];
 type ServerRole = PublicDatabase['public']['Tables']['server_members']['Row']['role'];
+type DmConversation = PublicDatabase['public']['Tables']['dm_conversations']['Row'];
 
 type AuthorizedCall = {
   identity: string;
@@ -85,6 +86,20 @@ export class CallsService {
       active: participantCount > 0,
       participants: participantCount,
       maxParticipants: MAX_CALL_PARTICIPANTS,
+    };
+  }
+
+  async createDmCallToken(userId: string, conversationId: string): Promise<CallTokenResponse> {
+    return this.issueCallToken(await this.authorizeDmCall(userId, conversationId));
+  }
+
+  async getDmCallStatus(userId: string, conversationId: string): Promise<CallStatusResponse> {
+    const call = await this.authorizeDmCall(userId, conversationId);
+    const participantCount = (await this.listParticipants(call.roomName)).length;
+    return {
+      active: participantCount > 0,
+      participants: participantCount,
+      maxParticipants: call.maxParticipants,
     };
   }
 
@@ -287,6 +302,49 @@ export class CallsService {
       displayName: access.displayName,
       roomName: `server-channel:${channel.id}`,
       maxParticipants: MAX_CALL_PARTICIPANTS,
+    };
+  }
+
+  private async authorizeDmCall(userId: string, conversationId: string): Promise<AuthorizedCall> {
+    const database = this.supabase.client;
+    const conversationResult = await database
+      .from('dm_conversations')
+      .select()
+      .eq('id', conversationId)
+      .maybeSingle();
+
+    if (conversationResult.error) throw conversationResult.error;
+    if (!conversationResult.data)
+      throw new NotFoundException('Direct-message conversation not found');
+
+    const conversation: DmConversation = conversationResult.data;
+    if (conversation.user_a_id !== userId && conversation.user_b_id !== userId) {
+      throw new ForbiddenException('Conversation participation is required to join this call');
+    }
+
+    const otherUserId =
+      conversation.user_a_id === userId ? conversation.user_b_id : conversation.user_a_id;
+    const [userResult, blockResult] = await Promise.all([
+      database.from('users').select('name').eq('id', userId).maybeSingle(),
+      database
+        .from('friendships')
+        .select('id')
+        .eq('status', 'blocked')
+        .or(
+          `and(requester_id.eq.${userId},addressee_id.eq.${otherUserId}),and(requester_id.eq.${otherUserId},addressee_id.eq.${userId})`,
+        )
+        .maybeSingle(),
+    ]);
+
+    if (userResult.error || blockResult.error) throw userResult.error ?? blockResult.error;
+    if (!userResult.data) throw new NotFoundException('Registered user profile was not found');
+    if (blockResult.data) throw new ForbiddenException('You cannot call this user');
+
+    return {
+      identity: `dm-user:${userId}`,
+      displayName: userResult.data.name,
+      roomName: `dm-conversation:${conversation.id}`,
+      maxParticipants: 2,
     };
   }
 

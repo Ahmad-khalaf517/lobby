@@ -117,9 +117,6 @@ export class ChannelView {
   protected readonly hasCallContextHere = computed(
     () => this.dashboardStore.activeCall()?.channelId === this.channelId(),
   );
-  protected readonly showSplitView = computed(
-    () => this.hasCallContextHere() || this.isInCallHere() || this.callIsLive(),
-  );
   protected readonly roster = computed(() => {
     const server = this.server();
     return server ? this.dashboardStore.membersFor(server.id) : [];

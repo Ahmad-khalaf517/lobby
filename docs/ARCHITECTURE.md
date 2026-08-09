@@ -71,6 +71,18 @@ NestJS -- derives server-channel room + member identity --> LiveKit token
 Angular <---------------- audio/screen share ----------------> LiveKit Cloud
 ```
 
+Registered direct-message calls use the same media architecture:
+
+```text
+Angular MessagesPage -- POST /dm-conversations/:id/call-token --> NestJS
+NestJS -- RegisteredUserGuard + exact DM participation/block check --> public schema
+NestJS -- derives dm-conversation:<uuid>, identity, name, capacity=2 --> LiveKit token
+Angular <---------------- audio/screen share ----------------> LiveKit Cloud
+```
+
+The DM page composes the existing `LiveKitCallService`, call stage, participant
+tiles/sidebar, and control bar. It does not own a second room/media abstraction.
+
 NestJS reads the authoritative `livekit_identity`, `display_name`, and `livekit_room_name`. Ordinary members receive join, subscribe, microphone, and screen-share grants only. Camera publishing and room-administrator privileges are not granted.
 
 For authenticated channels, NestJS derives the room name from the validated channel UUID and derives the LiveKit participant identity from the normalized `channel_members` row. The Angular dashboard reuses the same `LiveKitCallService` and shared call-stage/control/participant components as Guest Dashboard. A user-scoped session marker restores an interrupted page refresh with a fresh token; account transition cleanup removes that marker and disconnects LiveKit before stale work can reattach. The rail keeps explicit mute/leave controls available while navigating between server channels.

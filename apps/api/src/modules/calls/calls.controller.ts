@@ -56,6 +56,24 @@ export class CallsController {
     return this.callsService.getServerCallStatus(request.user.id, channelId);
   }
 
+  @Post('dm-conversations/:conversationId/call-token')
+  @UseGuards(RegisteredUserGuard)
+  createDmCallToken(
+    @Req() request: AuthenticatedRequest,
+    @Param('conversationId', new ParseUUIDPipe()) conversationId: string,
+  ): Promise<CallTokenResponse> {
+    return this.callsService.createDmCallToken(request.user.id, conversationId);
+  }
+
+  @Get('dm-conversations/:conversationId/call-status')
+  @UseGuards(RegisteredUserGuard)
+  getDmCallStatus(
+    @Req() request: AuthenticatedRequest,
+    @Param('conversationId', new ParseUUIDPipe()) conversationId: string,
+  ): Promise<CallStatusResponse> {
+    return this.callsService.getDmCallStatus(request.user.id, conversationId);
+  }
+
   @Post('livekit/remove-participant')
   removeParticipant(
     @Req() request: AuthenticatedRequest,
