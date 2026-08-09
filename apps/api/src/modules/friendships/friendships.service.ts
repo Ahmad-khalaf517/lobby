@@ -6,13 +6,19 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { Friend, Friendship } from '@lobby/shared';
+import { NotificationsService } from '../notifications/notifications.service';
+import { UsersService } from '../users/users.service';
 import type { FriendshipRow } from './friendships.mappers';
 import { toFriend, toFriendship } from './friendships.mappers';
 import { FriendshipsRepository } from './friendships.repository';
 
 @Injectable()
 export class FriendshipsService {
-  constructor(private readonly repo: FriendshipsRepository) {}
+  constructor(
+    private readonly repo: FriendshipsRepository,
+    private readonly users: UsersService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   /** Joins the "other user" profile onto each relationship row. */
   private async toFriendList(rows: FriendshipRow[], viewerId: string): Promise<Friend[]> {
@@ -49,6 +55,8 @@ export class FriendshipsService {
 
     if (!existing) {
       const created = await this.repo.createRequest(requesterId, addresseeId);
+      const requester = await this.users.getProfile(requesterId);
+      void this.notifications.notifyFriendRequestReceived(addresseeId, requester.displayName);
       return toFriendship(created);
     }
 
@@ -69,6 +77,8 @@ export class FriendshipsService {
     // The other user already sent *this* user a request — sending one back
     // is treated as accepting theirs, so crossed requests become friends.
     const accepted = await this.repo.updateStatus(existing.id, 'accepted');
+    const accepter = await this.users.getProfile(requesterId);
+    void this.notifications.notifyFriendRequestAccepted(addresseeId, accepter.displayName);
     return toFriendship(accepted);
   }
 
@@ -87,6 +97,8 @@ export class FriendshipsService {
     }
 
     const updated = await this.repo.updateStatus(friendshipId, 'accepted');
+    const accepter = await this.users.getProfile(userId);
+    void this.notifications.notifyFriendRequestAccepted(row.requester_id, accepter.displayName);
     return toFriendship(updated);
   }
 

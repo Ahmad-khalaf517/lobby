@@ -13,6 +13,7 @@ export function toDmMessage(row: DmMessageRow): DmMessage {
     // field is `body`.
     body: row.content,
     reactionEmoji: row.reaction_emoji,
+    replyToMessageId: row.reply_to,
     createdAt: row.created_at,
   };
 }

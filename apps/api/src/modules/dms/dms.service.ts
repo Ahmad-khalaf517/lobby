@@ -96,6 +96,7 @@ export class DmsService {
     currentUserId: string,
     conversationId: string,
     body: string,
+    replyToMessageId: string | null = null,
   ): Promise<DmMessage> {
     const row = await this.requireParticipant(currentUserId, conversationId);
     const otherUserId = this.otherUserId(row, currentUserId);
@@ -106,8 +107,36 @@ export class DmsService {
       throw new ForbiddenException('You cannot message this user.');
     }
 
-    const created = await this.repo.insertMessage(row.id, currentUserId, body);
+    if (replyToMessageId) {
+      const target = await this.repo.findMessageById(replyToMessageId);
+      if (!target || target.conversation_id !== row.id) {
+        throw new NotFoundException('The message being replied to was not found.');
+      }
+    }
+
+    const created = await this.repo.insertMessage(row.id, currentUserId, body, replyToMessageId);
     return toDmMessage(created);
+  }
+
+  /** Only the sender can edit their own message. */
+  async editMessage(
+    currentUserId: string,
+    conversationId: string,
+    messageId: string,
+    body: string,
+  ): Promise<DmMessage> {
+    const conversation = await this.requireParticipant(currentUserId, conversationId);
+
+    const message = await this.repo.findMessageById(messageId);
+    if (!message || message.conversation_id !== conversation.id) {
+      throw new NotFoundException('Message not found.');
+    }
+    if (message.sender_id !== currentUserId) {
+      throw new ForbiddenException('You can only edit your own messages.');
+    }
+
+    const updated = await this.repo.updateMessage(messageId, body);
+    return toDmMessage(updated);
   }
 
   /** Sets or clears (emoji === null) the reaction on a message in this conversation. */

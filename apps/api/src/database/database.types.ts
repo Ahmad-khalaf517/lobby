@@ -256,6 +256,7 @@ export type Database = {
           created_at: string;
           id: string;
           reaction_emoji: string | null;
+          reply_to: string | null;
           sender_id: string;
         };
         Insert: {
@@ -264,6 +265,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           reaction_emoji?: string | null;
+          reply_to?: string | null;
           sender_id: string;
         };
         Update: {
@@ -272,6 +274,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           reaction_emoji?: string | null;
+          reply_to?: string | null;
           sender_id?: string;
         };
         Relationships: [
@@ -280,6 +283,13 @@ export type Database = {
             columns: ['conversation_id'];
             isOneToOne: false;
             referencedRelation: 'dm_conversations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'dm_messages_reply_to_fkey';
+            columns: ['reply_to'];
+            isOneToOne: false;
+            referencedRelation: 'dm_messages';
             referencedColumns: ['id'];
           },
           {

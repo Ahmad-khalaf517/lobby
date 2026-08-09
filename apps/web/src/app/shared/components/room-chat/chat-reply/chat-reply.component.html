@@ -1,26 +1,46 @@
 @if (preview(); as preview) {
-  <div class="border-t border-white/[0.06] bg-[#101621]/96 px-3 pt-2.5 sm:px-4">
-    <div
-      class="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 rounded-t-lg border-l-2 border-primary/60 bg-white/[0.025] px-3 py-2"
-    >
-      <div class="min-w-0">
-        <p class="text-[10px] font-semibold leading-4 text-[#aa9cff]">
-          Replying to {{ preview.authorName }}
-        </p>
-        <p class="truncate text-[11px] leading-4 text-[#7f8b9e]">{{ preview.text }}</p>
-      </div>
-
+  @if (docked()) {
+    <!-- Sits as the top section of the composer's own rounded box (see [docked]). -->
+    <div class="flex items-center gap-2 border-b border-white/8 px-4 py-2.5">
+      <app-icon name="reply" class="size-3.5 shrink-0 text-app-muted" />
+      <p class="min-w-0 flex-1 truncate text-xs text-app-muted">
+        Replying to
+        <span class="font-semibold text-app-foreground">{{ preview.authorName }}</span>
+      </p>
       <button
         type="button"
         (click)="cancelReply.emit()"
-        class="grid size-7 shrink-0 place-items-center rounded-md text-[#7d8898] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:bg-white/[0.07] focus-visible:text-white"
+        class="grid size-6 shrink-0 place-items-center rounded-md text-app-muted outline-none transition-colors hover:bg-white/8 hover:text-app-foreground"
         aria-label="Cancel reply"
         title="Cancel reply"
       >
         <app-icon name="close" class="size-3.5" />
       </button>
     </div>
-  </div>
+  } @else {
+    <div class="border-t border-white/6 bg-[#101621]/96 px-3 pt-3 sm:px-4">
+      <div
+        class="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 rounded-t-xl border-l-2 border-primary/60 bg-white/3 px-3.5 py-2.5"
+      >
+        <div class="min-w-0">
+          <p class="text-xs font-semibold leading-4 text-[#aa9cff]">
+            Replying to {{ preview.authorName }}
+          </p>
+          <p class="truncate text-sm leading-5 text-[#8b96a8]">{{ preview.text }}</p>
+        </div>
+
+        <button
+          type="button"
+          (click)="cancelReply.emit()"
+          class="grid size-8 shrink-0 place-items-center rounded-md text-[#7d8898] outline-none transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:bg-white/[0.07] focus-visible:text-white"
+          aria-label="Cancel reply"
+          title="Cancel reply"
+        >
+          <app-icon name="close" class="size-4" />
+        </button>
+      </div>
+    </div>
+  }
 } @else {
   <button
     type="button"

@@ -3,25 +3,69 @@
   aria-live="polite"
 >
   @for (toast of toasts(); track toast.id) {
-    <div
-      class="lobby-toast-in pointer-events-auto flex w-full items-center gap-3 rounded-full border border-app-border bg-[#12151c]/95 px-4 py-2.5 shadow-2xl backdrop-blur"
-      [attr.role]="toast.variant === 'error' ? 'alert' : 'status'"
-    >
-      <span
-        class="grid size-6 shrink-0 place-items-center rounded-full"
-        [class]="badgeClasses(toast.variant)"
+    @if (toast.variant === 'notification') {
+      <div
+        class="lobby-toast-in pointer-events-auto relative w-full overflow-hidden rounded-2xl border border-app-border bg-[#12151c]/95 shadow-2xl backdrop-blur"
+        role="status"
       >
-        <app-icon [name]="iconFor(toast.variant)" [size]="13" />
-      </span>
-      <p class="min-w-0 flex-1 text-sm font-medium text-app-foreground">{{ toast.message }}</p>
-      <button
-        type="button"
-        (click)="dismiss(toast.id)"
-        aria-label="Dismiss notification"
-        class="grid size-5 shrink-0 place-items-center rounded-full text-app-muted transition hover:bg-surface-hover hover:text-app-foreground"
+        <button
+          type="button"
+          (click)="activate(toast.id)"
+          class="flex w-full items-start gap-3 py-3 pl-4 pr-9 text-left transition hover:bg-surface-hover"
+        >
+          @if (toast.avatarUrl) {
+            <img
+              [src]="toast.avatarUrl"
+              alt=""
+              class="size-9 shrink-0 rounded-full border border-app-border object-cover"
+            />
+          } @else {
+            <span
+              class="grid size-9 shrink-0 place-items-center rounded-full"
+              [class]="badgeClasses(toast.variant)"
+            >
+              <app-icon [name]="iconFor(toast.variant)" [size]="16" />
+            </span>
+          }
+          <span class="min-w-0 flex-1">
+            @if (toast.title) {
+              <span class="block truncate text-sm font-semibold text-app-foreground">{{
+                toast.title
+              }}</span>
+            }
+            <span class="block truncate text-sm text-app-muted">{{ toast.message }}</span>
+          </span>
+        </button>
+        <button
+          type="button"
+          (click)="dismiss(toast.id)"
+          aria-label="Dismiss notification"
+          class="absolute right-2 top-2 grid size-6 shrink-0 place-items-center rounded-full text-app-muted transition hover:bg-surface-hover hover:text-app-foreground"
+        >
+          <app-icon name="close" [size]="12" />
+        </button>
+      </div>
+    } @else {
+      <div
+        class="lobby-toast-in pointer-events-auto flex w-full items-center gap-3 rounded-full border border-app-border bg-[#12151c]/95 px-4 py-2.5 shadow-2xl backdrop-blur"
+        [attr.role]="toast.variant === 'error' ? 'alert' : 'status'"
       >
-        <app-icon name="close" [size]="12" />
-      </button>
-    </div>
+        <span
+          class="grid size-6 shrink-0 place-items-center rounded-full"
+          [class]="badgeClasses(toast.variant)"
+        >
+          <app-icon [name]="iconFor(toast.variant)" [size]="13" />
+        </span>
+        <p class="min-w-0 flex-1 text-sm font-medium text-app-foreground">{{ toast.message }}</p>
+        <button
+          type="button"
+          (click)="dismiss(toast.id)"
+          aria-label="Dismiss notification"
+          class="grid size-5 shrink-0 place-items-center rounded-full text-app-muted transition hover:bg-surface-hover hover:text-app-foreground"
+        >
+          <app-icon name="close" [size]="12" />
+        </button>
+      </div>
+    }
   }
 </div>

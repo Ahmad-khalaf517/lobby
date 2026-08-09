@@ -15,6 +15,8 @@ export type CreateDmRequest = z.infer<typeof CreateDmRequestSchema>;
 /** REST: POST /dms/:conversationId/messages — body */
 export const SendDmMessageRequestSchema = z.object({
   body: z.string().min(1).max(MAX_MESSAGE_LENGTH),
+  /** Id of another message in the same conversation this one replies to. */
+  replyToMessageId: z.string().uuid().nullable().optional(),
 });
 export type SendDmMessageRequest = z.infer<typeof SendDmMessageRequestSchema>;
 
@@ -27,6 +29,12 @@ export const DmMessageIdParamSchema = z.object({
   messageId: z.string().uuid(),
 });
 export type DmMessageIdParam = z.infer<typeof DmMessageIdParamSchema>;
+
+/** REST: PATCH /dms/:conversationId/messages/:messageId — body */
+export const EditDmMessageRequestSchema = z.object({
+  body: z.string().min(1).max(MAX_MESSAGE_LENGTH),
+});
+export type EditDmMessageRequest = z.infer<typeof EditDmMessageRequestSchema>;
 
 /** REST: PUT /dms/:conversationId/messages/:messageId/reaction — body */
 export const SetDmReactionRequestSchema = z.object({
@@ -46,6 +54,9 @@ export const DmMessageSchema = z.object({
   body: z.string().min(1).max(MAX_MESSAGE_LENGTH),
   /** One reaction slot per message — null until either participant reacts. */
   reactionEmoji: z.string().min(1).max(16).nullable(),
+  /** Id of the message this one replies to, or null. The client resolves the
+   * quoted preview (author/text) from its own already-loaded history. */
+  replyToMessageId: z.string().uuid().nullable(),
   // { offset: true } — Supabase/PostgREST serializes timestamptz as
   // "...+00:00", not the "Z" suffix z.string().datetime() requires by default.
   createdAt: z.string().datetime({ offset: true }),

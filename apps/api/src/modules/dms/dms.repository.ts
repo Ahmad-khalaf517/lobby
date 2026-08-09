@@ -61,10 +61,16 @@ export class DmsRepository {
     conversationId: string,
     senderId: string,
     body: string,
+    replyTo: string | null = null,
   ): Promise<DmMessageRow> {
     const { data, error } = await this.db
       .from('dm_messages')
-      .insert({ conversation_id: conversationId, sender_id: senderId, content: body })
+      .insert({
+        conversation_id: conversationId,
+        sender_id: senderId,
+        content: body,
+        reply_to: replyTo,
+      })
       .select()
       .single();
 
@@ -99,6 +105,18 @@ export class DmsRepository {
       .select()
       .eq('id', messageId)
       .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async updateMessage(messageId: string, content: string): Promise<DmMessageRow> {
+    const { data, error } = await this.db
+      .from('dm_messages')
+      .update({ content })
+      .eq('id', messageId)
+      .select()
+      .single();
 
     if (error) throw error;
     return data;

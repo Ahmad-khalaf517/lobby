@@ -7,12 +7,14 @@ const BADGE_CLASSES: Record<ToastVariant, string> = {
   success: 'bg-online/15 text-online',
   error: 'bg-destructive/15 text-destructive',
   info: 'bg-primary/15 text-primary',
+  notification: 'bg-primary/15 text-primary',
 };
 
 const BADGE_ICONS: Record<ToastVariant, LobbyIconName> = {
   success: 'check',
   error: 'warning',
   info: 'info',
+  notification: 'chat',
 };
 
 @Component({
@@ -36,5 +38,9 @@ export class ToastContainerComponent {
 
   protected dismiss(id: number): void {
     this.toastService.dismiss(id);
+  }
+
+  protected activate(id: number): void {
+    this.toastService.activate(id);
   }
 }

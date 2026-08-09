@@ -1,11 +1,11 @@
-<main class="flex min-h-0 min-w-0 flex-1 flex-col bg-app-background text-app-foreground lg:h-dvh">
+<main class="flex min-h-0 min-w-0 flex-1 flex-col bg-app-background text-app-foreground">
   <!-- Slim page header -->
   <header class="shrink-0 border-b border-white/8 bg-[#0b0d13]">
-    <div class="flex h-14 w-full items-center gap-3 px-4 sm:px-6">
-      <h1 class="text-sm font-semibold text-white">Messages</h1>
+    <div class="flex h-16 w-full items-center gap-3 px-4 sm:px-6">
+      <h1 class="text-lg font-semibold text-white">Messages</h1>
       @if (totalUnread() > 0) {
         <span
-          class="min-w-4 h-4 rounded-full bg-primary px-1 text-[10px] font-medium text-[#0b0d13] grid place-items-center"
+          class="min-w-4.5 h-4.5 rounded-full bg-primary px-1 text-[11px] font-medium text-[#0b0d13] grid place-items-center"
           [attr.aria-label]="totalUnread() + ' unread messages'"
         >
           {{ totalUnread() }}
@@ -13,9 +13,9 @@
       }
       <a
         routerLink="/app/friends"
-        class="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-[#9aa4b2] transition hover:bg-white/6 hover:text-[#f4f7fb]"
+        class="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-[#9aa4b2] transition hover:bg-white/6 hover:text-[#f4f7fb]"
       >
-        <svg viewBox="0 0 24 24" class="size-3.5" fill="none" aria-hidden="true">
+        <svg viewBox="0 0 24 24" class="size-4" fill="none" aria-hidden="true">
           <path
             d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
             stroke="currentColor"
@@ -26,21 +26,6 @@
         </svg>
         Friends
       </a>
-      <button
-        type="button"
-        (click)="openMyProfile()"
-        class="inline-flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-[#c8cfdb] transition hover:bg-white/8 hover:text-white"
-      >
-        <svg viewBox="0 0 24 24" class="size-3.5" fill="none" aria-hidden="true">
-          <path
-            d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 0c-4.4 0-8 2.9-8 6.5V20a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 20 20v-1.5C20 14.9 16.4 12 12 12Z"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linejoin="round"
-          />
-        </svg>
-        My Profile
-      </button>
     </div>
   </header>
 
@@ -55,15 +40,15 @@
         [class.flex]="selectedFriendId() === null"
         [class.hidden]="selectedFriendId() !== null"
       >
-        <div class="flex h-14 shrink-0 items-center gap-2 border-b border-white/8 px-4">
-          <p class="text-sm font-medium text-[#f4f7fb]">Direct messages</p>
+        <div class="flex h-16 shrink-0 items-center gap-2 border-b border-white/8 px-4">
+          <p class="text-sm font-semibold text-app-foreground">Direct messages</p>
         </div>
-        <div class="lobby-scrollbar flex-1 space-y-0.5 overflow-y-auto p-2">
+        <div class="lobby-scrollbar flex-1 space-y-1 overflow-y-auto p-2.5">
           @if (conversationsLoading()) {
             <div class="space-y-2 p-1 pt-2">
               @for (skeleton of skeletonRows; track skeleton) {
-                <div class="flex items-center gap-2.5 px-1.5 py-1">
-                  <div class="size-8 shrink-0 animate-pulse rounded-full bg-white/8"></div>
+                <div class="flex items-center gap-2.5 px-1.5 py-1.5">
+                  <div class="size-9 shrink-0 animate-pulse rounded-full bg-white/8"></div>
                   <div class="min-w-0 flex-1 space-y-1.5">
                     <div class="h-2.5 w-2/3 animate-pulse rounded-full bg-white/8"></div>
                     <div class="h-2 w-1/2 animate-pulse rounded-full bg-white/6"></div>
@@ -72,27 +57,27 @@
               }
             </div>
           } @else if (conversationsError()) {
-            <p class="px-3 py-6 text-center text-xs text-[#f0a6ad]">{{ conversationsError() }}</p>
+            <p class="px-3 py-6 text-center text-sm text-[#f0a6ad]">{{ conversationsError() }}</p>
           } @else {
             @for (row of conversationRows(); track row.friendId) {
               <div [class]="conversationRowClass(row.friendId)">
-                <app-user-popover-avatar [person]="row.partner" [shape]="'rounded'" size="sm" />
+                <app-user-popover-avatar [person]="row.partner" [shape]="'rounded'" size="md" />
                 <button
                   type="button"
                   (click)="selectConversation(row.friendId)"
                   class="flex min-w-0 flex-1 items-center gap-2.5 text-left"
                 >
                   <span class="min-w-0 flex-1 text-left">
-                    <span class="block truncate text-[13px] text-[#f4f7fb]">{{
+                    <span class="block truncate text-sm font-medium text-app-foreground">{{
                       row.partner.name
                     }}</span>
-                    <span class="block truncate text-[11px] text-[#687282]">
+                    <span class="block truncate text-xs text-[#687282]">
                       {{ row.preview || 'Start a conversation' }}
                     </span>
                   </span>
                   @if (row.unread > 0) {
                     <span
-                      class="min-w-4 h-4 shrink-0 rounded-full bg-primary px-1 text-[10px] font-medium text-[#0b0d13] grid place-items-center"
+                      class="min-w-4.5 h-4.5 shrink-0 rounded-full bg-primary px-1 text-[11px] font-medium text-[#0b0d13] grid place-items-center"
                     >
                       {{ row.unread }}
                     </span>
@@ -100,7 +85,7 @@
                 </button>
               </div>
             } @empty {
-              <p class="px-3 py-6 text-center text-xs text-[#687282]">No conversations yet.</p>
+              <p class="px-3 py-6 text-center text-sm text-[#687282]">No conversations yet.</p>
             }
           }
         </div>
@@ -130,10 +115,12 @@
                   />
                 </svg>
               </button>
-              <app-user-popover-avatar [person]="partner" [shape]="'rounded'" size="sm" />
+              <app-user-popover-avatar [person]="partner" [shape]="'rounded'" size="md" />
               <div class="min-w-0">
-                <p class="truncate text-sm font-medium text-[#f4f7fb]">{{ partner.name }}</p>
-                <p class="truncate text-[11px] text-[#687282]">{{ statusLabel(partner) }}</p>
+                <p class="truncate text-[15px] font-semibold text-app-foreground">
+                  {{ partner.name }}
+                </p>
+                <p class="truncate text-xs text-[#687282]">{{ statusLabel(partner) }}</p>
               </div>
             </div>
             <div class="flex items-center gap-2">
@@ -171,7 +158,7 @@
 
                 @if (headerMenuOpen()) {
                   <div
-                    class="absolute right-0 top-full z-50 mt-2 w-44 rounded-xl border border-white/10 bg-[#141821] p-1.5 shadow-[0_18px_40px_rgba(0,0,0,0.5)]"
+                    class="absolute right-0 top-full z-50 mt-2 w-50 rounded-xl border border-white/10 bg-[#141821] p-1.5 shadow-[0_18px_40px_rgba(0,0,0,0.5)]"
                     role="menu"
                   >
                     <button
@@ -271,7 +258,7 @@
           <!-- Message list -->
           <div
             #messageList
-            class="lobby-scrollbar min-h-0 flex-1 space-y-1 overflow-y-auto px-4 pb-5 pt-8 sm:px-5"
+            class="lobby-scrollbar min-h-0 flex-1 space-y-1.5 overflow-y-auto px-4 pb-5 pt-8 sm:px-5"
           >
             @for (message of selectedMessages(); track message.id) {
               <app-message-row
@@ -293,16 +280,16 @@
                   <div
                     class="size-5 animate-spin rounded-full border-2 border-white/10 border-t-primary"
                   ></div>
-                  <p class="text-xs text-[#687282]">Loading messages…</p>
+                  <p class="text-sm text-[#687282]">Loading messages…</p>
                 </div>
               } @else if (openError()) {
                 <div class="flex h-full flex-col items-center justify-center gap-1 text-center">
                   <p class="text-sm text-[#f0a6ad]">{{ openError() }}</p>
                 </div>
               } @else {
-                <div class="flex h-full flex-col items-center justify-center gap-1 text-center">
-                  <p class="text-sm text-[#c4cad4]">No messages yet</p>
-                  <p class="text-xs text-[#687282]">Say hello to {{ partner.name }}!</p>
+                <div class="flex h-full flex-col items-center justify-center gap-1.5 text-center">
+                  <p class="text-[15px] font-medium text-app-foreground">No messages yet</p>
+                  <p class="text-sm text-[#687282]">Say hello to {{ partner.name }}!</p>
                 </div>
               }
             }
@@ -312,9 +299,9 @@
           <div class="shrink-0 px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5">
             @if (currentPartnerBlocked()) {
               <div
-                class="flex h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[#141821] px-4 text-xs text-[#9aa4b2]"
+                class="flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[#141821] px-4 text-sm text-[#9aa4b2]"
               >
-                <svg viewBox="0 0 24 24" class="size-3.5 shrink-0" fill="none" aria-hidden="true">
+                <svg viewBox="0 0 24 24" class="size-4 shrink-0" fill="none" aria-hidden="true">
                   <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
                   <path
                     d="m5.5 5.5 13 13"
@@ -326,37 +313,43 @@
                 You blocked {{ partner.name }} — unblock to send messages
               </div>
             } @else {
-              @if (pendingReply(); as reply) {
-                <app-chat-reply [preview]="reply" (cancelReply)="onCancelReply()" />
-              }
               <div
-                class="flex h-11 items-center gap-2.5 rounded-2xl border border-white/10 bg-[#141821] pl-4 pr-2"
+                class="overflow-hidden rounded-2xl border border-white/10 bg-[#141821] transition focus-within:border-primary/40"
               >
-                <input
-                  #composerInput
-                  type="text"
-                  [value]="draft()"
-                  (input)="onDraftInput($event)"
-                  (keydown.enter)="$event.preventDefault(); send()"
-                  [placeholder]="'Message ' + partner.name"
-                  class="h-full min-w-0 flex-1 bg-transparent text-sm text-app-foreground outline-none placeholder:text-[#687282]"
-                />
-                <button
-                  type="button"
-                  (click)="send()"
-                  aria-label="Send message"
-                  class="grid size-8 shrink-0 place-items-center rounded-[10px] bg-primary text-white transition hover:bg-[#8b6dff]"
-                >
-                  <svg viewBox="0 0 24 24" class="size-4" fill="none" aria-hidden="true">
-                    <path
-                      d="M12 19V5M5 12l7-7 7 7"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </button>
+                @if (pendingReply(); as reply) {
+                  <app-chat-reply
+                    [preview]="reply"
+                    [docked]="true"
+                    (cancelReply)="onCancelReply()"
+                  />
+                }
+                <div class="flex h-12 items-center gap-2.5 pl-4 pr-2">
+                  <input
+                    #composerInput
+                    type="text"
+                    [value]="draft()"
+                    (input)="onDraftInput($event)"
+                    (keydown.enter)="$event.preventDefault(); send()"
+                    [placeholder]="'Message ' + partner.name"
+                    class="h-full min-w-0 flex-1 bg-transparent text-sm text-app-foreground outline-none placeholder:text-[#687282]"
+                  />
+                  <button
+                    type="button"
+                    (click)="send()"
+                    aria-label="Send message"
+                    class="grid size-9 shrink-0 place-items-center rounded-[10px] bg-primary text-white transition hover:bg-[#8b6dff]"
+                  >
+                    <svg viewBox="0 0 24 24" class="size-4" fill="none" aria-hidden="true">
+                      <path
+                        d="M12 19V5M5 12l7-7 7 7"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
               </div>
             }
           </div>
@@ -379,15 +372,15 @@
               </svg>
             </div>
             <div>
-              <p class="text-sm font-medium text-[#f4f7fb]">Your messages</p>
-              <p class="mx-auto mt-1 max-w-xs text-xs leading-5 text-[#687282]">
+              <p class="text-base font-semibold text-app-foreground">Your messages</p>
+              <p class="mx-auto mt-1.5 max-w-xs text-sm leading-5 text-[#687282]">
                 Pick a conversation to start chatting, or head to the Friends page to message a
                 friend.
               </p>
             </div>
             <a
               routerLink="/app/friends"
-              class="mt-1 inline-flex h-9 items-center rounded-lg bg-primary px-3 text-xs font-medium text-white transition hover:bg-[#8b6dff]"
+              class="mt-1 inline-flex h-9 items-center rounded-lg bg-primary px-4 text-sm font-medium text-white transition hover:bg-[#8b6dff]"
             >
               Browse friends
             </a>

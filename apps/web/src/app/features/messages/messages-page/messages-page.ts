@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   HostListener,
   inject,
   signal,
@@ -47,6 +48,7 @@ export class MessagesPage {
   private readonly profilePopup = inject(ProfilePopupService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly conversationRows = this.service.conversationRows;
   protected readonly totalUnread = this.service.totalUnread;
@@ -101,6 +103,7 @@ export class MessagesPage {
 
     this.route.paramMap.subscribe((params) => {
       const friendId = params.get('friendId');
+      this.service.setActiveConversation(friendId);
       if (!friendId) {
         this.selectedFriendId.set(null);
         return;
@@ -108,6 +111,8 @@ export class MessagesPage {
       this.selectedFriendId.set(friendId);
       void this.openConversation(friendId);
     });
+
+    this.destroyRef.onDestroy(() => this.service.setActiveConversation(null));
   }
 
   private async openConversation(friendId: string): Promise<void> {
@@ -126,7 +131,7 @@ export class MessagesPage {
   protected conversationRowClass(friendId: string): string {
     const selected = friendId === this.selectedFriendId();
     return [
-      'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition',
+      'flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left transition',
       selected ? 'bg-[#16161d]' : 'hover:bg-[#131318]',
     ].join(' ');
   }
@@ -188,7 +193,7 @@ export class MessagesPage {
   protected onSaveEdit(payload: { messageId: string; text: string }): void {
     const friendId = this.selectedFriendId();
     if (friendId) {
-      this.service.editMessage(friendId, payload.messageId, payload.text);
+      void this.service.editMessage(friendId, payload.messageId, payload.text);
     }
     this.editingMessageId.set(null);
   }
@@ -248,13 +253,6 @@ export class MessagesPage {
 
   protected goBackToList(): void {
     void this.router.navigate(['/app/messages']);
-  }
-
-  protected openMyProfile(): void {
-    const userId = this.currentUserId();
-    if (userId) {
-      this.profilePopup.open(userId);
-    }
   }
 
   /** Call button — UI only until the backend calling integration ships. */

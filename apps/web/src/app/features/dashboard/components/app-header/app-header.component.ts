@@ -21,6 +21,8 @@ import { ToastService } from '../../../../core/toast/toast.service';
 import { ProfilePopupService } from '../../../profile/services/profile-popup.service';
 import { ProfileService } from '../../../profile/services/profile.service';
 import { SettingsPopupService } from '../../../account-settings/services/settings-popup.service';
+import { DirectMessagesService } from '../../../messages/messages.service';
+import { NotificationsService } from '../../../friends/notifications.service';
 import { DashboardStore } from '../../services/dashboard.store';
 import { PromptModalComponent } from '../prompt-modal/prompt-modal.component';
 import { ProfilePopupComponent } from '../../../profile/profile-popup/profile-popup';
@@ -54,6 +56,11 @@ export class AppHeaderComponent {
   private readonly settingsPopup = inject(SettingsPopupService);
   private readonly profileService = inject(ProfileService);
   private readonly toast = inject(ToastService);
+  // Not read directly here — injecting forces these singletons to construct
+  // (and start their realtime subscriptions) as soon as the dashboard shell
+  // mounts, so a DM/friend-request toast can fire from any page in /app.
+  private readonly directMessages = inject(DirectMessagesService);
+  private readonly notificationsRealtime = inject(NotificationsService);
   protected readonly notificationsOpen = signal(false);
   protected readonly accountMenuOpen = signal(false);
 

@@ -1,7 +1,24 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
-import type { CreateDmRequest, SendDmMessageRequest, SetDmReactionRequest } from '@lobby/shared';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import type {
+  CreateDmRequest,
+  EditDmMessageRequest,
+  SendDmMessageRequest,
+  SetDmReactionRequest,
+} from '@lobby/shared';
 import {
   CreateDmRequestSchema,
+  EditDmMessageRequestSchema,
   SendDmMessageRequestSchema,
   SetDmReactionRequestSchema,
 } from '@lobby/shared';
@@ -45,7 +62,23 @@ export class DmsController {
     @Param('conversationId') conversationId: string,
     @Body(new ZodValidationPipe(SendDmMessageRequestSchema)) body: SendDmMessageRequest,
   ) {
-    return this.dmsService.sendMessage(userId, conversationId, body.body);
+    return this.dmsService.sendMessage(
+      userId,
+      conversationId,
+      body.body,
+      body.replyToMessageId ?? null,
+    );
+  }
+
+  /** Only the sender can edit their own message. */
+  @Patch(':conversationId/messages/:messageId')
+  editMessage(
+    @CurrentUser('id') userId: string,
+    @Param('conversationId') conversationId: string,
+    @Param('messageId') messageId: string,
+    @Body(new ZodValidationPipe(EditDmMessageRequestSchema)) body: EditDmMessageRequest,
+  ) {
+    return this.dmsService.editMessage(userId, conversationId, messageId, body.body);
   }
 
   /** Either participant can set the message's reaction. */

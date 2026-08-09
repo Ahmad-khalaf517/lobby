@@ -6,6 +6,7 @@ export function authorToPerson(author: ChatUser): Person {
   return {
     id: author.id,
     name: author.name,
+    avatarUrl: author.avatarUrl,
     initials: author.initials,
     color: author.avatarColor,
     status: author.status,

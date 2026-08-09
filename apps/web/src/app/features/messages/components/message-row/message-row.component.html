@@ -1,10 +1,10 @@
-<app-person-avatar [person]="authorPerson()" [shape]="'rounded'" size="sm" />
+<app-person-avatar [person]="authorPerson()" [shape]="'rounded'" size="md" />
 
 @if (editing()) {
   <div class="min-w-0 flex-1">
     <div class="flex items-baseline gap-2">
-      <span class="text-[13px] font-medium text-[#f4f7fb]">{{ message().author.name }}</span>
-      <span class="text-[11px] text-[#687282]">{{ time() }}</span>
+      <span class="text-sm font-semibold text-app-foreground">{{ message().author.name }}</span>
+      <span class="text-xs text-[#687282]">{{ time() }}</span>
     </div>
     <textarea
       #editInput
@@ -16,7 +16,7 @@
       aria-label="Edit message"
       class="mt-1.5 w-full resize-none rounded-xl border border-primary/50 bg-[#16161d] px-3 py-2 text-sm leading-5 text-[#f4f7fb] outline-none transition placeholder:text-[#687282] focus:border-primary/70"
     ></textarea>
-    <p class="mt-1 text-[11px] text-[#687282]">
+    <p class="mt-1 text-xs text-[#687282]">
       escape to <span class="text-[#9aa4b2]">cancel</span> · enter to
       <span class="text-[#b69cff]">save</span>
     </p>
@@ -24,7 +24,9 @@
 } @else {
   <div class="min-w-0 flex-1">
     @if (message().reply; as quote) {
-      <div class="mb-1 flex items-center gap-1.5 text-[11px] text-[#687282]">
+      <div
+        class="mb-1.5 flex items-center gap-1.5 rounded-lg border-l-2 border-primary/50 bg-white/3 py-1 pl-2.5 pr-2 text-xs text-[#8b96a8]"
+      >
         <svg viewBox="0 0 24 24" class="size-3.5 shrink-0" fill="none" aria-hidden="true">
           <path
             d="m9 10 4-4 4 4"
@@ -41,16 +43,17 @@
           />
         </svg>
         <span class="truncate">
-          Reply to <span class="text-[#9aa4b2]">{{ quote.authorName }}</span>
+          <span class="font-medium text-[#aa9cff]">{{ quote.authorName }}</span> ·
+          {{ quote.text }}
         </span>
       </div>
     }
 
     <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-      <span class="text-[13px] font-medium text-[#f4f7fb]">{{ message().author.name }}</span>
-      <span class="text-[11px] text-[#687282]">{{ time() }}</span>
+      <span class="text-sm font-semibold text-app-foreground">{{ message().author.name }}</span>
+      <span class="text-xs text-[#687282]">{{ time() }}</span>
       @if (message().edited) {
-        <span class="text-[11px] text-[#687282]">(edited)</span>
+        <span class="text-xs text-[#687282]">(edited)</span>
       }
     </div>
 
