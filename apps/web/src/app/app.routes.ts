@@ -125,8 +125,24 @@ export const routes: Routes = [
         path: 'friends',
         title: 'Friends | Lobby',
         loadComponent: () =>
-          import('./features/dashboard/friends-page/friends-page').then(
+          import('./features/friends/friends-page/friends-page').then(
             (component) => component.FriendsPage,
+          ),
+      },
+      {
+        path: 'messages',
+        title: 'Messages | Lobby',
+        loadComponent: () =>
+          import('./features/messages/messages-page/messages-page').then(
+            (component) => component.MessagesPage,
+          ),
+      },
+      {
+        path: 'messages/:friendId',
+        title: 'Messages | Lobby',
+        loadComponent: () =>
+          import('./features/messages/messages-page/messages-page').then(
+            (component) => component.MessagesPage,
           ),
       },
       {

@@ -1,0 +1,202 @@
+<app-person-avatar [person]="authorPerson()" [shape]="'rounded'" size="sm" />
+
+@if (editing()) {
+  <div class="min-w-0 flex-1">
+    <div class="flex items-baseline gap-2">
+      <span class="text-[13px] font-medium text-[#f4f7fb]">{{ message().author.name }}</span>
+      <span class="text-[11px] text-[#687282]">{{ time() }}</span>
+    </div>
+    <textarea
+      #editInput
+      rows="2"
+      [value]="editDraft()"
+      (input)="onEditInput($event)"
+      (keydown.enter)="$event.preventDefault(); saveEditDraft()"
+      (keydown.escape)="cancelEditDraft()"
+      aria-label="Edit message"
+      class="mt-1.5 w-full resize-none rounded-xl border border-primary/50 bg-[#16161d] px-3 py-2 text-sm leading-5 text-[#f4f7fb] outline-none transition placeholder:text-[#687282] focus:border-primary/70"
+    ></textarea>
+    <p class="mt-1 text-[11px] text-[#687282]">
+      escape to <span class="text-[#9aa4b2]">cancel</span> · enter to
+      <span class="text-[#b69cff]">save</span>
+    </p>
+  </div>
+} @else {
+  <div class="min-w-0 flex-1">
+    @if (message().reply; as quote) {
+      <div class="mb-1 flex items-center gap-1.5 text-[11px] text-[#687282]">
+        <svg viewBox="0 0 24 24" class="size-3.5 shrink-0" fill="none" aria-hidden="true">
+          <path
+            d="m9 10 4-4 4 4"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M5 18a4 4 0 0 1 4-4h6"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          />
+        </svg>
+        <span class="truncate">
+          Reply to <span class="text-[#9aa4b2]">{{ quote.authorName }}</span>
+        </span>
+      </div>
+    }
+
+    <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+      <span class="text-[13px] font-medium text-[#f4f7fb]">{{ message().author.name }}</span>
+      <span class="text-[11px] text-[#687282]">{{ time() }}</span>
+      @if (message().edited) {
+        <span class="text-[11px] text-[#687282]">(edited)</span>
+      }
+    </div>
+
+    <p class="mt-1 whitespace-pre-wrap break-words text-sm leading-5 text-[#d8deea]">
+      {{ message().text }}
+    </p>
+
+    @if (message().reactions.length > 0) {
+      <app-chat-react [message]="message()" mode="chips" (react)="onReactFromChips($event)" />
+    }
+  </div>
+
+  <!-- Hover action toolbar -->
+  <div
+    class="absolute -top-3 right-2 z-20 flex items-center gap-0.5 rounded-lg border border-white/10 bg-[#16161d] p-1 shadow-[0_16px_28px_rgba(0,0,0,0.28)] transition md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
+  >
+    <button
+      type="button"
+      (click)="onToggleReactionMenu()"
+      data-message-react-button
+      aria-label="React to message"
+      class="grid size-7 place-items-center rounded-md text-[#9aa4b2] transition hover:bg-[#1c1c24] hover:text-[#f4f7fb]"
+    >
+      <svg viewBox="0 0 24 24" class="size-3.5" fill="none" aria-hidden="true">
+        <path d="M12 21a9 9 0 1 0-9-9 9 9 0 0 0 9 9Z" stroke="currentColor" stroke-width="1.8" />
+        <path
+          d="M9.1 10.6a1.1 1.1 0 1 0 0-2.2 1.1 1.1 0 0 0 0 2.2ZM14.9 10.6a1.1 1.1 0 1 0 0-2.2 1.1 1.1 0 0 0 0 2.2Z"
+          fill="currentColor"
+        />
+        <path
+          d="M8.4 14.1c1.1 1.1 2.2 1.7 3.6 1.7s2.5-.6 3.6-1.7"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        />
+      </svg>
+    </button>
+    <button
+      type="button"
+      (click)="onReply()"
+      aria-label="Reply to message"
+      title="Reply"
+      class="grid size-7 place-items-center rounded-md text-[#9aa4b2] transition hover:bg-sky-500/12 hover:text-sky-300"
+    >
+      <svg viewBox="0 0 24 24" class="size-4" fill="none" aria-hidden="true">
+        <path
+          d="m9 14-4-4 4-4"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <path
+          d="M5 10h10a4 4 0 0 1 4 4v3"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </button>
+    @if (isOwn()) {
+      <button
+        type="button"
+        (click)="onEdit()"
+        aria-label="Edit message"
+        class="grid size-7 place-items-center rounded-md text-[#9aa4b2] transition hover:bg-[#1c1c24] hover:text-[#f4f7fb]"
+      >
+        <svg viewBox="0 0 24 24" class="size-3.5" fill="none" aria-hidden="true">
+          <path d="M12 20h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          <path
+            d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+      <button
+        type="button"
+        (click)="toggleDeleteConfirm()"
+        aria-label="Delete message"
+        class="grid size-7 place-items-center rounded-md text-[#9aa4b2] transition hover:bg-destructive/15 hover:text-red-300"
+      >
+        <svg viewBox="0 0 24 24" class="size-3.5" fill="none" aria-hidden="true">
+          <path d="M3 6h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          <path
+            d="m8 6 .8-2.4A2 2 0 0 1 10.7 2h2.6a2 2 0 0 1 1.9 1.6L16 6"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          />
+          <path
+            d="m8.5 9 .5 9m6.5-9-.5 9M6.5 6l.5 13a2 2 0 0 0 2 1.9h5a2 2 0 0 0 2-1.9l.5-13"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          />
+        </svg>
+      </button>
+    }
+  </div>
+
+  @if (deleteConfirmOpen()) {
+    <div
+      class="absolute right-2 top-9 z-30 w-44 rounded-2xl border border-white/10 bg-[#141821] p-2 shadow-[0_18px_40px_rgba(0,0,0,0.35)]"
+    >
+      <p class="px-1 pb-2 pt-0.5 text-xs text-[#c8cfdb]">Delete this message?</p>
+      <div class="flex gap-1.5">
+        <button
+          type="button"
+          (click)="dismissDelete()"
+          class="flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1.5 text-xs font-medium text-[#c8cfdb] transition hover:bg-white/10"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          (click)="confirmDelete()"
+          class="flex-1 rounded-lg bg-rose-500/90 px-2 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-500"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (reactionMenuOpen()) {
+    <div
+      data-message-reaction-menu
+      class="absolute right-2 top-9 z-30 flex items-center gap-1 rounded-2xl border border-white/10 bg-[#141821] p-1.5 shadow-[0_18px_40px_rgba(0,0,0,0.35)]"
+    >
+      @for (emoji of emojis(); track emoji) {
+        <button
+          type="button"
+          (click)="onReact(emoji)"
+          [attr.aria-label]="'React with ' + emoji"
+          [class]="
+            'grid size-8 place-items-center rounded-xl text-base transition hover:bg-white/10 ' +
+            (message().ownReaction === emoji ? 'bg-white/14 ring-1 ring-white/25' : '')
+          "
+        >
+          {{ emoji }}
+        </button>
+      }
+    </div>
+  }
+}

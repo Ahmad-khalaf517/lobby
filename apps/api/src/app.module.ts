@@ -8,6 +8,8 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 import { APP_FILTER } from '@nestjs/core';
 import { UsersModule } from './modules/users/users.module';
 import { AccountSettingsModule } from './modules/account-settings/account-settings.module';
+import { FriendshipsModule } from './modules/friendships/friendships.module';
+import { DmsModule } from './modules/dms/dms.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { AccountSettingsModule } from './modules/account-settings/account-settin
     UsersModule,
     CallsModule,
     AccountSettingsModule,
+    FriendshipsModule,
+    DmsModule,
   ],
   providers: [
     {

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, input, signal } f
 import type { ChatUserStatus } from '../models/chat-user.model';
 
 export type ChatAvatarSize = 'xs' | 'sm' | 'md' | 'lg';
+export type ChatAvatarShape = 'circle' | 'rounded';
 
 /**
  * Reusable initials avatar: a colored circle whose hue is derived from the
@@ -40,6 +41,9 @@ export class ChatAvatarComponent {
   /** Visual size. `md` matches the guest-room message rows. */
   size = input<ChatAvatarSize>('md');
 
+  /** `rounded` (default, matches every existing avatar) is a squarish tile; `circle` is a full circle. */
+  shape = input<ChatAvatarShape>('rounded');
+
   /** Optional presence dot. Omit for no dot. */
   status = input<ChatUserStatus | null>(null);
 
@@ -59,16 +63,25 @@ export class ChatAvatarComponent {
   textColorOverride = input<string | null>(null);
 
   private readonly sizeClasses: Record<ChatAvatarSize, string> = {
-    xs: 'size-6 rounded-md text-[9px]',
-    sm: 'size-7 rounded-lg text-[10px]',
-    md: 'size-9 rounded-xl text-[10px] tracking-[0.08em]',
-    lg: 'size-16 rounded-2xl text-base tracking-[0.08em]',
+    xs: 'size-6 text-[9px]',
+    sm: 'size-7 text-[10px]',
+    md: 'size-9 text-[10px] tracking-[0.08em]',
+    lg: 'size-16 text-base tracking-[0.08em]',
   };
 
-  protected readonly classes = computed(
-    () =>
-      `relative grid shrink-0 place-items-center border font-semibold ${this.sizeClasses[this.size()]}`,
-  );
+  /** Per-size corner radius for the `rounded` (squarish) shape — `circle` always uses `rounded-full`. */
+  private readonly roundedRadiusClasses: Record<ChatAvatarSize, string> = {
+    xs: 'rounded-md',
+    sm: 'rounded-lg',
+    md: 'rounded-xl',
+    lg: 'rounded-2xl',
+  };
+
+  protected readonly classes = computed(() => {
+    const radius =
+      this.shape() === 'rounded' ? this.roundedRadiusClasses[this.size()] : 'rounded-full';
+    return `relative grid shrink-0 place-items-center border font-semibold ${this.sizeClasses[this.size()]} ${radius}`;
+  });
 
   protected readonly initials = computed(
     () => this.initialsOverride() ?? initialsFromName(this.name()),

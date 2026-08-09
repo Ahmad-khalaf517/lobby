@@ -135,6 +135,16 @@ export class UsersRepository {
     return data ?? [];
   }
 
+  /** Batch profile lookup for DM/friend lists — one query, no N+1. */
+  async findUsersByIds(ids: string[]): Promise<UserRow[]> {
+    if (ids.length === 0) return [];
+
+    const { data, error } = await this.supabase.client.from('users').select().in('id', ids);
+
+    if (error) throw error;
+    return data ?? [];
+  }
+
   private async findRow(userId: string): Promise<UserRow | null> {
     const { data, error } = await this.supabase.client
       .from('users')

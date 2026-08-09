@@ -1,0 +1,76 @@
+<app-person-avatar [person]="person()" [size]="size()" [shape]="shape()" />
+
+@if (open()) {
+  <div
+    #popover
+    class="animate-popover-in fixed z-[60] w-60 rounded-2xl border border-white/10 bg-[#141821] p-3 shadow-[0_18px_40px_rgba(0,0,0,0.55)]"
+    [class.popover-origin-top]="placement() === 'below'"
+    [class.popover-origin-bottom]="placement() === 'above'"
+    [style.left.px]="left()"
+    [style.top.px]="top()"
+    role="dialog"
+    (click)="$event.stopPropagation()"
+  >
+    <div
+      class="pointer-events-none absolute size-3 bg-[#141821]"
+      [class.-top-1.5]="placement() === 'below'"
+      [class.-bottom-1.5]="placement() === 'above'"
+      [class.border-t]="placement() === 'below'"
+      [class.border-l]="placement() === 'below'"
+      [class.border-b]="placement() === 'above'"
+      [class.border-r]="placement() === 'above'"
+      [class.border-white/10]="true"
+      [style.left.px]="caretLeft()"
+      [style.transform]="'-translate-x-1/2 rotate-45'"
+    ></div>
+
+    @if (loadingProfile()) {
+      <p class="text-xs text-[#687282]">Loading profile…</p>
+    } @else if (status() === 'error') {
+      <p class="text-xs text-[#f0a6ad]">Could not load this profile.</p>
+    } @else if (profile(); as profile) {
+      <div class="flex items-center gap-2.5">
+        <app-person-avatar [person]="person()" [shape]="'rounded'" size="lg" />
+        <div class="min-w-0">
+          <p class="truncate text-sm text-[#f4f7fb]">{{ profile.displayName }}</p>
+          <p class="truncate text-[11px] text-[#687282]">&#64;{{ profile.username }}</p>
+        </div>
+      </div>
+
+      @if (profile.bio) {
+        <p
+          class="mt-2 max-h-24 overflow-y-auto whitespace-pre-wrap break-words pr-1 text-xs leading-5 text-[#9aa4b2]"
+        >
+          {{ profile.bio }}
+        </p>
+      }
+
+      <div class="mt-3">
+        @if (status() === 'stranger' && !requestSent()) {
+          <button
+            type="button"
+            (click)="addFriend()"
+            class="w-full rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#8b6dff]"
+          >
+            Add friend
+          </button>
+        } @else if (requestSent()) {
+          <p class="text-center text-[11px] text-emerald-300/90">Friend request sent</p>
+        } @else {
+          <p class="flex items-center justify-center gap-1 text-[11px] text-emerald-300/90">
+            <svg viewBox="0 0 24 24" class="size-3.5" fill="none" aria-hidden="true">
+              <path
+                d="m5 12 4 4L19 6"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            Friends
+          </p>
+        }
+      </div>
+    }
+  </div>
+}
