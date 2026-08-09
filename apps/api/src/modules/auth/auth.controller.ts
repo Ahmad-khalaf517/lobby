@@ -130,17 +130,25 @@ export class AuthController {
   ): Promise<AuthSessionResponse> {
     const { refreshToken } = readAuthCookies(request);
     if (!refreshToken) {
+      clearAuthCookies(response);
       throw new UnauthorizedException('Missing refresh token');
     }
 
-    const result = await this.authService.refreshSession(refreshToken);
-    setAuthCookies(response, result.session);
+    try {
+      const result = await this.authService.refreshSession(refreshToken);
+      setAuthCookies(response, result.session);
 
-    return {
-      user: toAuthUser(result.user),
-      accessToken: result.session.access_token,
-      expiresAt: result.session.expires_at ?? null,
-    };
+      return {
+        user: toAuthUser(result.user),
+        accessToken: result.session.access_token,
+        expiresAt: result.session.expires_at ?? null,
+      };
+    } catch (error: unknown) {
+      if (error instanceof UnauthorizedException) {
+        clearAuthCookies(response);
+      }
+      throw error;
+    }
   }
 
   @Post('confirm-email')

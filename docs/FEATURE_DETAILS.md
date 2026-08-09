@@ -6,6 +6,10 @@ The Angular app initializes auth once through NestJS. Registered and anonymous s
 
 `POST /auth/anonymous` reuses a valid access session or refresh cookie before creating another anonymous user. Optional CAPTCHA proof can be forwarded when abuse protection is configured.
 
+During normal runtime, protected NestJS requests use the HttpOnly access-token cookie. If it has expired, `SupabaseAuthGuard` returns 401 and Angular's auth interceptor starts one shared `POST /auth/refresh` request for all waiting callers. NestJS gives the HttpOnly refresh token to Supabase, replaces **both** rotated cookies, Angular updates its in-memory Supabase/Realtime access token, and each original request is retried once.
+
+If Supabase rejects the refresh session, NestJS clears both cookies and Angular clears local auth state. A retryable Supabase/network outage does not erase an otherwise valid session, and login, logout, and refresh requests are excluded from recursive retry.
+
 ## Guest channels
 
 The `guest` schema contains channels, members, messages, and reactions. Security-definer RPCs implement create, join, message mutation, reaction toggle, leave, and close operations. Every function derives identity from `auth.uid()` and validates active membership. RLS limits reads to authorized active members.

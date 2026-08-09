@@ -7,7 +7,14 @@ import type {
   ResetPasswordRequest,
   VerifyRecoveryRequest,
 } from '@lobby/shared';
-import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { isAuthRetryableFetchError } from '@supabase/supabase-js';
 
 import { SupabaseService } from '../database/supabase.service';
 
@@ -75,14 +82,23 @@ export class AuthService {
 
   async refreshSession(refreshToken: string) {
     const supabase = this.supabaseService.createAuthClient();
-    const { data, error } = await supabase.auth.refreshSession({
-      refresh_token: refreshToken,
-    });
+    let result: Awaited<ReturnType<typeof supabase.auth.refreshSession>>;
 
-    if (error || !data.session) {
-      throw new UnauthorizedException('Session could not be refreshed');
+    try {
+      result = await supabase.auth.refreshSession({
+        refresh_token: refreshToken,
+      });
+    } catch (error: unknown) {
+      this.throwRefreshFailure(error);
     }
 
+    const { data, error } = result;
+
+    if (error || !data.session) {
+      this.throwRefreshFailure(error);
+    }
+
+    this.logger.debug('Auth session refresh succeeded');
     return { user: data.session.user, session: data.session };
   }
 
@@ -207,5 +223,15 @@ export class AuthService {
     }
 
     return null;
+  }
+
+  private throwRefreshFailure(error: unknown): never {
+    if (isAuthRetryableFetchError(error)) {
+      this.logger.warn('Auth session refresh temporarily unavailable');
+      throw new ServiceUnavailableException('Session refresh is temporarily unavailable');
+    }
+
+    this.logger.warn('Auth session refresh rejected');
+    throw new UnauthorizedException('Session could not be refreshed');
   }
 }
