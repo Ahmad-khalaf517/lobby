@@ -386,29 +386,14 @@
                     </p>
                   </div>
 
-                  <div>
-                    <label
-                      for="lifetimeMinutes"
-                      class="block text-[10px] font-semibold tracking-[0.12em] text-[#778295] uppercase"
-                    >
-                      Room lifetime
-                    </label>
-
-                    <select
-                      id="lifetimeMinutes"
-                      formControlName="lifetimeMinutes"
-                      [attr.aria-invalid]="configurationError() ? 'true' : null"
-                      [attr.aria-describedby]="
-                        configurationError() ? 'room-configuration-error' : null
-                      "
-                      (change)="handleConfigurationInput()"
-                      class="mt-2 h-10 w-full rounded-lg border border-white/[0.09] bg-[#111722] px-3 text-xs text-white outline-none transition hover:border-white/[0.15] focus:border-primary/50 focus:ring-3 focus:ring-primary/[0.08]"
-                    >
-                      @for (option of lifetimeOptions; track option.value) {
-                        <option [ngValue]="option.value">{{ option.label }}</option>
-                      }
-                    </select>
-                  </div>
+                  <app-select
+                    label="Room lifetime"
+                    formControlName="lifetimeMinutes"
+                    [options]="lifetimeOptions"
+                    [invalid]="!!configurationError()"
+                    [ariaDescribedBy]="configurationError() ? 'room-configuration-error' : null"
+                    (valueChange)="handleConfigurationInput()"
+                  />
                 </div>
 
                 @if (configurationError(); as error) {

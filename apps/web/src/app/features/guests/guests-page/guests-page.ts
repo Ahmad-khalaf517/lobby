@@ -23,6 +23,7 @@ import type { ZodType } from 'zod';
 
 import { LobbyIconComponent } from '../../../shared/ui/icon/lobby-icon.component';
 import { LogoComponent } from '../../../shared/ui/logo/lobby-logo.component';
+import { LobbySelectComponent } from '../../../shared/ui/select/lobby-select.component';
 import {
   guestChannelNameSchema,
   guestDisplayNameSchema,
@@ -37,7 +38,13 @@ type GuestOperation = 'join' | 'create';
 
 @Component({
   selector: 'app-guests-page',
-  imports: [ReactiveFormsModule, RouterLink, LogoComponent, LobbyIconComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    LogoComponent,
+    LobbyIconComponent,
+    LobbySelectComponent,
+  ],
   templateUrl: './guests-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
