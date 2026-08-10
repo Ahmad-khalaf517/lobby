@@ -74,43 +74,35 @@ export class ChatSidebarComponent {
 
   /** Whether the last scroll position was pinned to the bottom of the list. */
   private stickyBottom = false;
-  private lastMessageCount = 0;
 
-  /**
-   * Becomes true once the initial history has been loaded and the list was
-   * positioned at the newest message (the parent calls `scrollToNewest` right
-   * after loading). Until then, new arrivals are treated as baseline — the
-   * unread badge must never count the pre-existing history.
-   */
-  private live = false;
+  /** Tracks the newest rendered message so loading older history does not jump the list. */
+  private lastNewestMessageId: string | null = null;
 
   constructor() {
     effect(() => {
-      const count = this.messages().length;
+      const currentMessages = this.messages();
+      const newestMessageId = currentMessages[currentMessages.length - 1]?.id ?? null;
 
-      if (!this.live) {
-        // Still loading the initial history — sync the baseline, don't count.
-        this.lastMessageCount = count;
+      // Loading older history only prepends rows; the newest id stays the same,
+      // so pagination does not unexpectedly throw the user back to the bottom.
+      if (newestMessageId === this.lastNewestMessageId) {
         return;
       }
 
-      if (count <= this.lastMessageCount) {
-        this.lastMessageCount = count;
+      const hadPreviousNewest = this.lastNewestMessageId !== null;
+      this.lastNewestMessageId = newestMessageId;
+
+      if (!newestMessageId) {
+        this.stickyBottom = true;
+        this.unreadCount.set(0);
+        this.showScrollToNewest.set(false);
         return;
       }
 
-      const added = count - this.lastMessageCount;
-      this.lastMessageCount = count;
-
-      if (this.stickyBottom) {
-        // Pinned to the newest message — keep it that way so new messages
-        // don't silently pile up below the fold.
-        this.scrollToNewest(false);
-      } else {
-        // Scrolled up: count the new arrivals and surface the jump button.
-        this.unreadCount.update((unread) => unread + added);
-        this.showScrollToNewest.set(true);
-      }
+      // A changed newest id means either the initial history just rendered, the
+      // current user sent an optimistic message, or Realtime delivered a new
+      // message. In all three cases keep the conversation pinned to the latest.
+      this.scheduleScrollToNewest(hadPreviousNewest);
     });
   }
 
@@ -153,6 +145,26 @@ export class ChatSidebarComponent {
     this.scrollToNewest(true);
   }
 
+  private scheduleScrollToNewest(smooth: boolean): void {
+    // Effects run while Angular is reconciling the view. Waiting for the next
+    // animation frame guarantees the newly-added message and scroll anchor are
+    // in the DOM before we measure/scroll.
+    if (typeof requestAnimationFrame === 'undefined') {
+      queueMicrotask(() => this.scrollToNewest(smooth));
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      if (this.scrollAnchor()) {
+        this.scrollToNewest(smooth);
+        return;
+      }
+
+      // Very first render can expose the viewChild one frame later.
+      requestAnimationFrame(() => this.scrollToNewest(smooth));
+    });
+  }
+
   /** Public: move focus to the composer input (used when starting a reply). */
   focusComposer(): void {
     this.chatBar()?.focusInput();
@@ -175,8 +187,6 @@ export class ChatSidebarComponent {
     this.stickyBottom = true;
     this.unreadCount.set(0);
     this.showScrollToNewest.set(false);
-    this.live = true;
-    this.lastMessageCount = this.messages().length;
   }
 
   /** Public: whether the visible viewport is at (or near) the bottom of the message list. */

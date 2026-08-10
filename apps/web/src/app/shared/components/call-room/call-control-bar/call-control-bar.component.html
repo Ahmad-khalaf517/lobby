@@ -41,10 +41,15 @@
         @if (micPending()) {
           <span
             aria-hidden="true"
-            class="size-4 animate-spin rounded-full border-2 border-current/25 border-t-current"
+            class="size-5 animate-spin rounded-full border-2 border-current/25 border-t-current"
           ></span>
         } @else {
-          <app-icon [name]="micEnabled() ? 'mic' : 'mic-off'" aria-hidden="true" class="size-4" />
+          <app-icon
+            [name]="micEnabled() ? 'mic' : 'mic-off'"
+            [size]="20"
+            [strokeWidth]="2"
+            aria-hidden="true"
+          />
         }
       </button>
 
@@ -79,13 +84,14 @@
           @if (screenSharePending()) {
             <span
               aria-hidden="true"
-              class="size-4 animate-spin rounded-full border-2 border-current/25 border-t-current"
+              class="size-5 animate-spin rounded-full border-2 border-current/25 border-t-current"
             ></span>
           } @else {
             <app-icon
               [name]="screenShareActive() ? 'screen-share-off' : 'screen-share'"
+              [size]="20"
+              [strokeWidth]="2"
               aria-hidden="true"
-              class="size-4"
             />
           }
         </button>
@@ -115,7 +121,7 @@
         [attr.aria-label]="chatVisible() ? 'Hide chat panel' : 'Show chat panel'"
         [attr.title]="chatVisible() ? 'Hide chat panel' : 'Show chat panel'"
       >
-        <app-icon name="chat" [size]="19" />
+        <app-icon name="chat" [size]="20" [strokeWidth]="2" />
       </button>
     }
 
@@ -136,7 +142,7 @@
               : 'border-white/8 bg-white/5.5 text-[#e0e4eb] hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60')
           "
         >
-          <app-icon name="chat" aria-hidden="true" class="size-4" />
+          <app-icon name="chat" [size]="20" [strokeWidth]="2" aria-hidden="true" />
         </button>
 
         <span
@@ -156,7 +162,7 @@
         class="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-white/8 bg-white/5.5 px-2.5 text-xs font-medium tabular-nums text-[#e0e4eb] outline-none transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400/60 sm:h-12 sm:px-3"
         aria-label="Open participants"
       >
-        <app-icon name="users" aria-hidden="true" class="size-4" />
+        <app-icon name="users" [size]="20" [strokeWidth]="2" aria-hidden="true" />
 
         <span>
           {{ participantCount() }}
@@ -182,7 +188,7 @@
         class="grid size-11 shrink-0 place-items-center rounded-xl bg-rose-500 text-white outline-none transition-colors duration-150 hover:bg-rose-400 focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#11151d] sm:size-12"
         aria-label="Leave call"
       >
-        <app-icon name="leave-call" aria-hidden="true" class="size-4" />
+        <app-icon name="leave-call" [size]="20" [strokeWidth]="2" aria-hidden="true" />
       </button>
 
       <span

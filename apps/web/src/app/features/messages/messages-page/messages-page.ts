@@ -4,6 +4,7 @@ import {
   computed,
   DestroyRef,
   HostListener,
+  effect,
   inject,
   signal,
   viewChild,
@@ -150,12 +151,38 @@ export class MessagesPage {
 
   private readonly messageListEl = viewChild<ElementRef<HTMLDivElement>>('messageList');
   private readonly composerInput = viewChild<ElementRef<HTMLInputElement>>('composerInput');
+  private lastAutoScrollConversationId: string | null = null;
+  private lastAutoScrollMessageId: string | null = null;
 
   constructor() {
     const unregister = this.sessionScope.registerCleanup(() => this.resetSelections());
     this.destroyRef.onDestroy(unregister);
     void this.service.loadConversations();
     void this.friendsService.ensureLoaded();
+
+    // Keep DMs pinned to the latest message too. Tracking the newest message id
+    // (rather than the array length) means loading older history does not cause
+    // a jump back down, while optimistic sends and Realtime inserts do.
+    effect(() => {
+      const friendId = this.selectedFriendId();
+      const messages = this.selectedMessages();
+      const newestMessageId = messages[messages.length - 1]?.id ?? null;
+      const conversationChanged = friendId !== this.lastAutoScrollConversationId;
+
+      if (conversationChanged) {
+        this.lastAutoScrollConversationId = friendId;
+        this.lastAutoScrollMessageId = newestMessageId;
+        if (friendId && newestMessageId) this.scheduleScrollToBottom(false);
+        return;
+      }
+
+      if (!newestMessageId || newestMessageId === this.lastAutoScrollMessageId) {
+        return;
+      }
+
+      this.lastAutoScrollMessageId = newestMessageId;
+      this.scheduleScrollToBottom(true);
+    });
 
     // A navigation from the Friends page carries the friend so the chat header
     // shows immediately instead of flashing the empty state while loading.
@@ -537,13 +564,23 @@ export class MessagesPage {
     }
   }
 
-  private scrollToBottom(): void {
+  private scheduleScrollToBottom(smooth = false): void {
+    if (typeof requestAnimationFrame === 'undefined') {
+      queueMicrotask(() => this.scrollToBottom(smooth));
+      return;
+    }
+    requestAnimationFrame(() => this.scrollToBottom(smooth));
+  }
+
+  private scrollToBottom(smooth = false): void {
     const element = this.messageListEl()?.nativeElement;
     if (!element) {
       return;
     }
-    requestAnimationFrame(() => {
-      element.scrollTop = element.scrollHeight;
+
+    element.scrollTo({
+      top: element.scrollHeight,
+      behavior: smooth ? 'smooth' : 'auto',
     });
   }
 }
