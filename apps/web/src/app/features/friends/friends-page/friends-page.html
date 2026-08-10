@@ -1,8 +1,8 @@
 <main
-  class="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-[#080c13] text-app-foreground [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:overflow-hidden"
+  class="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-[#080c13] text-app-foreground scrollbar-none [&::-webkit-scrollbar]:hidden lg:overflow-hidden"
 >
   <!-- Slim page header -->
-  <header class="shrink-0 border-b border-white/[0.065] bg-[#0b1018]/90 backdrop-blur-xl">
+  <header class="shrink-0 border-b border-white/6.5 bg-[#0b1018]/90 backdrop-blur-xl">
     <div class="flex h-14 w-full items-center gap-3 px-4 sm:h-15 sm:px-5">
       <div class="min-w-0">
         <h1 class="text-[15px] font-semibold text-white">Friends</h1>
@@ -13,7 +13,7 @@
         <a
           routerLink="/app/messages"
           aria-label="Open messages"
-          class="inline-flex size-9 items-center justify-center rounded-lg text-[#9aa4b2] transition hover:bg-white/6 hover:text-[#f4f7fb] sm:w-auto sm:gap-1.5 sm:px-2.5"
+          class="inline-flex size-9 items-center justify-center rounded-lg text-app-muted transition hover:bg-white/6 hover:text-app-foreground sm:w-auto sm:gap-1.5 sm:px-2.5"
         >
           <app-icon name="chat" [size]="16" />
           <span class="hidden text-sm font-medium sm:inline">Messages</span>
@@ -29,7 +29,7 @@
           [class.text-[#c9bbff]]="addFriendOpen()"
           [class.border-white/8]="!addFriendOpen()"
           [class.bg-white/[0.035]]="!addFriendOpen()"
-          [class.text-[#9aa4b2]]="!addFriendOpen()"
+          [class.text-app-muted]="!addFriendOpen()"
         >
           <app-icon [name]="addFriendOpen() ? 'close' : 'user-plus'" [size]="16" />
           <span class="hidden text-sm font-medium sm:inline">{{
@@ -48,11 +48,11 @@
       <!-- Tabs + list -->
       <div class="flex flex-col lg:min-h-0 lg:w-0 lg:flex-1 lg:border-r lg:border-white/8">
         <div
-          class="flex min-h-12 shrink-0 items-center gap-1 border-b border-white/[0.065] px-3 py-1.5 sm:h-14 sm:gap-1.5 sm:px-5 sm:py-0"
+          class="flex min-h-12 shrink-0 items-center gap-1 border-b border-white/6.5 px-3 py-1.5 sm:h-14 sm:gap-1.5 sm:px-5 sm:py-0"
         >
           <button type="button" (click)="setTab('all')" [class]="tabClass('all')">
             <span>All</span>
-            <span class="rounded-full bg-white/[0.06] px-1.5 py-0.5 text-[10px] text-[#7f8998]">{{
+            <span class="rounded-full bg-white/6 px-1.5 py-0.5 text-[10px] text-[#7f8998]">{{
               friends().length
             }}</span>
           </button>
@@ -106,7 +106,7 @@
                         type="button"
                         (click)="openConversation(friend.id, friend)"
                         [attr.aria-label]="'Message ' + friend.name"
-                        class="grid size-9 place-items-center rounded-lg bg-[#16161d] text-[#9aa4b2] transition hover:bg-primary/15 hover:text-[#c9bbff]"
+                        class="grid size-9 place-items-center rounded-lg bg-[#16161d] text-app-muted transition hover:bg-primary/15 hover:text-[#c9bbff]"
                       >
                         <svg viewBox="0 0 24 24" class="size-4" fill="none" aria-hidden="true">
                           <path
@@ -124,7 +124,7 @@
                           data-friend-more-menu
                           (click)="toggleMoreMenu(friend.id)"
                           [attr.aria-label]="'More options for ' + friend.name"
-                          class="grid size-9 place-items-center rounded-lg bg-[#16161d] text-[#9aa4b2] transition hover:bg-destructive/15 hover:text-red-300"
+                          class="grid size-9 place-items-center rounded-lg bg-[#16161d] text-app-muted transition hover:bg-destructive/15 hover:text-red-300"
                         >
                           <svg
                             viewBox="0 0 24 24"

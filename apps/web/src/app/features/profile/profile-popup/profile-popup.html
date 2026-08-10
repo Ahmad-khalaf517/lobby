@@ -10,7 +10,7 @@
       aria-label="User profile"
     >
       <!-- Banner -->
-      <div class="relative h-20 bg-gradient-to-r from-primary/40 to-primary/10">
+      <div class="relative h-20 bg-linear-to-r from-primary/40 to-primary/10">
         <button
           type="button"
           class="absolute right-3 top-3 grid size-8 place-items-center rounded-lg bg-black/25 text-white/90 backdrop-blur-sm transition hover:bg-black/40 hover:text-white"
@@ -79,7 +79,7 @@
           </h2>
           <p class="text-sm text-app-muted">@{{ profile()?.username }}</p>
           @if (profile()?.bio) {
-            <p class="mt-1 text-sm text-app-muted whitespace-pre-wrap break-words">
+            <p class="mt-1 text-sm text-app-muted whitespace-pre-wrap wrap-break-word">
               {{ profile()?.bio }}
             </p>
           } @else if (isOwnProfile()) {

@@ -8,21 +8,21 @@
 }
 
 <aside
-  class="fixed inset-y-0 left-0 z-40 flex w-57.5 -translate-x-full flex-col border-r border-white/[0.055] bg-[#070a10]/98 shadow-[18px_0_55px_rgba(0,0,0,0.18)] backdrop-blur-xl transition-transform duration-200 lg:relative lg:z-30 lg:w-18 lg:translate-x-0 lg:shadow-none"
+  class="fixed inset-y-0 left-0 z-40 flex w-57.5 -translate-x-full flex-col border-r border-white/5.5 bg-[#070a10]/98 shadow-[18px_0_55px_rgba(0,0,0,0.18)] backdrop-blur-xl transition-transform duration-200 lg:relative lg:z-30 lg:w-18 lg:translate-x-0 lg:shadow-none"
   [class.translate-x-0]="mobileOpen()"
 >
   <div
-    class="flex h-14 shrink-0 items-center gap-3 border-b border-white/[0.06] px-3 lg:justify-center lg:px-0"
+    class="flex h-14 shrink-0 items-center gap-3 border-b border-white/6 px-3 lg:justify-center lg:px-0"
   >
     <a
       routerLink="/app"
       (click)="closeMobile.emit()"
       aria-label="Lobby home"
       title="Lobby"
-      class="flex min-w-0 items-center gap-2.5 rounded-xl transition lg:grid lg:size-10 lg:place-items-center lg:hover:bg-white/[0.04]"
+      class="flex min-w-0 items-center gap-2.5 rounded-xl transition lg:grid lg:size-10 lg:place-items-center lg:hover:bg-white/4"
     >
       <span
-        class="grid size-9 shrink-0 place-items-center rounded-xl border border-primary/20 bg-primary/[0.10] shadow-[0_10px_28px_rgba(124,92,252,0.13)]"
+        class="grid size-9 shrink-0 place-items-center rounded-xl border border-primary/20 bg-primary/10 shadow-[0_10px_28px_rgba(124,92,252,0.13)]"
       >
         <app-logo [size]="19" [decorative]="true" />
       </span>
@@ -36,7 +36,7 @@
       type="button"
       (click)="closeMobile.emit()"
       aria-label="Close sidebar"
-      class="ml-auto grid size-9 shrink-0 place-items-center rounded-xl text-app-muted transition hover:bg-white/[0.05] hover:text-white lg:hidden"
+      class="ml-auto grid size-9 shrink-0 place-items-center rounded-xl text-app-muted transition hover:bg-white/5 hover:text-white lg:hidden"
     >
       <app-icon name="close" [size]="16" />
     </button>
@@ -72,7 +72,7 @@
       </a>
     }
 
-    <div class="mx-2 my-2 h-px bg-white/[0.065]"></div>
+    <div class="mx-2 my-2 h-px bg-white/6.5"></div>
 
     <a
       routerLink="/app/friends"
@@ -183,7 +183,7 @@
     </div>
   }
 
-  <div class="relative h-[67px] shrink-0 border-t border-white/[0.055] px-2 pb-3 pt-2 flex">
+  <div class="relative h-[67px] shrink-0 border-t border-white/5.5 px-2 pb-3 pt-2 flex">
     <button
       type="button"
       (click)="toggleAddMenu()"

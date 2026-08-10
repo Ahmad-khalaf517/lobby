@@ -103,7 +103,7 @@ export class FriendsPage {
       'flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-[13px] transition sm:flex-none sm:px-3.5 sm:text-sm';
     return this.activeTab() === tab
       ? `${base} bg-primary/15 font-medium text-[#c9bbff]`
-      : `${base} text-[#9aa4b2] hover:bg-[#16161d]`;
+      : `${base} text-app-muted hover:bg-[#16161d]`;
   }
 
   protected statusLabel(friend: Person): string {

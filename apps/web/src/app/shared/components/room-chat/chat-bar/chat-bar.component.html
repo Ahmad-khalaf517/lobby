@@ -2,8 +2,8 @@
   (submit)="onSubmit($event)"
   [class]="
     channelLayout()
-      ? 'shrink-0 border-t border-white/[0.055] bg-[#080c13]/96 px-4 pb-3 pt-2 backdrop-blur-xl sm:px-6 lg:px-8'
-      : 'shrink-0 bg-gradient-to-t from-[#0b1018] via-[#0b1018]/98 to-transparent px-3 pb-4 pt-3 sm:px-4'
+      ? 'shrink-0 border-t border-white/5.5 bg-[#080c13]/96 px-4 pb-3 pt-2 backdrop-blur-xl sm:px-6 lg:px-8'
+      : 'shrink-0 bg-linear-to-t from-[#0b1018] via-[#0b1018]/98 to-transparent px-3 pb-4 pt-3 sm:px-4'
   "
 >
   <div [class]="channelLayout() ? 'relative w-full' : 'relative mx-auto w-full max-w-[920px]'">
@@ -48,8 +48,8 @@
     <div
       [class]="
         channelLayout()
-          ? 'rounded-xl border border-white/[0.075] bg-[#111824] transition-[border-color,background-color,box-shadow] hover:border-white/12 focus-within:border-primary/45 focus-within:bg-[#141c28] focus-within:shadow-[0_0_0_3px_rgba(124,92,252,0.06)]'
-          : 'rounded-xl border border-white/[0.085] bg-[#141b26] shadow-[0_12px_32px_rgba(0,0,0,0.24)] transition-[border-color,background-color,box-shadow] hover:border-white/14 focus-within:border-primary/50 focus-within:bg-[#171f2c] focus-within:ring-4 focus-within:ring-primary/[0.07]'
+          ? 'rounded-xl border border-white/7.5 bg-[#111824] transition-[border-color,background-color,box-shadow] hover:border-white/12 focus-within:border-primary/45 focus-within:bg-[#141c28] focus-within:shadow-[0_0_0_3px_rgba(124,92,252,0.06)]'
+          : 'rounded-xl border border-white/8.5 bg-[#141b26] shadow-[0_12px_32px_rgba(0,0,0,0.24)] transition-[border-color,background-color,box-shadow] hover:border-white/14 focus-within:border-primary/50 focus-within:bg-[#171f2c] focus-within:ring-4 focus-within:ring-primary/[0.07]'
       "
     >
       @if (replyPreview(); as preview) {
