@@ -53,6 +53,7 @@ import {
   LucideVolume2,
   LucideX,
   LucideDynamicIcon,
+  LucideOctagonMinus,
 } from '@lucide/angular';
 
 const LOBBY_ICONS = {
@@ -108,6 +109,7 @@ const LOBBY_ICONS = {
   users: LucideUsers,
   'volume-2': LucideVolume2,
   close: LucideX,
+  'not-allowed': LucideOctagonMinus,
 } as const;
 
 export type LobbyIconName = keyof typeof LOBBY_ICONS;

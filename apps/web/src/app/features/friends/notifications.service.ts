@@ -153,9 +153,14 @@ export class NotificationsService {
       title: row.title,
       onClick: () => {
         void this.markRead(row.id).catch(() => undefined);
-        void this.router.navigate([
-          FRIEND_NOTIFICATION_TYPES.has(row.type) ? '/app/friends' : '/app',
-        ]);
+        if (row.type === 'friend_request') {
+          // An incoming request lands the user on the Pending tab, not All friends.
+          void this.router.navigate(['/app/friends'], { queryParams: { tab: 'pending' } });
+        } else {
+          void this.router.navigate([
+            FRIEND_NOTIFICATION_TYPES.has(row.type) ? '/app/friends' : '/app',
+          ]);
+        }
       },
     });
   }

@@ -6,7 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import type { UserProfile } from '@lobby/shared';
 import { AuthService } from '../../auth/services/auth';
 import { DirectMessagesService } from '../../messages/messages.service';
@@ -42,6 +42,7 @@ export class FriendsPage {
   private readonly profilePopup = inject(ProfilePopupService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private readonly sessionScope = inject(SessionScopeService);
 
@@ -67,6 +68,15 @@ export class FriendsPage {
     const unregister = this.sessionScope.registerCleanup(() => this.resetSelections());
     this.destroyRef.onDestroy(unregister);
     void this.friendsService.load();
+
+    // A friend-request notification links here with `?tab=pending` so it opens
+    // directly on the relevant tab instead of the All friends default.
+    this.route.queryParamMap.subscribe((params) => {
+      const tab = params.get('tab');
+      if (tab === 'all' || tab === 'pending' || tab === 'blocked') {
+        this.activeTab.set(tab);
+      }
+    });
   }
 
   private resetSelections(): void {
