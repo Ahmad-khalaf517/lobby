@@ -1,8 +1,10 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  HostListener,
   computed,
+  ElementRef,
+  HostListener,
+  inject,
   input,
   output,
   signal,
@@ -28,10 +30,14 @@ export type ParsedReply = { authorName: string; previewText: string; bodyText: s
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class:
-      'group relative flex w-full items-start gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-white/2.5 focus-within:bg-white/2.5',
+      'group relative flex w-full items-start gap-3 rounded-md px-3 py-1.5 outline-none transition-colors hover:bg-white/[0.028] focus-within:bg-white/[0.035] sm:px-4',
+    tabindex: '-1',
+    'data-chat-message': '',
   },
 })
 export class ChatMessageComponent {
+  private readonly host = inject(ElementRef<HTMLElement>);
+
   message = input.required<ChatMessage>();
 
   /** Used to detect own messages (`message.author.id === currentUserId`). */
@@ -119,6 +125,32 @@ export class ChatMessageComponent {
 
   protected closeMoreMenu(): void {
     this.moreMenuOpen.set(false);
+  }
+
+  @HostListener('pointerup', ['$event'])
+  protected handlePointerUp(event: PointerEvent): void {
+    if (event.pointerType !== 'touch' && event.pointerType !== 'pen') {
+      return;
+    }
+
+    const target = event.target;
+    if (target instanceof Element && target.closest('[data-message-actions]')) {
+      return;
+    }
+
+    this.host.nativeElement.focus({ preventScroll: true });
+  }
+
+  @HostListener('document:pointerdown', ['$event'])
+  protected handleDocumentPointerDown(event: PointerEvent): void {
+    if (event.pointerType !== 'touch' && event.pointerType !== 'pen') {
+      return;
+    }
+
+    const target = event.target;
+    if (target instanceof Node && !this.host.nativeElement.contains(target)) {
+      this.host.nativeElement.blur();
+    }
   }
 
   @HostListener('document:click', ['$event'])

@@ -1,5 +1,5 @@
 <header
-  class="relative z-20 flex h-15 shrink-0 items-center gap-3 border-b border-white/[0.065] bg-[#090e16]/96 px-3 shadow-[0_10px_35px_rgba(0,0,0,0.12)] backdrop-blur-xl sm:px-5"
+  class="relative z-20 flex h-14 shrink-0 items-center gap-3 border-b border-white/[0.06] bg-[#090e16]/96 px-3 shadow-[0_10px_35px_rgba(0,0,0,0.10)] backdrop-blur-xl sm:px-4 lg:px-5"
 >
   <button
     type="button"
@@ -10,52 +10,64 @@
     <app-icon name="menu" [size]="18" />
   </button>
 
-  <div
-    class="grid size-9 shrink-0 place-items-center rounded-xl border border-primary/15 bg-primary/[0.08] shadow-[0_8px_24px_rgba(124,92,252,0.10)]"
-  >
-    <app-logo [size]="18" [decorative]="true" />
+  <!-- On desktop the Lobby brand belongs to the full-height rail. Keep it here only when the rail is hidden. -->
+  <div class="flex min-w-0 items-center gap-2.5 lg:hidden">
+    <div
+      class="grid size-9 shrink-0 place-items-center rounded-xl border border-primary/15 bg-primary/[0.08] shadow-[0_8px_24px_rgba(124,92,252,0.10)]"
+    >
+      <app-logo [size]="18" [decorative]="true" />
+    </div>
+    <p class="truncate text-[15px] font-semibold tracking-[-0.02em] text-app-foreground">Lobby</p>
   </div>
 
-  <p class="shrink-0 text-[15px] font-semibold tracking-[-0.02em] text-app-foreground">Lobby</p>
-
-  <div class="hidden h-7 w-px shrink-0 bg-white/[0.07] sm:block"></div>
-
-  <div class="relative hidden min-w-0 leading-tight sm:block">
-    @if (activeServer(); as server) {
-      <div class="flex items-center gap-1.5">
-        <p class="truncate text-[13px] font-semibold text-app-foreground">{{ server.name }}</p>
-        @if (isServerOwner()) {
-          <button
-            type="button"
-            (click)="renameServer()"
-            aria-label="Rename space"
-            title="Rename space"
-            class="grid size-5 shrink-0 place-items-center rounded text-app-muted transition hover:bg-surface-hover hover:text-app-foreground"
-          >
-            <app-icon name="edit" [size]="14" />
-          </button>
-        }
-      </div>
-    } @else {
-      <p class="truncate text-[13px] font-semibold text-app-foreground">Your spaces</p>
-    }
-    <p class="truncate text-[11px] text-app-muted/80">Community workspace</p>
+  <!-- Desktop workspace context: this bar is about the current server, not global branding. -->
+  <div class="hidden min-w-0 items-center gap-3 lg:flex">
+    <div class="min-w-0 leading-tight">
+      @if (activeServer(); as server) {
+        <div class="flex min-w-0 items-center gap-1.5">
+          <p class="truncate text-[14px] font-semibold tracking-[-0.015em] text-app-foreground">
+            {{ server.name }}
+          </p>
+          @if (isServerOwner()) {
+            <button
+              type="button"
+              (click)="renameServer()"
+              aria-label="Rename space"
+              title="Rename space"
+              class="grid size-6 shrink-0 place-items-center rounded-md text-app-muted transition hover:bg-surface-hover hover:text-app-foreground"
+            >
+              <app-icon name="edit" [size]="13" />
+            </button>
+          }
+        </div>
+        <p class="mt-0.5 truncate text-[10px] font-medium tracking-[0.02em] text-app-muted/75">
+          Community workspace
+        </p>
+      } @else {
+        <p class="truncate text-[14px] font-semibold tracking-[-0.015em] text-app-foreground">
+          Your Lobby
+        </p>
+        <p class="mt-0.5 truncate text-[10px] font-medium tracking-[0.02em] text-app-muted/75">
+          Friends, messages and spaces
+        </p>
+      }
+    </div>
   </div>
 
-  <div class="ml-auto flex items-center gap-1.5 sm:gap-2">
+  <div class="ml-auto flex items-center gap-1 sm:gap-1.5">
     @if (activeServer(); as server) {
-      <div class="relative">
-        <button
-          type="button"
-          (click)="openMembersPanel()"
-          [attr.aria-label]="'Show space members, ' + roster().length + ' members'"
-          title="Space members"
-          class="relative inline-flex h-9 items-center gap-2 rounded-xl px-2.5 text-app-muted transition hover:bg-white/[0.05] hover:text-white"
-        >
-          <app-icon name="users" [size]="14" />
-          <span class="hidden text-[10px] tabular-nums sm:inline">{{ roster().length }}</span>
-        </button>
-      </div>
+      <button
+        type="button"
+        (click)="openMembersPanel()"
+        [attr.aria-label]="'Show space members, ' + roster().length + ' members'"
+        title="Space members"
+        class="relative inline-flex h-9 items-center gap-2 rounded-xl px-2.5 text-app-muted transition hover:bg-white/[0.05] hover:text-white"
+      >
+        <app-icon name="users" [size]="15" />
+        <span class="hidden text-[10px] font-medium tabular-nums sm:inline">{{
+          roster().length
+        }}</span>
+      </button>
     }
 
     <div class="relative">
@@ -165,7 +177,6 @@
     </div>
   </div>
 </header>
-
 @if (membersPanelOpen()) {
   <div class="fixed inset-0 z-50">
     <button

@@ -3,11 +3,13 @@ import {
   Component,
   computed,
   effect,
+  ElementRef,
+  HostListener,
+  inject,
   input,
   output,
   signal,
   viewChild,
-  type ElementRef,
 } from '@angular/core';
 import { PersonAvatarComponent } from '../../../../shared/components/person-avatar/person-avatar.component';
 import {
@@ -34,10 +36,15 @@ import { authorToPerson, formatMessageTime } from '../../messages.util';
   templateUrl: './message-row.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'group relative flex w-full gap-3 rounded-xl px-2 py-2 transition hover:bg-[#141821]',
+    class:
+      'group relative flex w-full gap-3 rounded-md px-2 py-2 outline-none transition hover:bg-[#141821]',
+    tabindex: '-1',
+    'data-dm-message-row': '',
   },
 })
 export class MessageRowComponent {
+  private readonly host = inject(ElementRef<HTMLElement>);
+
   message = input.required<ChatMessage>();
 
   /** Used to detect own messages (edit / delete + author styling). */
@@ -143,5 +150,34 @@ export class MessageRowComponent {
 
   protected dismissDelete(): void {
     this.deleteConfirmOpen.set(false);
+  }
+
+  @HostListener('pointerup', ['$event'])
+  protected handlePointerUp(event: PointerEvent): void {
+    if (event.pointerType !== 'touch' && event.pointerType !== 'pen') {
+      return;
+    }
+
+    const target = event.target;
+    if (
+      target instanceof Element &&
+      target.closest('button, textarea, [data-message-reaction-menu]')
+    ) {
+      return;
+    }
+
+    this.host.nativeElement.focus({ preventScroll: true });
+  }
+
+  @HostListener('document:pointerdown', ['$event'])
+  protected handleDocumentPointerDown(event: PointerEvent): void {
+    if (event.pointerType !== 'touch' && event.pointerType !== 'pen') {
+      return;
+    }
+
+    const target = event.target;
+    if (target instanceof Node && !this.host.nativeElement.contains(target)) {
+      this.host.nativeElement.blur();
+    }
   }
 }

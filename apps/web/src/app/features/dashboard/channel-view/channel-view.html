@@ -10,7 +10,7 @@
     ></div>
 
     <header
-      class="relative flex h-15 shrink-0 items-center gap-2 border-b border-white/[0.065] bg-[#0b1018]/88 px-2.5 backdrop-blur-xl sm:gap-3 sm:px-4"
+      class="relative flex h-14 shrink-0 items-center gap-2 border-b border-white/[0.065] bg-[#0b1018]/88 px-2.5 backdrop-blur-xl sm:gap-3 sm:px-4"
     >
       <span
         class="order-1 grid size-8 shrink-0 place-items-center rounded-lg border border-primary/20 bg-primary/10 text-[#b9adff] shadow-[0_8px_28px_rgba(124,92,252,0.10)]"
@@ -190,6 +190,7 @@
             <app-channel-chat-panel
               [title]="channel()?.name ?? 'Channel'"
               [subtitle]="roster().length + ' member' + (roster().length === 1 ? '' : 's')"
+              [contextLabel]="server()?.name ?? ''"
               [placeholder]="'Message #' + (channel()?.name ?? 'channel')"
               [showHeader]="false"
               [showCloseButton]="false"
@@ -202,7 +203,7 @@
         <section class="relative flex min-w-0 flex-1 flex-col overflow-hidden">
           @if (isInCallHere()) {
             <div
-              class="relative h-[13.5rem] shrink-0 overflow-hidden border-b border-white/[0.065] bg-[radial-gradient(circle_at_12%_20%,rgba(124,92,252,0.13),transparent_30%),linear-gradient(180deg,#0d131d,#0a0f17)] sm:h-[14.5rem]"
+              class="relative h-[11.75rem] shrink-0 overflow-hidden border-b border-white/[0.065] bg-[radial-gradient(circle_at_12%_20%,rgba(124,92,252,0.13),transparent_30%),linear-gradient(180deg,#0d131d,#0a0f17)] sm:h-[12.5rem]"
             >
               <div class="flex items-center justify-between gap-3 px-4 pt-3 sm:px-5">
                 <div class="flex min-w-0 items-center gap-2">
@@ -285,6 +286,7 @@
           <app-channel-chat-panel
             [title]="channel()?.name ?? 'Channel'"
             [subtitle]="roster().length + ' member' + (roster().length === 1 ? '' : 's')"
+            [contextLabel]="server()?.name ?? ''"
             [placeholder]="'Message #' + (channel()?.name ?? 'channel')"
             [showHeader]="false"
             [showCloseButton]="false"
@@ -335,6 +337,7 @@
       <app-channel-chat-panel
         [title]="channel()?.name ?? 'Channel'"
         [subtitle]="roster().length + ' member' + (roster().length === 1 ? '' : 's')"
+        [contextLabel]="server()?.name ?? ''"
         [placeholder]="'Message #' + (channel()?.name ?? 'channel')"
         [showCloseButton]="true"
         [currentUserId]="currentUserId()"

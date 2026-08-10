@@ -8,15 +8,44 @@
 }
 
 <aside
-  class="fixed inset-y-0 left-0 z-40 flex w-57.5 -translate-x-full flex-col border-r border-white/[0.065] bg-[#0b1018]/98 py-3 shadow-[18px_0_55px_rgba(0,0,0,0.18)] backdrop-blur-xl transition-transform duration-200 lg:static lg:z-auto lg:w-18 lg:translate-x-0 lg:shadow-none"
+  class="fixed inset-y-0 left-0 z-40 flex w-57.5 -translate-x-full flex-col border-r border-white/[0.055] bg-[#070a10]/98 shadow-[18px_0_55px_rgba(0,0,0,0.18)] backdrop-blur-xl transition-transform duration-200 lg:relative lg:z-30 lg:w-18 lg:translate-x-0 lg:shadow-none"
   [class.translate-x-0]="mobileOpen()"
 >
-  <div class="px-4 pb-3 pt-1 lg:hidden">
-    <p class="truncate text-xs font-semibold text-app-foreground">Spaces</p>
-    <p class="mt-1 truncate text-[10px] text-app-muted/75">Your communities</p>
+  <div
+    class="flex h-14 shrink-0 items-center gap-3 border-b border-white/[0.06] px-3 lg:justify-center lg:px-0"
+  >
+    <a
+      routerLink="/app"
+      (click)="closeMobile.emit()"
+      aria-label="Lobby home"
+      title="Lobby"
+      class="flex min-w-0 items-center gap-2.5 rounded-xl transition lg:grid lg:size-10 lg:place-items-center lg:hover:bg-white/[0.04]"
+    >
+      <span
+        class="grid size-9 shrink-0 place-items-center rounded-xl border border-primary/20 bg-primary/[0.10] shadow-[0_10px_28px_rgba(124,92,252,0.13)]"
+      >
+        <app-logo [size]="19" [decorative]="true" />
+      </span>
+      <span
+        class="truncate text-[15px] font-semibold tracking-[-0.02em] text-app-foreground lg:hidden"
+        >Lobby</span
+      >
+    </a>
+
+    <button
+      type="button"
+      (click)="closeMobile.emit()"
+      aria-label="Close sidebar"
+      class="ml-auto grid size-9 shrink-0 place-items-center rounded-xl text-app-muted transition hover:bg-white/[0.05] hover:text-white lg:hidden"
+    >
+      <app-icon name="close" [size]="16" />
+    </button>
   </div>
 
-  <nav aria-label="Spaces" class="min-h-0 flex-1 space-y-1 overflow-y-auto px-2.5 lobby-scrollbar">
+  <nav
+    aria-label="Spaces"
+    class="min-h-0 flex-1 space-y-1 overflow-y-auto px-2.5 pb-2 pt-3 lobby-scrollbar"
+  >
     @for (server of store.servers(); track server.id) {
       <a
         [routerLink]="serverLink(server)"
@@ -135,31 +164,31 @@
           type="button"
           (click)="toggleMic()"
           [disabled]="!call.connected() || call.micPending()"
-          class="grid h-8 flex-1 place-items-center rounded-lg bg-white/5 text-app-muted transition hover:bg-white/10 hover:text-white disabled:opacity-40 lg:w-full"
+          class="grid h-8 flex-1 py-2 place-items-center rounded-lg bg-white/5 text-app-muted transition hover:bg-white/10 hover:text-white disabled:opacity-40 lg:w-full"
           [attr.aria-label]="call.micEnabled() ? 'Mute microphone' : 'Unmute microphone'"
           [title]="call.micEnabled() ? 'Mute microphone' : 'Unmute microphone'"
         >
-          <app-icon [name]="call.micEnabled() ? 'mic' : 'mic-off'" [size]="13" />
+          <app-icon [name]="call.micEnabled() ? 'mic' : 'mic-off'" [size]="18" />
         </button>
         <button
           type="button"
           (click)="leaveCall()"
-          class="grid h-8 flex-1 place-items-center rounded-lg bg-rose-500/15 text-rose-300 transition hover:bg-rose-500/25 hover:text-rose-200 lg:w-full"
+          class="grid h-8 flex-1 py-2 place-items-center rounded-lg bg-rose-500/15 text-rose-300 transition hover:bg-rose-500/25 hover:text-rose-200 lg:w-full"
           aria-label="Leave call"
           title="Leave call"
         >
-          <app-icon name="leave-call" [size]="13" />
+          <app-icon name="leave-call" [size]="18" />
         </button>
       </div>
     </div>
   }
 
-  <div class="relative mt-2 shrink-0 px-2">
+  <div class="relative h-[67px] shrink-0 border-t border-white/[0.055] px-2 pb-3 pt-2 flex">
     <button
       type="button"
       (click)="toggleAddMenu()"
       title="New space"
-      class="flex h-11 w-full items-center gap-3 rounded-xl border border-dashed border-app-border px-2 text-[12px] text-app-muted transition hover:border-primary/40 hover:bg-primary/10 hover:text-app-foreground lg:justify-center"
+      class="flex w-full items-center gap-3 rounded-xl border border-dashed border-app-border px-2 text-[12px] text-app-muted transition hover:border-primary/40 hover:bg-primary/10 hover:text-app-foreground lg:justify-center"
     >
       <span class="grid size-7 shrink-0 place-items-center rounded-lg bg-surface">
         <app-icon name="plus" [size]="14" />
@@ -169,7 +198,7 @@
 
     @if (addMenuOpen()) {
       <div
-        class="absolute bottom-[calc(100%+8px)] left-1 z-30 w-64 space-y-1 rounded-2xl border border-[#232a38] bg-[#0d121b] p-2 shadow-2xl"
+        class="absolute bottom-[calc(100%+8px)] left-1 z-50 w-64 space-y-1 rounded-2xl border border-[#232a38] bg-[#0d121b]/98 p-2 shadow-[0_24px_70px_rgba(0,0,0,0.55)] backdrop-blur-xl lg:bottom-2 lg:left-full lg:ml-2 lg:w-72"
       >
         <p class="px-2 pb-1 pt-1 text-[10px] font-semibold tracking-wide text-app-muted uppercase">
           Add a space

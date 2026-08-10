@@ -22,6 +22,7 @@ export class ChannelChatPanel {
 
   title = input('Channel');
   subtitle = input('');
+  contextLabel = input('');
   placeholder = input('Message the channel');
   currentUserId = input('');
   memberNames = input<string[]>([]);

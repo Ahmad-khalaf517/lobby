@@ -1,20 +1,35 @@
 @if (preview(); as preview) {
   @if (docked()) {
-    <!-- Sits as the top section of the composer's own rounded box (see [docked]). -->
-    <div class="flex items-center gap-2 border-b border-white/8 px-4 py-2.5">
-      <app-icon name="reply" class="size-4 shrink-0 text-app-muted" [size]="16" />
-      <p class="min-w-0 flex-1 truncate text-xs text-app-muted">
-        Replying to
-        <span class="font-semibold text-app-foreground">{{ preview.authorName }}</span>
-      </p>
+    <!-- Compact reply context integrated into the composer shell. -->
+    <div
+      class="relative flex min-h-12 items-center gap-2.5 rounded-t-xl border-b border-white/[0.065] bg-[linear-gradient(90deg,rgba(124,92,252,0.075),rgba(255,255,255,0.018)_42%,transparent)] px-3 py-2 sm:px-3.5"
+    >
+      <span
+        aria-hidden="true"
+        class="absolute inset-y-2 left-0 w-0.5 rounded-full bg-primary/75 shadow-[0_0_14px_rgba(124,92,252,0.34)]"
+      ></span>
+      <span
+        class="grid size-7 shrink-0 place-items-center rounded-lg border border-primary/15 bg-primary/[0.07] text-[#a996ff]"
+      >
+        <app-icon name="reply" class="size-3.5" [size]="14" />
+      </span>
+
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-[10px] font-medium leading-4 text-[#7f8a9c]">
+          Replying to
+          <span class="font-semibold text-[#b9aaff]">{{ preview.authorName }}</span>
+        </p>
+        <p class="truncate text-[12px] leading-4 text-[#aab3c2]">{{ preview.text }}</p>
+      </div>
+
       <button
         type="button"
         (click)="cancelReply.emit()"
-        class="grid size-9 shrink-0 place-items-center rounded-md text-app-muted outline-none transition-colors hover:bg-white/8 hover:text-app-foreground"
+        class="grid size-8 shrink-0 place-items-center rounded-lg text-[#788496] outline-none transition-colors hover:bg-white/[0.065] hover:text-white focus-visible:bg-white/[0.065] focus-visible:text-white focus-visible:ring-1 focus-visible:ring-violet-400/60"
         aria-label="Cancel reply"
         title="Cancel reply"
       >
-        <app-icon name="close" class="size-4.5" [size]="18" />
+        <app-icon name="close" class="size-4" [size]="16" />
       </button>
     </div>
   } @else {

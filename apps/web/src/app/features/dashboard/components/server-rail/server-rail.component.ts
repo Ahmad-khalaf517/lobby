@@ -13,13 +13,14 @@ import type { Server } from '@lobby/shared';
 
 import { LiveKitCallService } from '../../../../shared/components/call-room';
 import { LobbyIconComponent } from '../../../../shared/ui/icon/lobby-icon.component';
+import { LogoComponent } from '../../../../shared/ui/logo/lobby-logo.component';
 import { DashboardStore } from '../../services/dashboard.store';
 import { ServerIconComponent } from '../server-icon/server-icon.component';
 
 @Component({
   selector: 'app-server-rail',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, LobbyIconComponent, ServerIconComponent],
+  imports: [RouterLink, RouterLinkActive, LobbyIconComponent, LogoComponent, ServerIconComponent],
   templateUrl: './server-rail.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'contents' },

@@ -104,6 +104,12 @@ export class RoomChatComponent {
     'Messages, replies, and reactions will appear here in realtime.',
   );
 
+  /** Full-width persistent-channel layout. Keeps chat left aligned and shows a channel intro. */
+  channelLayout = input<boolean>(false);
+
+  /** Server/workspace label used by the persistent-channel intro. */
+  channelContext = input<string>('');
+
   /** Emoji set for the reaction menu + composer picker. */
   emojis = input<string[]>(DEFAULT_CHAT_EMOJIS);
 

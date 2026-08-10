@@ -44,9 +44,16 @@
     [disabled]="chat.disabled()"
     [showHeader]="showHeader()"
     [showCloseButton]="showCloseButton()"
+    [channelLayout]="true"
+    [channelContext]="contextLabel()"
     emptyStateVariant="channel"
-    emptyStateTitle=""
-    emptyStateSubtitle="No messages yet — say something to get started."
+    [emptyStateTitle]="'Welcome to #' + title()"
+    [emptyStateSubtitle]="
+      'This is the beginning of #' +
+      title() +
+      (contextLabel() ? ' in ' + contextLabel() : '') +
+      '. Start the conversation, share an idea, or jump into a call.'
+    "
     (sendMessage)="send($event)"
     (reactToMessage)="react($event)"
     (deleteMessage)="remove($event)"
