@@ -60,6 +60,7 @@ export class AuthService {
 
   async register(dto: RegisterRequest) {
     const supabase = this.supabaseService.createAuthClient();
+    this.logger.debug(`Signup email redirect: ${this.webOrigin()}/confirm-email`);
     const { data, error } = await supabase.auth.signUp({
       email: dto.email,
       password: dto.password,
