@@ -1,13 +1,16 @@
-<div class="flex h-dvh flex-col bg-app-background">
-  <app-dashboard-header [activeServer]="activeServer()" (menuToggle)="toggleMobileSidebar()" />
+<div class="flex h-dvh overflow-hidden bg-app-background">
+  <app-server-rail
+    [activeServerId]="activeServerId()"
+    [mobileOpen]="mobileSidebarOpen()"
+    (closeMobile)="mobileSidebarOpen.set(false)"
+  />
 
-  <div class="flex min-h-0 flex-1 overflow-hidden">
-    <app-server-rail
-      [activeServerId]="activeServerId()"
-      [mobileOpen]="mobileSidebarOpen()"
-      (closeMobile)="mobileSidebarOpen.set(false)"
-    />
-    <router-outlet />
+  <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
+    <app-dashboard-header [activeServer]="activeServer()" (menuToggle)="toggleMobileSidebar()" />
+
+    <main class="flex min-h-0 min-w-0 flex-1 overflow-hidden">
+      <router-outlet />
+    </main>
   </div>
 </div>
 

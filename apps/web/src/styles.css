@@ -231,14 +231,10 @@ body:has(.lobby-navbar) app-route-progress {
   animation: lobby-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* Touchscreens do not expose hover, so message actions must remain discoverable. */
+/* Message actions are hover-driven on pointer devices and revealed by an
+   intentional tap/focus on touch devices. Keeping them hidden by default avoids
+   covering message content on narrow screens. */
 @media (hover: none), (pointer: coarse) {
-  [data-message-actions] {
-    pointer-events: auto;
-    transform: translateY(0) scale(1);
-    opacity: 1;
-  }
-
   [data-message-actions] button {
     min-width: 2.25rem;
     min-height: 2.25rem;

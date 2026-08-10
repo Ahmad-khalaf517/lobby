@@ -11,7 +11,6 @@ import {
 import { LobbyIconComponent } from '../../../ui/icon/lobby-icon.component';
 import { ChatBarComponent } from '../chat-bar/chat-bar.component';
 import { ChatMessageComponent } from '../chat-message/chat-message.component';
-import { ChatReplyComponent } from '../chat-reply/chat-reply.component';
 import {
   DEFAULT_CHAT_EMOJIS,
   type ChatMessage,
@@ -31,7 +30,7 @@ import {
 @Component({
   selector: 'app-chat-sidebar',
   standalone: true,
-  imports: [LobbyIconComponent, ChatMessageComponent, ChatReplyComponent, ChatBarComponent],
+  imports: [LobbyIconComponent, ChatMessageComponent, ChatBarComponent],
   templateUrl: './chat-sidebar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -45,6 +44,8 @@ export class ChatSidebarComponent {
   emptyStateSubtitle = input<string>(
     'Messages, replies, and reactions will appear here in realtime.',
   );
+  channelLayout = input<boolean>(false);
+  channelContext = input<string>('');
   messages = input<ChatMessage[]>([]);
   currentUserId = input<string>('');
   memberNames = input<string[]>([]);
@@ -110,6 +111,33 @@ export class ChatSidebarComponent {
         this.unreadCount.update((unread) => unread + added);
         this.showScrollToNewest.set(true);
       }
+    });
+  }
+
+  protected showDateSeparator(index: number): boolean {
+    const current = this.messages()[index];
+    if (!current) return false;
+    if (index === 0) return true;
+
+    const previous = this.messages()[index - 1];
+    return (
+      new Date(previous.createdAt).toDateString() !== new Date(current.createdAt).toDateString()
+    );
+  }
+
+  protected dateLabel(message: ChatMessage): string {
+    const value = new Date(message.createdAt);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    if (value.toDateString() === today.toDateString()) return 'Today';
+    if (value.toDateString() === yesterday.toDateString()) return 'Yesterday';
+
+    return value.toLocaleDateString([], {
+      month: 'short',
+      day: 'numeric',
+      year: value.getFullYear() === today.getFullYear() ? undefined : 'numeric',
     });
   }
 

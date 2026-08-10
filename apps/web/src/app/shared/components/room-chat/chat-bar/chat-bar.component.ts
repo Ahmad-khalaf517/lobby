@@ -12,7 +12,8 @@ import { LobbyIconComponent } from '../../../ui/icon/lobby-icon.component';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAX_MESSAGE_LENGTH } from '@lobby/shared';
 import { ChatAvatarComponent } from '../chat-avatar/chat-avatar.component';
-import { DEFAULT_CHAT_EMOJIS } from '../models/chat-message.model';
+import { ChatReplyComponent } from '../chat-reply/chat-reply.component';
+import { DEFAULT_CHAT_EMOJIS, type ChatReplyPreview } from '../models/chat-message.model';
 
 /**
  * Bottom input bar: text input with @mention suggestions and an emoji picker,
@@ -23,7 +24,7 @@ import { DEFAULT_CHAT_EMOJIS } from '../models/chat-message.model';
 @Component({
   selector: 'app-chat-bar',
   standalone: true,
-  imports: [ReactiveFormsModule, LobbyIconComponent, ChatAvatarComponent],
+  imports: [ReactiveFormsModule, LobbyIconComponent, ChatAvatarComponent, ChatReplyComponent],
   templateUrl: './chat-bar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -36,9 +37,12 @@ export class ChatBarComponent {
   maxLength = input<number>(MAX_MESSAGE_LENGTH);
   memberNames = input<string[]>([]);
   emojis = input<string[]>(DEFAULT_CHAT_EMOJIS);
+  channelLayout = input<boolean>(false);
+  replyPreview = input<ChatReplyPreview | null>(null);
 
   /** Emitted with the trimmed message text when the user hits Send. */
   readonly send = output<string>();
+  readonly cancelReply = output<void>();
 
   private readonly composerInput = viewChild<ElementRef<HTMLInputElement>>('composerInput');
   private readonly emojiPickerHost = viewChild<ElementRef<HTMLElement>>('emojiPickerHost');

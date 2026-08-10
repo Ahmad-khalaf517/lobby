@@ -1,18 +1,42 @@
-<main class="flex min-h-0 min-w-0 flex-1 flex-col bg-[#080c13] text-app-foreground">
+<main
+  class="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-[#080c13] text-app-foreground scrollbar-none [&::-webkit-scrollbar]:hidden lg:overflow-hidden"
+>
   <!-- Slim page header -->
-  <header class="shrink-0 border-b border-white/[0.065] bg-[#0b1018]/90 backdrop-blur-xl">
-    <div class="flex h-15 w-full items-center gap-3 px-4 sm:px-5">
-      <div>
+  <header class="shrink-0 border-b border-white/6.5 bg-[#0b1018]/90 backdrop-blur-xl">
+    <div class="flex h-14 w-full items-center gap-3 px-4 sm:h-15 sm:px-5">
+      <div class="min-w-0">
         <h1 class="text-[15px] font-semibold text-white">Friends</h1>
-        <p class="mt-0.5 text-[10px] text-[#737f91]">People and connection requests</p>
+        <p class="mt-0.5 truncate text-[10px] text-[#737f91]">People and connection requests</p>
       </div>
-      <a
-        routerLink="/app/messages"
-        class="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-[#9aa4b2] transition hover:bg-white/6 hover:text-[#f4f7fb]"
-      >
-        <app-icon name="chat" [size]="14" />
-        Messages
-      </a>
+
+      <div class="ml-auto flex items-center gap-1.5">
+        <a
+          routerLink="/app/messages"
+          aria-label="Open messages"
+          class="inline-flex size-9 items-center justify-center rounded-lg text-app-muted transition hover:bg-white/6 hover:text-app-foreground sm:w-auto sm:gap-1.5 sm:px-2.5"
+        >
+          <app-icon name="chat" [size]="16" />
+          <span class="hidden text-sm font-medium sm:inline">Messages</span>
+        </a>
+
+        <button
+          type="button"
+          (click)="toggleAddFriend()"
+          [attr.aria-label]="addFriendOpen() ? 'Close add friend' : 'Add friend'"
+          class="inline-flex size-9 items-center justify-center rounded-lg border transition sm:w-auto sm:gap-1.5 sm:px-3"
+          [class.border-[#8f74ff]/35]="addFriendOpen()"
+          [class.bg-[#8f74ff]/14]="addFriendOpen()"
+          [class.text-[#c9bbff]]="addFriendOpen()"
+          [class.border-white/8]="!addFriendOpen()"
+          [class.bg-white/[0.035]]="!addFriendOpen()"
+          [class.text-app-muted]="!addFriendOpen()"
+        >
+          <app-icon [name]="addFriendOpen() ? 'close' : 'user-plus'" [size]="16" />
+          <span class="hidden text-sm font-medium sm:inline">{{
+            addFriendOpen() ? 'Close' : 'Add friend'
+          }}</span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -24,16 +48,19 @@
       <!-- Tabs + list -->
       <div class="flex flex-col lg:min-h-0 lg:w-0 lg:flex-1 lg:border-r lg:border-white/8">
         <div
-          class="flex h-14 shrink-0 items-center gap-1.5 border-b border-white/[0.065] px-3 sm:px-5"
+          class="flex min-h-12 shrink-0 items-center gap-1 border-b border-white/6.5 px-3 py-1.5 sm:h-14 sm:gap-1.5 sm:px-5 sm:py-0"
         >
           <button type="button" (click)="setTab('all')" [class]="tabClass('all')">
-            All friends · {{ friends().length }}
+            <span>All</span>
+            <span class="rounded-full bg-white/6 px-1.5 py-0.5 text-[10px] text-[#7f8998]">{{
+              friends().length
+            }}</span>
           </button>
           <button type="button" (click)="setTab('pending')" [class]="tabClass('pending')">
             Pending
             @if (pendingCount() > 0) {
               <span
-                class="min-w-4.5 h-4.5 px-1 rounded-full bg-destructive text-white text-[11px] font-medium grid place-items-center"
+                class="grid h-4.5 min-w-4.5 place-items-center rounded-full bg-destructive px-1 text-[11px] font-medium text-white"
               >
                 {{ pendingCount() }}
               </span>
@@ -42,45 +69,11 @@
           <button type="button" (click)="setTab('blocked')" [class]="tabClass('blocked')">
             Blocked
           </button>
-          <button
-            type="button"
-            (click)="toggleAddFriend()"
-            class="ml-auto flex h-9 items-center gap-1.5 rounded-lg border px-3.5 text-sm font-medium transition"
-            [class.border-emerald-500/20]="!addFriendOpen()"
-            [class.bg-emerald-500/10]="!addFriendOpen()"
-            [class.text-emerald-300]="!addFriendOpen()"
-            [class.hover:bg-emerald-500/16]="!addFriendOpen()"
-            [class.border-[#8f74ff]/30]="addFriendOpen()"
-            [class.bg-[#8f74ff]/12]="addFriendOpen()"
-            [class.text-[#c9bbff]]="addFriendOpen()"
-            [class.hover:bg-[#8f74ff]/20]="addFriendOpen()"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              class="size-4 transition"
-              fill="none"
-              aria-hidden="true"
-              [class.rotate-45]="addFriendOpen()"
-            >
-              <path
-                d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-              />
-              <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.8" />
-              <path
-                d="M19 8v6M22 11h-6"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-              />
-            </svg>
-            {{ addFriendOpen() ? 'Hide' : 'Add friend' }}
-          </button>
         </div>
 
-        <div class="lobby-scrollbar min-h-0 flex-1 space-y-1.5 overflow-y-auto p-5">
+        <div
+          class="min-h-0 flex-1 space-y-1.5 overflow-visible p-4 sm:p-5 lg:overflow-y-auto lg:lobby-scrollbar"
+        >
           @if (loading()) {
             <div class="flex flex-col items-center justify-center gap-3 py-16 text-center">
               <div
@@ -113,7 +106,7 @@
                         type="button"
                         (click)="openConversation(friend.id, friend)"
                         [attr.aria-label]="'Message ' + friend.name"
-                        class="grid size-9 place-items-center rounded-lg bg-[#16161d] text-[#9aa4b2] transition hover:bg-primary/15 hover:text-[#c9bbff]"
+                        class="grid size-9 place-items-center rounded-lg bg-[#16161d] text-app-muted transition hover:bg-primary/15 hover:text-[#c9bbff]"
                       >
                         <svg viewBox="0 0 24 24" class="size-4" fill="none" aria-hidden="true">
                           <path
@@ -131,7 +124,7 @@
                           data-friend-more-menu
                           (click)="toggleMoreMenu(friend.id)"
                           [attr.aria-label]="'More options for ' + friend.name"
-                          class="grid size-9 place-items-center rounded-lg bg-[#16161d] text-[#9aa4b2] transition hover:bg-destructive/15 hover:text-red-300"
+                          class="grid size-9 place-items-center rounded-lg bg-[#16161d] text-app-muted transition hover:bg-destructive/15 hover:text-red-300"
                         >
                           <svg
                             viewBox="0 0 24 24"
@@ -240,9 +233,27 @@
                     </div>
                   </div>
                 } @empty {
-                  <p class="px-3 py-6 text-center text-sm text-[#687282]">
-                    You have no friends yet.
-                  </p>
+                  <div
+                    class="flex flex-col items-center justify-center px-5 py-14 text-center sm:py-16"
+                  >
+                    <div
+                      class="mb-3 grid size-11 place-items-center rounded-2xl border border-[#8f74ff]/20 bg-[#8f74ff]/10 text-[#b9a7ff]"
+                    >
+                      <app-icon name="users" [size]="19" />
+                    </div>
+                    <p class="text-sm font-medium text-[#e6e9ef]">No friends yet</p>
+                    <p class="mt-1 max-w-64 text-xs leading-relaxed text-[#687282]">
+                      Add someone by username or meet people through your servers.
+                    </p>
+                    <button
+                      type="button"
+                      (click)="toggleAddFriend()"
+                      class="mt-4 inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#8f74ff]/15 px-3.5 text-xs font-medium text-[#c9bbff] transition hover:bg-[#8f74ff]/22"
+                    >
+                      <app-icon name="user-plus" [size]="14" />
+                      Add friend
+                    </button>
+                  </div>
                 }
               }
 
@@ -347,10 +358,10 @@
         </div>
       </div>
 
-      <!-- Add friend / blocked side panel -->
+      <!-- Add friend panel -->
       <aside
         id="add-friend-panel"
-        class="w-full shrink-0 space-y-5 border-t border-white/8 p-5 lg:w-80 lg:overflow-y-auto lg:border-l lg:border-t-0"
+        class="mx-3 mb-4 shrink-0 space-y-5 rounded-2xl border border-white/8 bg-[#0b1018] p-4 shadow-[0_16px_45px_rgba(0,0,0,0.18)] sm:mx-4 lg:m-0 lg:w-80 lg:overflow-y-auto lg:rounded-none lg:border-y-0 lg:border-r-0 lg:border-l lg:bg-transparent lg:p-5 lg:shadow-none"
         [class.hidden]="!addFriendOpen()"
       >
         <div class="space-y-2.5">
@@ -399,32 +410,6 @@
           @if (addFriendNotice(); as notice) {
             <p class="text-sm text-emerald-300/90">{{ notice }}</p>
           }
-        </div>
-
-        <div class="h-px bg-white/8"></div>
-
-        <div class="space-y-2.5">
-          <p class="text-xs font-medium tracking-wide text-[#687282]">
-            BLOCKED · {{ blocked().length }}
-          </p>
-          @for (user of blocked(); track user.id) {
-            <div class="flex items-center gap-2.5 rounded-lg bg-[#141821] px-3 py-2.5">
-              <app-person-avatar [person]="user" [shape]="'rounded'" size="md" />
-              <span class="text-sm text-[#c4cad4]">{{ user.name }}</span>
-              <button
-                type="button"
-                (click)="unblock(user.id)"
-                class="ml-auto text-sm text-[#b69cff] transition hover:text-[#c9bbff]"
-              >
-                Unblock
-              </button>
-            </div>
-          } @empty {
-            <p class="text-sm text-[#687282]">No blocked users.</p>
-          }
-          <p class="text-xs leading-relaxed text-[#596474]">
-            Blocked users can't DM you, see your status, or send server invites/friend requests.
-          </p>
         </div>
       </aside>
     </section>

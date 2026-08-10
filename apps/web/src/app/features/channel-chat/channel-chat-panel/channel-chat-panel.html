@@ -19,7 +19,7 @@
   }
 
   @if (chat.hasMore()) {
-    <div class="flex shrink-0 justify-center border-b border-white/[0.05] px-3 py-1.5">
+    <div class="flex shrink-0 justify-center border-b border-white/5 px-3 py-1.5">
       <button
         type="button"
         [disabled]="chat.loadingOlder()"
@@ -44,9 +44,16 @@
     [disabled]="chat.disabled()"
     [showHeader]="showHeader()"
     [showCloseButton]="showCloseButton()"
+    [channelLayout]="true"
+    [channelContext]="contextLabel()"
     emptyStateVariant="channel"
-    emptyStateTitle=""
-    emptyStateSubtitle="No messages yet — say something to get started."
+    [emptyStateTitle]="'Welcome to #' + title()"
+    [emptyStateSubtitle]="
+      'This is the beginning of #' +
+      title() +
+      (contextLabel() ? ' in ' + contextLabel() : '') +
+      '. Start the conversation, share an idea, or jump into a call.'
+    "
     (sendMessage)="send($event)"
     (reactToMessage)="react($event)"
     (deleteMessage)="remove($event)"

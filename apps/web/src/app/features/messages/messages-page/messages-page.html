@@ -1,6 +1,6 @@
 <main class="flex min-h-0 min-w-0 flex-1 flex-col bg-[#080c13] text-app-foreground">
   <!-- Slim page header -->
-  <header class="shrink-0 border-b border-white/[0.065] bg-[#0b1018]/90 backdrop-blur-xl">
+  <header class="shrink-0 border-b border-white/6.5 bg-[#0b1018]/90 backdrop-blur-xl">
     <div class="flex h-15 w-full items-center gap-3 px-4 sm:px-5">
       <div>
         <h1 class="text-[15px] font-semibold text-white">Messages</h1>
@@ -16,7 +16,7 @@
       }
       <a
         routerLink="/app/friends"
-        class="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-[#9aa4b2] transition hover:bg-white/6 hover:text-[#f4f7fb]"
+        class="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-app-muted transition hover:bg-white/6 hover:text-app-foreground"
       >
         <svg viewBox="0 0 24 24" class="size-4" fill="none" aria-hidden="true">
           <path
@@ -39,11 +39,11 @@
     >
       <!-- Conversation sidebar -->
       <aside
-        class="w-full flex-col border-b border-white/[0.065] bg-[#0b1018] lg:flex lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r"
+        class="w-full flex-col border-b border-white/6.5 bg-[#0b1018] lg:flex lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r"
         [class.flex]="selectedFriendId() === null"
         [class.hidden]="selectedFriendId() !== null"
       >
-        <div class="flex h-14 shrink-0 items-center gap-2 border-b border-white/[0.065] px-4">
+        <div class="flex h-14 shrink-0 items-center gap-2 border-b border-white/6.5 px-4">
           <p class="text-sm font-semibold text-app-foreground">Direct messages</p>
         </div>
         <div class="lobby-scrollbar flex-1 space-y-1 overflow-y-auto p-2.5">
@@ -106,7 +106,7 @@
                 type="button"
                 (click)="goBackToList()"
                 aria-label="Back to conversations"
-                class="grid size-8 place-items-center rounded-lg text-[#9aa4b2] transition hover:bg-white/8 hover:text-[#f4f7fb] lg:hidden"
+                class="grid size-8 place-items-center rounded-lg text-app-muted transition hover:bg-white/8 hover:text-app-foreground lg:hidden"
               >
                 <svg viewBox="0 0 24 24" class="size-4" fill="none" aria-hidden="true">
                   <path
@@ -161,7 +161,7 @@
                   (click)="toggleHeaderMenu()"
                   [attr.aria-label]="'More options for ' + partner.name"
                   aria-expanded="true"
-                  class="grid size-9 place-items-center rounded-xl text-[#9aa4b2] transition hover:bg-white/8 hover:text-[#f4f7fb]"
+                  class="grid size-9 place-items-center rounded-xl text-app-muted transition hover:bg-white/8 hover:text-app-foreground"
                   [class.bg-white/8]="headerMenuOpen()"
                 >
                   <svg viewBox="0 0 24 24" class="size-4" fill="none" aria-hidden="true">
@@ -203,7 +203,7 @@
                       type="button"
                       role="menuitem"
                       (click)="deleteCurrentChat()"
-                      class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-[#9aa4b2] transition hover:bg-white/6 hover:text-[#f4f7fb]"
+                      class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-app-muted transition hover:bg-white/6 hover:text-app-foreground"
                     >
                       <svg viewBox="0 0 24 24" class="size-3.5" fill="none" aria-hidden="true">
                         <path
@@ -306,7 +306,7 @@
                         </h2>
                       </div>
                       <span
-                        class="rounded-full border border-white/8 bg-white/4 px-3 py-1 text-[10px] text-[#9aa4b2]"
+                        class="rounded-full border border-white/8 bg-white/4 px-3 py-1 text-[10px] text-app-muted"
                       >
                         {{ callParticipants().length }}/2 connected
                       </span>
@@ -361,7 +361,7 @@
                   type="button"
                   (click)="loadOlder()"
                   [disabled]="historyLoading()"
-                  class="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-[#9aa4b2] transition hover:bg-white/6 hover:text-white disabled:opacity-50"
+                  class="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-app-muted transition hover:bg-white/6 hover:text-white disabled:opacity-50"
                 >
                   {{ historyLoading() ? 'Loading…' : 'Load older messages' }}
                 </button>
@@ -406,7 +406,7 @@
           <div class="shrink-0 px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5">
             @if (currentPartnerBlocked()) {
               <div
-                class="flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[#141821] px-4 text-sm text-[#9aa4b2]"
+                class="flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[#141821] px-4 text-sm text-app-muted"
               >
                 <svg viewBox="0 0 24 24" class="size-4 shrink-0" fill="none" aria-hidden="true">
                   <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />

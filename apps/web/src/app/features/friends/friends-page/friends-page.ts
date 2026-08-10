@@ -56,7 +56,7 @@ export class FriendsPage {
   protected readonly activeTab = signal<FriendsTab>('all');
   protected readonly addFriendQuery = signal('');
   protected readonly addFriendNotice = signal<string | null>(null);
-  protected readonly addFriendOpen = signal(true);
+  protected readonly addFriendOpen = signal(false);
   protected readonly moreMenuFor = signal<string | null>(null);
   protected readonly searchResults = signal<UserProfile[]>([]);
   protected readonly searching = signal(false);
@@ -75,7 +75,7 @@ export class FriendsPage {
     this.activeTab.set('all');
     this.addFriendQuery.set('');
     this.addFriendNotice.set(null);
-    this.addFriendOpen.set(true);
+    this.addFriendOpen.set(false);
     this.moreMenuFor.set(null);
     this.searchResults.set([]);
     this.searching.set(false);
@@ -84,21 +84,26 @@ export class FriendsPage {
   protected setTab(tab: FriendsTab): void {
     this.activeTab.set(tab);
     this.moreMenuFor.set(null);
+    if (window.matchMedia('(max-width: 1023px)').matches) {
+      this.addFriendOpen.set(false);
+    }
   }
 
-  /** Toggle the Add friend side panel; focus its search when opening. */
+  /** Toggle the Add friend panel; focus its search after it becomes visible. */
   protected toggleAddFriend(): void {
-    this.addFriendOpen.update((open) => {
-      if (!open) this.focusAddFriend();
-      return !open;
-    });
+    const opening = !this.addFriendOpen();
+    this.addFriendOpen.set(opening);
+    if (opening) {
+      setTimeout(() => this.focusAddFriend(), 0);
+    }
   }
 
   protected tabClass(tab: FriendsTab): string {
-    const base = 'flex h-9 items-center gap-1.5 rounded-lg px-3.5 text-sm transition';
+    const base =
+      'flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-[13px] transition sm:flex-none sm:px-3.5 sm:text-sm';
     return this.activeTab() === tab
       ? `${base} bg-primary/15 font-medium text-[#c9bbff]`
-      : `${base} text-[#9aa4b2] hover:bg-[#16161d]`;
+      : `${base} text-app-muted hover:bg-[#16161d]`;
   }
 
   protected statusLabel(friend: Person): string {
