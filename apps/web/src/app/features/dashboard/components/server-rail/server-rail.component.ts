@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   ElementRef,
   HostListener,
   inject,
@@ -13,6 +14,8 @@ import type { Server } from '@lobby/shared';
 
 import { LiveKitCallService } from '../../../../shared/components/call-room';
 import { LobbyIconComponent } from '../../../../shared/ui/icon/lobby-icon.component';
+import { FriendsService } from '../../../friends/friends.service';
+import { DirectMessagesService } from '../../../messages/messages.service';
 import { DashboardStore } from '../../services/dashboard.store';
 import { ServerIconComponent } from '../server-icon/server-icon.component';
 
@@ -32,7 +35,15 @@ export class ServerRailComponent {
 
   protected readonly store = inject(DashboardStore);
   protected readonly call = inject(LiveKitCallService);
+  private readonly friendsService = inject(FriendsService);
+  private readonly directMessages = inject(DirectMessagesService);
   private readonly host = inject(ElementRef<HTMLElement>);
+
+  /** Incoming requests only — outgoing ones you sent don't need your action. */
+  protected readonly pendingFriendRequests = computed(
+    () => this.friendsService.pendingIncoming().length,
+  );
+  protected readonly unreadMessages = this.directMessages.totalUnread;
 
   protected readonly addMenuOpen = signal(false);
 
@@ -40,6 +51,10 @@ export class ServerRailComponent {
     // Self-heals the widget if the call ends for any reason other than the
     // explicit "Leave" click (e.g. a dropped connection) — those already
     // clear it themselves.
+
+    // The rail is part of the dashboard shell and renders before the Friends
+    // page might ever be visited, so it needs its own load to show the badge.
+    void this.friendsService.ensureLoaded();
   }
 
   protected toggleMic(): void {
