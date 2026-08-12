@@ -10,11 +10,15 @@
 ## Guest session flow
 
 ```text
-Angular -> NestJS /auth/me or /auth/refresh
+Angular -> NestJS /auth/me (validates access or refreshes internally)
         <- short-lived access token + user type
 Angular memory -> Supabase client REST/RPC + Realtime authentication
 HttpOnly cookie -> NestJS only -> Supabase refresh session
 ```
+
+Angular starts this restoration in the background on public routes. Protected
+`/app` navigation and identity-dependent guest actions await the same coalesced
+initialization promise; the application shell and public pages do not.
 
 Registered and anonymous users share the same Supabase Auth session model. Angular never stores access or refresh tokens in local storage. NestJS creates an anonymous account only when no valid or refreshable session exists.
 

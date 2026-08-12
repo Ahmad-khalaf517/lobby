@@ -103,10 +103,6 @@ export class GuestsPage {
     lifetimeMinutes: new FormControl(DEFAULT_GUEST_ROOM_LIFETIME_MINUTES, { nonNullable: true }),
   });
 
-  constructor() {
-    void this.auth.initialize();
-  }
-
   protected fieldError(field: GuestField): string | null {
     const control = this.control(field);
     const error = control.errors?.['zod'] ?? control.errors?.['server'];

@@ -128,18 +128,46 @@ export class AuthController {
   }
 
   @Get('me')
-  async getCurrentUser(@Req() request: Request): Promise<CurrentUserResponse> {
-    const { accessToken } = readAuthCookies(request);
-    if (!accessToken) {
-      throw new UnauthorizedException('Missing session');
+  async getCurrentUser(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<CurrentUserResponse> {
+    const { accessToken, refreshToken } = readAuthCookies(request);
+
+    if (accessToken) {
+      try {
+        const result = await this.authService.getCurrentUser(accessToken);
+        return {
+          user: toAuthUser(result.user),
+          accessToken,
+          expiresAt: this.authService.tokenExpiresAt(accessToken),
+        };
+      } catch (error: unknown) {
+        if (!(error instanceof UnauthorizedException)) {
+          throw error;
+        }
+      }
     }
 
-    const result = await this.authService.getCurrentUser(accessToken);
-    return {
-      user: toAuthUser(result.user),
-      accessToken,
-      expiresAt: this.authService.tokenExpiresAt(accessToken),
-    };
+    if (refreshToken) {
+      try {
+        const restored = await this.authService.refreshSession(refreshToken);
+        setAuthCookies(response, restored.session);
+        return {
+          user: toAuthUser(restored.user),
+          accessToken: restored.session.access_token,
+          expiresAt: restored.session.expires_at ?? null,
+        };
+      } catch (error: unknown) {
+        if (error instanceof UnauthorizedException) {
+          clearAuthCookies(response);
+        }
+        throw error;
+      }
+    }
+
+    clearAuthCookies(response);
+    throw new UnauthorizedException('Missing session');
   }
 
   @Post('refresh')

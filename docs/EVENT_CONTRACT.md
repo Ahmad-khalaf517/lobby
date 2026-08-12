@@ -4,22 +4,24 @@ This is the active contract between `apps/api` and `apps/web`. Cross-boundary pa
 
 ## Authentication REST endpoints
 
-| Method and path                  | Request                                          | Response                           | Shared schema                                               |
-| -------------------------------- | ------------------------------------------------ | ---------------------------------- | ----------------------------------------------------------- |
-| `POST /auth/login`               | `{ email, password }`                            | `{ user, accessToken, expiresAt }` | `LoginRequestSchema` / `AuthSessionResponseSchema`          |
-| `POST /auth/anonymous`           | `{ captchaToken? }`                              | `{ user, accessToken, expiresAt }` | `AnonymousAuthRequestSchema` / `AuthSessionResponseSchema`  |
-| `GET /auth/me`                   | HttpOnly auth cookies                            | `{ user, accessToken, expiresAt }` | `CurrentUserResponseSchema`                                 |
-| `POST /auth/refresh`             | HttpOnly refresh cookie                          | `{ user, accessToken, expiresAt }` | `AuthSessionResponseSchema`                                 |
-| `POST /auth/logout`              | HttpOnly auth cookies                            | `{ message }`                      | `AuthMessageResponseSchema`                                 |
-| `POST /auth/register`            | `{ name, email, password, confirmPassword }`     | `{ message, user? }`               | `RegisterRequestSchema` / `RegistrationResponseSchema`      |
-| `POST /auth/confirm-email`       | `{ tokenHash, type: 'email' }`                   | `{ user, accessToken, expiresAt }` | `ConfirmEmailRequestSchema` / `AuthSessionResponseSchema`   |
-| `POST /auth/resend-confirmation` | `{ email }`                                      | `{ message }`                      | `EmailRequestSchema` / `AuthMessageResponseSchema`          |
-| `POST /auth/forgot-password`     | `{ email }`                                      | `{ message }`                      | `EmailRequestSchema` / `AuthMessageResponseSchema`          |
-| `POST /auth/verify-recovery`     | `{ tokenHash }`                                  | `{ user, accessToken, expiresAt }` | `VerifyRecoveryRequestSchema` / `AuthSessionResponseSchema` |
-| `POST /auth/reset-password`      | `{ password, confirmPassword }`                  | `{ message }`                      | `ResetPasswordRequestSchema` / `AuthMessageResponseSchema`  |
-| `POST /auth/change-password`     | `{ currentPassword, password, confirmPassword }` | `{ message }`                      | `ChangePasswordRequestSchema` / `AuthMessageResponseSchema` |
+| Method and path                  | Request                                                 | Response                           | Shared schema                                               |
+| -------------------------------- | ------------------------------------------------------- | ---------------------------------- | ----------------------------------------------------------- |
+| `POST /auth/login`               | `{ email, password }`                                   | `{ user, accessToken, expiresAt }` | `LoginRequestSchema` / `AuthSessionResponseSchema`          |
+| `POST /auth/anonymous`           | `{ captchaToken? }`                                     | `{ user, accessToken, expiresAt }` | `AnonymousAuthRequestSchema` / `AuthSessionResponseSchema`  |
+| `GET /auth/me`                   | HttpOnly auth cookies; refreshes internally when needed | `{ user, accessToken, expiresAt }` | `CurrentUserResponseSchema`                                 |
+| `POST /auth/refresh`             | HttpOnly refresh cookie                                 | `{ user, accessToken, expiresAt }` | `AuthSessionResponseSchema`                                 |
+| `POST /auth/logout`              | HttpOnly auth cookies                                   | `{ message }`                      | `AuthMessageResponseSchema`                                 |
+| `POST /auth/register`            | `{ name, email, password, confirmPassword }`            | `{ message, user? }`               | `RegisterRequestSchema` / `RegistrationResponseSchema`      |
+| `POST /auth/confirm-email`       | `{ tokenHash, type: 'email' }`                          | `{ user, accessToken, expiresAt }` | `ConfirmEmailRequestSchema` / `AuthSessionResponseSchema`   |
+| `POST /auth/resend-confirmation` | `{ email }`                                             | `{ message }`                      | `EmailRequestSchema` / `AuthMessageResponseSchema`          |
+| `POST /auth/forgot-password`     | `{ email }`                                             | `{ message }`                      | `EmailRequestSchema` / `AuthMessageResponseSchema`          |
+| `POST /auth/verify-recovery`     | `{ tokenHash }`                                         | `{ user, accessToken, expiresAt }` | `VerifyRecoveryRequestSchema` / `AuthSessionResponseSchema` |
+| `POST /auth/reset-password`      | `{ password, confirmPassword }`                         | `{ message }`                      | `ResetPasswordRequestSchema` / `AuthMessageResponseSchema`  |
+| `POST /auth/change-password`     | `{ currentPassword, password, confirmPassword }`        | `{ message }`                      | `ChangePasswordRequestSchema` / `AuthMessageResponseSchema` |
 
 `accessToken` is held only in Angular memory. The refresh token is never returned to JavaScript and remains in an HttpOnly cookie. `user.isAnonymous` distinguishes anonymous and registered sessions. `verify-recovery` also establishes a short-lived HttpOnly recovery proof bound to that refresh token; `reset-password` requires it, while `change-password` requires a registered signed-in session and the current password.
+
+`GET /auth/me` is the browser startup restoration request. It returns the current session when the access cookie is valid, refreshes and rotates cookies when only the refresh cookie is usable, and returns `401` after clearing unusable cookies when no session can be restored. `POST /auth/refresh` remains available for explicit and coalesced in-session token refreshes.
 
 Unsafe cookie-authenticated requests (`POST`, `PUT`, `PATCH`, and `DELETE`) must carry a trusted `Origin` (or trusted `Referer` fallback) matching the configured CORS origins. Cookie-free public authentication requests remain available without this CSRF check.
 

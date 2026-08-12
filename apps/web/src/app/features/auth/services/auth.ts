@@ -24,7 +24,7 @@ import {
 } from '@lobby/shared';
 
 import { environment } from '../../../../environments/environment';
-import { SKIP_AUTH_REFRESH } from '../../../core/auth-http-context';
+import { SKIP_AUTH_REFRESH, SKIP_ERROR_TOAST } from '../../../core/auth-http-context';
 import { SessionScopeService } from '../../../core/session-scope.service';
 import { SupabaseSessionService } from '../../../core/supabase/supabase-session.service';
 
@@ -189,14 +189,8 @@ export class AuthService {
       if (initialRevision !== this.sessionRevision) return;
 
       if (error instanceof HttpErrorResponse && error.status === 401) {
-        try {
-          await this.setSession(await this.fetchRefreshedSession());
-          return;
-        } catch (refreshError: unknown) {
-          console.error('Lobby could not refresh the current session.', refreshError);
-          await this.markUnauthenticated();
-          return;
-        }
+        await this.markUnauthenticated();
+        return;
       }
 
       await this.markInitializationFailed(error);
@@ -238,7 +232,9 @@ export class AuthService {
   }
 
   private fetchCurrentUser(skipRefresh: boolean): Promise<AuthSessionResponse> {
-    const context = skipRefresh ? new HttpContext().set(SKIP_AUTH_REFRESH, true) : undefined;
+    const context = skipRefresh
+      ? new HttpContext().set(SKIP_AUTH_REFRESH, true).set(SKIP_ERROR_TOAST, true)
+      : undefined;
     return firstValueFrom(this.http.get<unknown>(`${this.apiUrl}/auth/me`, { context })).then(
       (response) => CurrentUserResponseSchema.parse(response),
     );

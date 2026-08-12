@@ -1,7 +1,5 @@
-import { DOCUMENT } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { AppLoadingService } from './core/loading/app-loading.service';
 import { RouteProgressComponent } from './core/loading/route-progress.component';
 import { ToastContainerComponent } from './core/toast/toast-container.component';
 import { AuthService } from './features/auth/services/auth';
@@ -14,18 +12,10 @@ import { AuthService } from './features/auth/services/auth';
 })
 export class App {
   private readonly auth = inject(AuthService);
-  private readonly document = inject(DOCUMENT);
-  protected readonly loading = inject(AppLoadingService);
 
   constructor() {
-    this.loading.sessionRestorationStarted();
-    void this.auth
-      .initialize()
-      .then(() => this.loading.sessionRestorationFinished())
-      .catch((error: unknown) => this.loading.sessionRestorationFailed(error));
-  }
-
-  protected reload(): void {
-    this.document.defaultView?.location.reload();
+    // Session restoration is deliberately background work. Protected routes
+    // and identity-dependent guest actions await this same coalesced promise.
+    void this.auth.initialize();
   }
 }
