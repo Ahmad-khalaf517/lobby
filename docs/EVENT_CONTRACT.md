@@ -8,7 +8,7 @@ This is the active contract between `apps/api` and `apps/web`. Cross-boundary pa
 | -------------------------------- | ------------------------------------------------------- | ---------------------------------- | ----------------------------------------------------------- |
 | `POST /auth/login`               | `{ email, password }`                                   | `{ user, accessToken, expiresAt }` | `LoginRequestSchema` / `AuthSessionResponseSchema`          |
 | `POST /auth/anonymous`           | `{ captchaToken? }`                                     | `{ user, accessToken, expiresAt }` | `AnonymousAuthRequestSchema` / `AuthSessionResponseSchema`  |
-| `GET /auth/me`                   | HttpOnly auth cookies; refreshes internally when needed | `{ user, accessToken, expiresAt }` | `CurrentUserResponseSchema`                                 |
+| `GET /auth/me`                   | Bearer token, or HttpOnly cookies with refresh fallback | `{ user, accessToken, expiresAt }` | `CurrentUserResponseSchema`                                 |
 | `POST /auth/refresh`             | HttpOnly refresh cookie                                 | `{ user, accessToken, expiresAt }` | `AuthSessionResponseSchema`                                 |
 | `POST /auth/logout`              | HttpOnly auth cookies                                   | `{ message }`                      | `AuthMessageResponseSchema`                                 |
 | `POST /auth/register`            | `{ name, email, password, confirmPassword }`            | `{ message, user? }`               | `RegisterRequestSchema` / `RegistrationResponseSchema`      |
@@ -19,27 +19,27 @@ This is the active contract between `apps/api` and `apps/web`. Cross-boundary pa
 | `POST /auth/reset-password`      | `{ password, confirmPassword }`                         | `{ message }`                      | `ResetPasswordRequestSchema` / `AuthMessageResponseSchema`  |
 | `POST /auth/change-password`     | `{ currentPassword, password, confirmPassword }`        | `{ message }`                      | `ChangePasswordRequestSchema` / `AuthMessageResponseSchema` |
 
-`accessToken` is held only in Angular memory. The refresh token is never returned to JavaScript and remains in an HttpOnly cookie. `user.isAnonymous` distinguishes anonymous and registered sessions. `verify-recovery` also establishes a short-lived HttpOnly recovery proof bound to that refresh token; `reset-password` requires it, while `change-password` requires a registered signed-in session and the current password.
+The Angular website does not call these login/register/recovery endpoints during its normal browser flow. Its singleton Supabase client signs in directly, persists the first-party Supabase session, refreshes it, and sends the current `access_token` to NestJS as a Bearer token. These endpoints and their HttpOnly cookies remain intentionally available for independent API/Postman authentication. `user.isAnonymous` distinguishes anonymous and registered sessions. In the cookie flow, `verify-recovery` also establishes a short-lived HttpOnly recovery proof bound to the refresh token; `reset-password` requires it, while `change-password` requires a registered signed-in session and the current password.
 
-`GET /auth/me` is the browser startup restoration request. It returns the current session when the access cookie is valid, refreshes and rotates cookies when only the refresh cookie is usable, and returns `401` after clearing unusable cookies when no session can be restored. `POST /auth/refresh` remains available for explicit and coalesced in-session token refreshes.
+`GET /auth/me` prefers a Bearer token and verifies it through Supabase Auth before returning the normalized user. When no Authorization header is present, it preserves the cookie behavior: return a valid access-cookie session, or refresh and rotate cookies using the refresh cookie. `POST /auth/refresh` remains available for the cookie flow; Angular relies on Supabase's browser refresh lifecycle instead.
 
-Unsafe cookie-authenticated requests (`POST`, `PUT`, `PATCH`, and `DELETE`) must carry a trusted `Origin` (or trusted `Referer` fallback) matching the configured CORS origins. Cookie-free public authentication requests remain available without this CSRF check.
+Unsafe cookie-authenticated requests (`POST`, `PUT`, `PATCH`, and `DELETE`) must carry a trusted `Origin` (or trusted `Referer` fallback) matching the configured CORS origins. Bearer-authenticated requests do not use cookies for authority and therefore do not require this CSRF check. Cookie-free public authentication requests remain available without it.
 
 ## LiveKit REST endpoints
 
-| Method and path                                     | Request                                   | Response                                    | Shared schema                                                                  |
-| --------------------------------------------------- | ----------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| `POST /livekit/token`                               | `{ channelId }`                           | `{ token, livekitUrl, roomName }`           | `CallTokenRequestSchema` / `CallTokenResponseSchema`                           |
-| `GET /channels/:channelId/call-status`              | authenticated member cookie               | `{ active, participants, maxParticipants }` | `CallStatusResponseSchema`                                                     |
-| `POST /livekit/remove-participant`                  | `{ channelId, memberId }`                 | `{ removed }`                               | `CallParticipantRemovalRequestSchema` / `CallParticipantRemovalResponseSchema` |
-| `POST /server-channels/:channelId/call-token`       | empty body; registered member cookie      | `{ token, livekitUrl, roomName }`           | `CallTokenResponseSchema`                                                      |
-| `GET /server-channels/:channelId/call-status`       | registered member cookie                  | `{ active, participants, maxParticipants }` | `CallStatusResponseSchema`                                                     |
-| `POST /dm-conversations/:conversationId/call-token` | empty body; registered participant cookie | `{ token, livekitUrl, roomName }`           | `CallTokenResponseSchema`                                                      |
-| `GET /dm-conversations/:conversationId/call-status` | registered participant cookie             | `{ active, participants, maxParticipants }` | `CallStatusResponseSchema`                                                     |
+| Method and path                                     | Request                                        | Response                                    | Shared schema                                                                  |
+| --------------------------------------------------- | ---------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------ |
+| `POST /livekit/token`                               | `{ channelId }`                                | `{ token, livekitUrl, roomName }`           | `CallTokenRequestSchema` / `CallTokenResponseSchema`                           |
+| `GET /channels/:channelId/call-status`              | authenticated member Bearer token or cookie    | `{ active, participants, maxParticipants }` | `CallStatusResponseSchema`                                                     |
+| `POST /livekit/remove-participant`                  | `{ channelId, memberId }`                      | `{ removed }`                               | `CallParticipantRemovalRequestSchema` / `CallParticipantRemovalResponseSchema` |
+| `POST /server-channels/:channelId/call-token`       | empty body; registered Bearer token or cookie  | `{ token, livekitUrl, roomName }`           | `CallTokenResponseSchema`                                                      |
+| `GET /server-channels/:channelId/call-status`       | registered Bearer token or cookie              | `{ active, participants, maxParticipants }` | `CallStatusResponseSchema`                                                     |
+| `POST /dm-conversations/:conversationId/call-token` | empty body; participant Bearer token or cookie | `{ token, livekitUrl, roomName }`           | `CallTokenResponseSchema`                                                      |
+| `GET /dm-conversations/:conversationId/call-status` | participant Bearer token or cookie             | `{ active, participants, maxParticipants }` | `CallStatusResponseSchema`                                                     |
 
 NestJS resolves the member display name, LiveKit identity, room name, configured call capacity, and membership authority from the `guest` schema. Before minting a token, it explicitly creates the LiveKit room with the stored `maxParticipants`; the browser must not submit these values.
 
-The server-channel routes stack `RegisteredUserGuard` after cookie authentication. NestJS resolves the submitted channel UUID to its server, requires current `server_members` access, and rejects any left or removed `channel_members` row. The token endpoint lazily creates a missing eligible channel membership, matching authenticated chat access; the status GET remains read-only. NestJS derives the LiveKit room (`server-channel:<channel UUID>`), participant identity, display name, grants, and capacity. The browser cannot choose a server, room, member identity, or publishing grants. Guest routes and their anonymous access remain unchanged.
+The server-channel routes stack `RegisteredUserGuard` after dual Supabase authentication. NestJS resolves the submitted channel UUID to its server, requires current `server_members` access, and rejects any left or removed `channel_members` row. The token endpoint lazily creates a missing eligible channel membership, matching authenticated chat access; the status GET remains read-only. NestJS derives the LiveKit room (`server-channel:<channel UUID>`), participant identity, display name, grants, and capacity. The browser cannot choose a server, room, member identity, or publishing grants. Guest routes and their anonymous access remain unchanged.
 
 DM call routes are registered-only and accept only a conversation UUID. NestJS
 requires the current user to be one of that conversation's two participants,
@@ -55,7 +55,7 @@ Guest calls; camera publication remains unavailable.
 | ---------------------- | -------------------------------------------- | --------------------- | ---------------------------------------------------------------------- |
 | `POST /guest/channels` | `{ name, maxParticipants, lifetimeMinutes }` | `{ channelId, code }` | `GuestChannelCreateRequestSchema` / `GuestChannelCreateResponseSchema` |
 
-This endpoint accepts registered Supabase users only. NestJS derives the creator from the HttpOnly-cookie session and calls the existing `guest.create_channel` RPC with that user's JWT. Anonymous creators continue to call the RPC with only the room and display names, receiving the existing defaults of 8 call participants and 60 minutes.
+This endpoint accepts registered Supabase users only. NestJS derives the creator from the verified Bearer-or-cookie session and calls the existing `guest.create_channel` RPC with that user's JWT. Anonymous creators continue to call the RPC with only the room and display names, receiving the existing defaults of 8 call participants and 60 minutes.
 
 ## Authenticated server-channel database contract
 
@@ -74,10 +74,10 @@ The RPCs accept channel/message/content/client-message/reply/emoji values only. 
 
 NestJS remains the registered-session and conversation business authority:
 
-| Method and path | Request                   | Response                      | Shared schema                                    |
-| --------------- | ------------------------- | ----------------------------- | ------------------------------------------------ |
-| `GET /dms`      | registered cookie session | conversation list             | `DmListResponseSchema`                           |
-| `POST /dms`     | `{ userId }`              | existing/new 1:1 conversation | `CreateDmRequestSchema` / `DmConversationSchema` |
+| Method and path | Request                           | Response                      | Shared schema                                    |
+| --------------- | --------------------------------- | ----------------------------- | ------------------------------------------------ |
+| `GET /dms`      | registered Bearer token or cookie | conversation list             | `DmListResponseSchema`                           |
+| `POST /dms`     | `{ userId }`                      | existing/new 1:1 conversation | `CreateDmRequestSchema` / `DmConversationSchema` |
 
 Ordinary DM history and message operations do not cross NestJS. Angular uses
 the registered user's Supabase JWT with participant-scoped SELECT policies on

@@ -3,7 +3,7 @@ import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/
 import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
-import { apiCredentialsInterceptor } from './core/api-credentials.interceptor';
+import { apiAuthInterceptor } from './core/api-auth.interceptor';
 import { authRefreshInterceptor } from './core/auth-refresh.interceptor';
 import { errorToastInterceptor } from './core/error-toast.interceptor';
 
@@ -12,7 +12,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideHttpClient(
-      withInterceptors([apiCredentialsInterceptor, errorToastInterceptor, authRefreshInterceptor]),
+      withInterceptors([apiAuthInterceptor, errorToastInterceptor, authRefreshInterceptor]),
     ),
   ],
 };

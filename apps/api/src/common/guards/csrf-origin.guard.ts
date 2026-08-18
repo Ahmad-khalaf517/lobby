@@ -6,6 +6,7 @@ import {
   RECOVERY_PROOF_COOKIE,
   REFRESH_TOKEN_COOKIE,
 } from '../../modules/auth/auth-cookies';
+import { extractBearerAccessToken } from './supabase-auth.guard';
 import { normalizeOrigin, trustedOrigins } from '../security/trusted-origins';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -14,7 +15,13 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 export class CsrfOriginGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
-    if (SAFE_METHODS.has(request.method.toUpperCase()) || !hasAuthCookie(request)) return true;
+    if (
+      SAFE_METHODS.has(request.method.toUpperCase()) ||
+      extractBearerAccessToken(request) !== undefined ||
+      !hasAuthCookie(request)
+    ) {
+      return true;
+    }
 
     const suppliedOrigin = request.get('origin') ?? originFromReferer(request.get('referer'));
     if (suppliedOrigin && trustedOrigins().includes(suppliedOrigin)) return true;

@@ -18,7 +18,7 @@ The main pieces are:
                  call tokens
 ```
 
-Angular does not send guest chat through NestJS or Socket.IO. It uses the current user's short-lived Supabase token to read the `guest` schema, call database RPCs, and receive Realtime database changes. NestJS is the trusted boundary for authentication, registered-room configuration, and LiveKit authorization. Media travels directly between the browser and LiveKit.
+Angular does not send guest chat through NestJS or Socket.IO. It uses the current user's short-lived Supabase token to read the `guest` schema, call database RPCs, and receive Realtime database changes. NestJS is the trusted boundary for API token verification, registered-room configuration, and LiveKit authorization. Media travels directly between the browser and LiveKit.
 
 The main frontend files are `guest-room-page.ts`, `guest-channel.store.ts`, and `livekit-call.service.ts`. The database behavior comes from the migrations under `apps/api/supabase/migrations`. Trusted call behavior is in `calls.service.ts`.
 
@@ -73,7 +73,7 @@ The route is `/guest/:inviteCode`. `GuestRoomPage` asks `GuestChannelStore.resto
 
 ```text
 Open Invite
-    -> restore Supabase session through NestJS
+    -> restore the first-party Supabase browser session
     -> find an existing membership under RLS, if one exists
     -> otherwise collect/resolve a display name
     -> call guest.join_channel(code, optional name)
@@ -84,9 +84,9 @@ Open Invite
 
 ### Anonymous user
 
-“Anonymous” does not mean unauthenticated. `AuthService.ensureGuestSession()` calls NestJS `POST /auth/anonymous`. NestJS first tries to reuse the access/refresh cookies; only when neither can restore a session does it call Supabase `signInAnonymously()`.
+“Anonymous” does not mean unauthenticated. `AuthService.ensureGuestSession()` first reuses the singleton client's registered or anonymous session and calls Supabase `signInAnonymously()` only when no session exists.
 
-The resulting Supabase user has a real UUID and a JWT marked `is_anonymous`. NestJS stores both session tokens in HttpOnly cookies. Angular also receives the short-lived access token and keeps it only in memory so the Supabase client and Realtime connection can act as that user. Supabase client-side session persistence and auto-refresh are disabled; refresh is coordinated through NestJS.
+The resulting Supabase user has a real UUID and a JWT marked `is_anonymous`. Supabase client-side persistence and auto-refresh keep that browser session first-party to the Angular origin. The API interceptor sends its current access token to NestJS as a Bearer token; NestJS cookies are not required for the website flow.
 
 An anonymous user must enter a display name. The `guest.resolve_requester_display_name(...)` helper validates and uses it for that membership.
 
@@ -176,7 +176,7 @@ When the user clicks **Join Call**:
 
 ```text
 Angular POST /livekit/token { channelId }
-    -> NestJS reads the HttpOnly access cookie
+    -> Angular attaches the current Supabase Bearer token
     -> SupabaseAuthGuard verifies the Supabase user
     -> CallsService verifies active membership and room expiry
     -> CallsService creates/ensures the LiveKit room with its stored capacity
@@ -247,7 +247,7 @@ This delayed cleanup keeps temporary data from growing forever while leaving a s
 ## Why these technologies and decisions?
 
 - **Angular:** renders the dashboard and turns signals from the store and LiveKit service into reactive chat/call UI.
-- **NestJS:** owns cookie-based session restoration, registered-only room configuration, privileged moderation cleanup, and LiveKit token signing. Secrets and trusted authorization stay off the client.
+- **NestJS:** verifies Supabase Bearer or cookie JWTs, owns registered-only room configuration, privileged moderation cleanup, and LiveKit token signing. Secrets and trusted authorization stay off the client.
 - **Supabase:** provides the Postgres source of truth, anonymous/registered identity, RLS, RPC transactions, and Realtime delivery for guest data.
 - **LiveKit:** handles low-latency audio, screen tracks, participant media presence, reconnection, and capacity without building a custom WebRTC/SFU stack.
 - **Monorepo and shared Zod contracts:** Angular and NestJS use the same REST payload rules and shared product limits. Generated Supabase types describe the guest database rows.
@@ -259,7 +259,7 @@ This delayed cleanup keeps temporary data from growing forever while leaving a s
 
 ### 1. What talks to what in the Guest Dashboard?
 
-Angular uses NestJS for auth and protected LiveKit/configuration operations, Supabase directly for guest data and Realtime, and LiveKit directly for media. NestJS never transports chat events or media.
+Angular uses Supabase for browser auth, guest data, and Realtime; it uses Bearer-authenticated NestJS endpoints for protected LiveKit/configuration operations and LiveKit directly for media. NestJS never transports chat events or media.
 
 ### 2. Why Angular?
 
@@ -267,7 +267,7 @@ Angular owns the interactive page and reactive UI state. Signals let the chat, m
 
 ### 3. Why NestJS if Angular can call Supabase?
 
-NestJS is needed where secrets or extra trust are required: restoring sessions through HttpOnly cookies, restricting advanced room creation, checking privileged call actions, and signing LiveKit tokens. Normal guest chat can remain user-scoped under Supabase RLS.
+NestJS is needed where secrets or extra trust are required: verifying API callers, restricting advanced room creation, checking privileged call actions, and signing LiveKit tokens. Its HttpOnly-cookie auth endpoints remain useful for independent backend testing. Normal guest chat can remain user-scoped under Supabase RLS.
 
 ### 4. Why Supabase?
 

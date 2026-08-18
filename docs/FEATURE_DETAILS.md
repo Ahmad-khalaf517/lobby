@@ -2,13 +2,13 @@
 
 ## Identity and session lifecycle
 
-The Angular app initializes auth once through NestJS. Registered and anonymous sessions share the same response contract: a user, expiry, and a short-lived access token. The refresh token remains in an HttpOnly cookie. Angular keeps the access token in memory and applies it to the singleton Supabase client and Realtime connection.
+The Angular app initializes its singleton Supabase client once. Registered and anonymous browser sessions are created, persisted, restored, and refreshed by Supabase Auth. Angular sends the current short-lived access token to NestJS in the Authorization header and uses that same user-scoped session for Supabase data and Realtime.
 
-`POST /auth/anonymous` reuses a valid access session or refresh cookie before creating another anonymous user. Optional CAPTCHA proof can be forwarded when abuse protection is configured.
+`AuthService.ensureGuestSession()` reuses a restored registered or anonymous Supabase browser session before calling `signInAnonymously()`. Optional CAPTCHA proof can be forwarded when abuse protection is configured.
 
-During normal runtime, protected NestJS requests use the HttpOnly access-token cookie. If it has expired, `SupabaseAuthGuard` returns 401 and Angular's auth interceptor starts one shared `POST /auth/refresh` request for all waiting callers. NestJS gives the HttpOnly refresh token to Supabase, replaces **both** rotated cookies, Angular updates its in-memory Supabase/Realtime access token, and each original request is retried once.
+During normal browser runtime, the API auth interceptor reads the current Supabase session and adds `Authorization: Bearer <access_token>` to NestJS requests. Supabase automatically refreshes its first-party browser session; if a protected request still returns 401, Angular coalesces one Supabase `refreshSession()` call and retries each original request once with the new token.
 
-If Supabase rejects the refresh session, NestJS clears both cookies and Angular clears local auth state. A retryable Supabase/network outage does not erase an otherwise valid session, and login, logout, and refresh requests are excluded from recursive retry.
+If Supabase rejects the browser refresh session, Angular signs out the invalid local session and clears account-scoped state. NestJS's login, register, refresh, logout, confirmation, and recovery endpoints remain available as a separate HttpOnly-cookie flow for API/Postman testing.
 
 ## Guest channels
 

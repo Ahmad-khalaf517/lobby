@@ -79,15 +79,14 @@ export class AuthService {
   }
 
   async getCurrentUser(accessToken: string) {
-    const supabase = this.supabaseService.createAuthClient();
-    const { data, error } = await supabase.auth.getUser(accessToken);
+    const user = await this.supabaseService.verifyAccessToken(accessToken);
 
-    if (error || !data.user) {
+    if (!user) {
       throw new UnauthorizedException('Invalid or expired session');
     }
 
-    await this.ensureRegisteredProfile(data.user);
-    return { user: data.user };
+    await this.ensureRegisteredProfile(user);
+    return { user };
   }
 
   async refreshSession(refreshToken: string) {
@@ -213,6 +212,29 @@ export class AuthService {
     }
 
     return { user: data.user, session: sessionData.session };
+  }
+
+  async changePasswordWithBearer(dto: ChangePasswordRequest, authenticatedUser: User) {
+    if (!authenticatedUser.email) {
+      throw new BadRequestException('A verified email is required to change this password');
+    }
+
+    const supabase = this.supabaseService.createAuthClient();
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: authenticatedUser.email,
+      password: dto.currentPassword,
+    });
+
+    if (signInError || !signInData.session || signInData.session.user.id !== authenticatedUser.id) {
+      throw new UnauthorizedException('The current password is incorrect');
+    }
+
+    const { data, error } = await supabase.auth.updateUser({ password: dto.password });
+    if (error || !data.user) {
+      throw new BadRequestException(error?.message ?? 'Password could not be updated');
+    }
+
+    return { user: data.user };
   }
 
   async logout(accessToken?: string, refreshToken?: string): Promise<void> {

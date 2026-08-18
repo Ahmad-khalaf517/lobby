@@ -10,15 +10,20 @@
 ## Guest session flow
 
 ```text
-Angular -> NestJS /auth/me (validates access or refreshes internally)
-        <- short-lived access token + user type
-Angular memory -> Supabase client REST/RPC + Realtime authentication
-HttpOnly cookie -> NestJS only -> Supabase refresh session
+Angular -> Supabase Auth (registered or anonymous sign-in)
+Supabase client -> first-party browser session persistence + automatic refresh
+Angular -> NestJS /auth/me with Authorization: Bearer <access_token>
+Angular -> Supabase REST/RPC + Realtime with the same current session
+
+Postman -> NestJS auth endpoints -> HttpOnly access/refresh cookies
+Postman cookie or Angular Bearer token -> the same Supabase token verification
 ```
 
-Angular starts this restoration in the background on public routes. Protected
-`/app` navigation and identity-dependent guest actions await the same coalesced
-initialization promise; the application shell and public pages do not.
+Angular starts Supabase session restoration in the background on public routes,
+then calls `/auth/me` with the restored Bearer token so NestJS verifies the user
+and provisions any missing registered Lobby profile. Protected `/app` navigation
+and identity-dependent guest actions await the same coalesced initialization
+promise; the application shell and public pages do not.
 
 Registered and anonymous users share the same Supabase Auth session model. Angular never stores access or refresh tokens in local storage. NestJS creates an anonymous account only when no valid or refreshable session exists.
 
@@ -60,8 +65,8 @@ The browser receives RLS-filtered history and Realtime rows from `public.message
 ## LiveKit
 
 ```text
-Angular -- POST /livekit/token { channelId } --> NestJS
-NestJS -- verifies cookie user + guest membership --> Supabase (service role)
+Angular -- Bearer JWT + POST /livekit/token { channelId } --> NestJS
+NestJS -- verifies Supabase user + guest membership --> Supabase (service role)
 NestJS -- restricted short-lived token --> Angular
 Angular <---------------- audio/screen share ----------------> LiveKit Cloud
 ```
@@ -132,9 +137,10 @@ The public-schema channel repository remains in source for possible non-guest mi
 ## Security boundaries
 
 - `SUPABASE_SERVICE_ROLE_KEY` and `LIVEKIT_API_SECRET` exist only in `apps/api`.
-- Angular uses the public Supabase URL/key plus the current user's short-lived JWT.
-- Registered-dashboard controllers stack `RegisteredUserGuard` after cookie authentication; guest call and guest-channel endpoints intentionally continue accepting anonymous sessions.
-- Unsafe requests carrying auth cookies require an `Origin` or `Referer` whose origin is in the configured CORS allowlist.
+- Angular uses the public Supabase URL/key plus the current user's short-lived JWT. Supabase owns browser persistence and automatic token refresh; no service-role credential is exposed.
+- `SupabaseAuthGuard` prefers the Authorization Bearer token and falls back to the existing access cookie. Both are verified through the same Supabase Auth `getUser` call and populate the same `request.user`.
+- Registered-dashboard controllers stack `RegisteredUserGuard` after dual authentication; guest call and guest-channel endpoints intentionally continue accepting verified anonymous sessions.
+- Unsafe requests whose authority comes from auth cookies require an `Origin` or `Referer` whose origin is in the configured CORS allowlist. Bearer-authorized requests do not depend on cookies.
 - Password recovery has a short-lived HttpOnly proof issued only after recovery-token verification. Signed-in password changes use a separate endpoint and verify the current password.
 - Profile rows are provisioned after successful registered authentication. Profile GET is read-only and returns 404 when a row is missing.
 - Direct browser table writes are not granted; guest and authenticated-chat mutations use narrow security-definer RPCs with `auth.uid()` checks.

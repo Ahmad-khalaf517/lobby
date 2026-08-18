@@ -43,7 +43,11 @@ import {
   setRecoveryProofCookie,
 } from './auth-cookies';
 import { RegisteredUserGuard } from '../../common/guards/registered-user.guard';
-import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
+import {
+  type AuthenticatedRequest,
+  extractBearerAccessToken,
+  SupabaseAuthGuard,
+} from '../../common/guards/supabase-auth.guard';
 import { toAuthUser } from './auth.mapper';
 import { AuthService } from './auth.service';
 
@@ -132,6 +136,16 @@ export class AuthController {
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<CurrentUserResponse> {
+    const bearerToken = extractBearerAccessToken(request);
+    if (bearerToken) {
+      const result = await this.authService.getCurrentUser(bearerToken);
+      return {
+        user: toAuthUser(result.user),
+        accessToken: bearerToken,
+        expiresAt: this.authService.tokenExpiresAt(bearerToken),
+      };
+    }
+
     const { accessToken, refreshToken } = readAuthCookies(request);
 
     if (accessToken) {
@@ -268,9 +282,14 @@ export class AuthController {
   @Post('change-password')
   async changePassword(
     @Body(new ZodValidationPipe(ChangePasswordRequestSchema)) dto: ChangePasswordRequest,
-    @Req() request: Request,
+    @Req() request: AuthenticatedRequest,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthMessageResponse> {
+    if (extractBearerAccessToken(request)) {
+      await this.authService.changePasswordWithBearer(dto, request.user);
+      return { message: 'Password updated successfully.' };
+    }
+
     const { accessToken, refreshToken } = readAuthCookies(request);
     if (!accessToken || !refreshToken) throw new UnauthorizedException('Missing signed-in session');
 

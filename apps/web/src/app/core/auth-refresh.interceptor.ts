@@ -7,7 +7,7 @@ import type { AuthSessionResponse } from '@lobby/shared';
 import { environment } from '../../environments/environment';
 import { AuthService } from '../features/auth/services/auth';
 import { AUTH_RETRY_ATTEMPTED, SKIP_AUTH_REFRESH } from './auth-http-context';
-import { isNestApiRequest } from './api-credentials.interceptor';
+import { isNestApiRequest } from './api-auth.interceptor';
 
 const apiUrl = environment.apiUrl.replace(/\/$/, '');
 const refreshExcludedPaths = new Set([
@@ -68,10 +68,11 @@ export const authRefreshInterceptor: HttpInterceptorFn = (request, next) => {
       }
 
       return refreshRequest$.pipe(
-        switchMap(() =>
+        switchMap((session) =>
           next(
             request.clone({
               context: request.context.set(AUTH_RETRY_ATTEMPTED, true),
+              setHeaders: { Authorization: `Bearer ${session.accessToken}` },
             }),
           ),
         ),
