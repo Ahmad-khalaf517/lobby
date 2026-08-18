@@ -1,20 +1,18 @@
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpContext, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
+import type { Session, User } from '@supabase/supabase-js';
 import { firstValueFrom } from 'rxjs';
 import {
   AnonymousAuthRequestSchema,
   AuthMessageResponseSchema,
   AuthSessionResponseSchema,
   ChangePasswordRequestSchema,
-  ConfirmEmailRequestSchema,
   CurrentUserResponseSchema,
   EmailRequestSchema,
   LoginRequestSchema,
   RegisterRequestSchema,
-  RegistrationResponseSchema,
   ResetPasswordRequestSchema,
-  VerifyRecoveryRequestSchema,
   type AuthMessageResponse,
   type AuthSessionResponse,
   type AuthUser,
@@ -24,7 +22,7 @@ import {
 } from '@lobby/shared';
 
 import { environment } from '../../../../environments/environment';
-import { SKIP_AUTH_REFRESH, SKIP_ERROR_TOAST } from '../../../core/auth-http-context';
+import { SKIP_ERROR_TOAST } from '../../../core/auth-http-context';
 import { SessionScopeService } from '../../../core/session-scope.service';
 import { SupabaseSessionService } from '../../../core/supabase/supabase-session.service';
 
@@ -42,12 +40,24 @@ export class AuthService {
   private readonly authenticatedUser = signal<AuthUser | null>(null);
   private initialization: Promise<void> | null = null;
   private refreshRequest: Promise<AuthSessionResponse> | null = null;
-  private refreshTimer: ReturnType<typeof setTimeout> | null = null;
   private currentSession: AuthSessionResponse | null = null;
   private sessionRevision = 0;
 
   readonly status = this.authStatus.asReadonly();
   readonly user = this.authenticatedUser.asReadonly();
+
+  constructor() {
+    this.supabase.client.auth.onAuthStateChange((event, session) => {
+      if (event === 'INITIAL_SESSION') return;
+      queueMicrotask(() => {
+        if (session) {
+          void this.applySession(toAuthSession(session));
+        } else if (event === 'SIGNED_OUT') {
+          void this.markUnauthenticated();
+        }
+      });
+    });
+  }
 
   initialize(): Promise<void> {
     this.initialization ??= this.loadInitialUser();
@@ -56,82 +66,115 @@ export class AuthService {
 
   async ensureGuestSession(captchaToken?: string): Promise<AuthSessionResponse> {
     await this.initialize();
-    if (this.status() === 'anonymous' || this.status() === 'authenticated') {
-      if (this.currentSession) return this.currentSession;
+    if (
+      (this.status() === 'anonymous' || this.status() === 'authenticated') &&
+      this.currentSession
+    ) {
+      return this.currentSession;
     }
 
-    const body = AnonymousAuthRequestSchema.parse({ captchaToken });
-    const response = await firstValueFrom(
-      this.http.post<unknown>(`${this.apiUrl}/auth/anonymous`, body),
-    );
-    const result = AuthSessionResponseSchema.parse(response);
-    await this.setSession(result);
-    return result;
+    const existingSession = await this.supabase.getSession();
+    if (existingSession) {
+      const result = toAuthSession(existingSession);
+      await this.applySession(result);
+      return result;
+    }
+
+    const input = AnonymousAuthRequestSchema.parse({ captchaToken });
+    const { data, error } = await this.supabase.client.auth.signInAnonymously({
+      options: input.captchaToken ? { captchaToken: input.captchaToken } : undefined,
+    });
+    if (error || !data.session) throw error ?? new Error('Anonymous sign-in failed');
+    return this.verifyAndApplySession(data.session);
   }
 
   async login(payload: LoginRequest): Promise<AuthSessionResponse> {
-    const response = await firstValueFrom(
-      this.http.post<unknown>(`${this.apiUrl}/auth/login`, LoginRequestSchema.parse(payload)),
-    );
-    const result = AuthSessionResponseSchema.parse(response);
-    await this.setSession(result);
-    return result;
+    const input = LoginRequestSchema.parse(payload);
+    const { data, error } = await this.supabase.client.auth.signInWithPassword(input);
+    if (error || !data.session) throw error ?? new Error('Sign-in did not return a session');
+    return this.verifyAndApplySession(data.session);
   }
 
   async register(payload: RegisterRequest): Promise<RegistrationResponse> {
-    const response = await firstValueFrom(
-      this.http.post<unknown>(`${this.apiUrl}/auth/register`, RegisterRequestSchema.parse(payload)),
-    );
-    const result = RegistrationResponseSchema.parse(response);
-    if (result.user) {
-      await this.getCurrentUser();
-    }
-    return result;
+    const input = RegisterRequestSchema.parse(payload);
+    const { data, error } = await this.supabase.client.auth.signUp({
+      email: input.email,
+      password: input.password,
+      options: {
+        emailRedirectTo: this.redirectUrl('/confirm-email'),
+        data: { name: input.name },
+      },
+    });
+    if (error || !data.user) throw error ?? new Error('Registration failed');
+
+    if (data.session) await this.verifyAndApplySession(data.session);
+    return {
+      message: 'Registration successful. Check your email to confirm your account.',
+      ...(data.session ? { user: toAuthUser(data.user) } : {}),
+    };
   }
 
   async getCurrentUser(): Promise<AuthSessionResponse> {
     const result = await this.fetchCurrentUser(false);
-    await this.setSession(result);
+    await this.applySession(result);
     return result;
   }
 
   async confirmEmail(tokenHash: string): Promise<AuthSessionResponse> {
-    const response = await firstValueFrom(
-      this.http.post<unknown>(
-        `${this.apiUrl}/auth/confirm-email`,
-        ConfirmEmailRequestSchema.parse({ tokenHash, type: 'email' }),
-      ),
-    );
-    const result = AuthSessionResponseSchema.parse(response);
-    await this.setSession(result);
-    return result;
+    const { data, error } = await this.supabase.client.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: 'email',
+    });
+    if (error || !data.session) throw error ?? new Error('Confirmation did not return a session');
+    return this.verifyAndApplySession(data.session);
+  }
+
+  async restoreEmailConfirmationRedirect(): Promise<AuthSessionResponse | null> {
+    const session = await this.supabase.getSession();
+    return session ? this.verifyAndApplySession(session) : null;
   }
 
   async resendConfirmation(email: string): Promise<AuthMessageResponse> {
-    return this.authMessage('/auth/resend-confirmation', EmailRequestSchema.parse({ email }));
+    const input = EmailRequestSchema.parse({ email });
+    const { error } = await this.supabase.client.auth.resend({
+      type: 'signup',
+      email: input.email,
+      options: { emailRedirectTo: this.redirectUrl('/confirm-email') },
+    });
+    if (error) throw error;
+    return { message: 'If the account can be confirmed, a new email has been sent.' };
   }
 
   async forgotPassword(email: string): Promise<AuthMessageResponse> {
-    return this.authMessage('/auth/forgot-password', EmailRequestSchema.parse({ email }));
+    const input = EmailRequestSchema.parse({ email });
+    const { error } = await this.supabase.client.auth.resetPasswordForEmail(input.email, {
+      redirectTo: this.redirectUrl('/reset-password'),
+    });
+    if (error) throw error;
+    return { message: 'If an account exists for that email, a reset link has been sent.' };
   }
 
   async verifyRecovery(tokenHash: string): Promise<AuthSessionResponse> {
-    const response = await firstValueFrom(
-      this.http.post<unknown>(
-        `${this.apiUrl}/auth/verify-recovery`,
-        VerifyRecoveryRequestSchema.parse({ tokenHash }),
-      ),
-    );
-    const result = AuthSessionResponseSchema.parse(response);
-    await this.setSession(result);
-    return result;
+    const { data, error } = await this.supabase.client.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: 'recovery',
+    });
+    if (error || !data.session) throw error ?? new Error('Recovery did not return a session');
+    return this.verifyAndApplySession(data.session);
+  }
+
+  async restorePasswordRecoveryRedirect(): Promise<AuthSessionResponse | null> {
+    if (!this.supabase.hasPasswordRecoverySession()) return null;
+    const session = await this.supabase.getSession();
+    return session ? this.verifyAndApplySession(session) : null;
   }
 
   async resetPassword(password: string, confirmPassword: string): Promise<AuthMessageResponse> {
-    return this.authMessage(
-      '/auth/reset-password',
-      ResetPasswordRequestSchema.parse({ password, confirmPassword }),
-    );
+    const input = ResetPasswordRequestSchema.parse({ password, confirmPassword });
+    const { error } = await this.supabase.client.auth.updateUser({ password: input.password });
+    if (error) throw error;
+    this.supabase.finishPasswordRecovery();
+    return { message: 'Password updated successfully.' };
   }
 
   async changePassword(
@@ -139,15 +182,22 @@ export class AuthService {
     password: string,
     confirmPassword: string,
   ): Promise<AuthMessageResponse> {
-    return this.authMessage('/auth/change-password', {
-      ...ChangePasswordRequestSchema.parse({ currentPassword, password, confirmPassword }),
+    const input = ChangePasswordRequestSchema.parse({
+      currentPassword,
+      password,
+      confirmPassword,
     });
+    const { error } = await this.supabase.client.auth.updateUser({
+      password: input.password,
+      current_password: input.currentPassword,
+    });
+    if (error) throw error;
+    return { message: 'Password updated successfully.' };
   }
 
   refreshSession(): Promise<AuthSessionResponse> {
     if (this.refreshRequest) return this.refreshRequest;
-    const expectedRevision = this.sessionRevision;
-    const request = this.performRefresh(expectedRevision).finally(() => {
+    const request = this.performRefresh().finally(() => {
       if (this.refreshRequest === request) this.refreshRequest = null;
     });
     this.refreshRequest = request;
@@ -155,25 +205,19 @@ export class AuthService {
   }
 
   async logout(): Promise<AuthMessageResponse> {
-    // Invalidate pending work before waiting on the network. The API cookies
-    // remain available for the server-side token revocation request.
+    const { error } = await this.supabase.client.auth.signOut();
     await this.markUnauthenticated();
-    const response = await firstValueFrom(
-      this.http.post<unknown>(`${this.apiUrl}/auth/logout`, {}),
-    );
-    const result = AuthMessageResponseSchema.parse(response);
-    return result;
+    if (error) throw error;
+    return AuthMessageResponseSchema.parse({ message: 'Logged out successfully' });
   }
 
   async markUnauthenticated(): Promise<void> {
-    this.clearRefreshTimer();
     this.sessionRevision += 1;
     this.refreshRequest = null;
     this.authenticatedUser.set(null);
     this.authStatus.set('unauthenticated');
     this.currentSession = null;
     await this.sessionScope.transitionTo(null);
-    await this.supabase.clearSession();
   }
 
   private async loadInitialUser(): Promise<void> {
@@ -182,13 +226,24 @@ export class AuthService {
       return;
     }
 
-    const initialRevision = this.sessionRevision;
+    let restoredUserId: string | null = null;
     try {
-      await this.setSession(await this.fetchCurrentUser(true));
+      const session = await this.supabase.getSession();
+      if (!session) {
+        await this.markUnauthenticated();
+        return;
+      }
+      restoredUserId = session.user.id;
+      const verified = await this.fetchCurrentUser(true);
+      const currentSession = await this.supabase.getSession();
+      if (currentSession?.user.id !== restoredUserId) return;
+      await this.applySession(verified);
     } catch (error: unknown) {
-      if (initialRevision !== this.sessionRevision) return;
+      const currentSession = await this.supabase.getSession().catch(() => null);
+      if (restoredUserId && currentSession?.user.id !== restoredUserId) return;
 
       if (error instanceof HttpErrorResponse && error.status === 401) {
+        await this.supabase.client.auth.signOut({ scope: 'local' });
         await this.markUnauthenticated();
         return;
       }
@@ -197,73 +252,70 @@ export class AuthService {
     }
   }
 
-  private async performRefresh(expectedRevision: number): Promise<AuthSessionResponse> {
-    try {
-      const result = await this.fetchRefreshedSession();
-      await this.setSession(result, expectedRevision);
-      return result;
-    } catch (error: unknown) {
+  private async performRefresh(): Promise<AuthSessionResponse> {
+    const { data, error } = await this.supabase.client.auth.refreshSession();
+    if (error || !data.session) {
+      await this.supabase.client.auth.signOut({ scope: 'local' });
       await this.markUnauthenticated();
-      throw error;
+      throw error ?? new Error('Session could not be refreshed');
     }
+
+    const result = toAuthSession(data.session);
+    await this.applySession(result);
+    return result;
   }
 
-  private async setSession(result: AuthSessionResponse, expectedRevision?: number): Promise<void> {
-    if (expectedRevision !== undefined && expectedRevision !== this.sessionRevision) {
-      throw new Error('The authenticated session changed while the request was pending.');
-    }
-    this.clearRefreshTimer();
-    await this.supabase.setAccessToken(result.accessToken);
-    if (expectedRevision !== undefined && expectedRevision !== this.sessionRevision) {
-      throw new Error('The authenticated session changed while the request was pending.');
-    }
+  private async verifyAndApplySession(session: Session): Promise<AuthSessionResponse> {
+    const localSession = toAuthSession(session);
+    await this.applySession(localSession);
+    const verified = await this.fetchCurrentUser(false);
+    await this.applySession(verified);
+    return verified;
+  }
+
+  private async applySession(result: AuthSessionResponse): Promise<void> {
     await this.sessionScope.transitionTo(result.user.id);
     this.sessionRevision += 1;
     this.authenticatedUser.set(result.user);
     this.currentSession = result;
     this.authStatus.set(result.user.isAnonymous ? 'anonymous' : 'authenticated');
-
-    if (result.expiresAt) {
-      const refreshInMs = Math.max(1_000, result.expiresAt * 1_000 - Date.now() - 30_000);
-      this.refreshTimer = setTimeout(() => {
-        void this.refreshSession().catch(() => undefined);
-      }, refreshInMs);
-    }
   }
 
-  private fetchCurrentUser(skipRefresh: boolean): Promise<AuthSessionResponse> {
-    const context = skipRefresh
-      ? new HttpContext().set(SKIP_AUTH_REFRESH, true).set(SKIP_ERROR_TOAST, true)
-      : undefined;
+  private fetchCurrentUser(skipErrorToast: boolean): Promise<AuthSessionResponse> {
+    const context = skipErrorToast ? new HttpContext().set(SKIP_ERROR_TOAST, true) : undefined;
     return firstValueFrom(this.http.get<unknown>(`${this.apiUrl}/auth/me`, { context })).then(
       (response) => CurrentUserResponseSchema.parse(response),
     );
   }
 
-  private fetchRefreshedSession(): Promise<AuthSessionResponse> {
-    return firstValueFrom(this.http.post<unknown>(`${this.apiUrl}/auth/refresh`, {})).then(
-      (response) => AuthSessionResponseSchema.parse(response),
-    );
-  }
-
-  private async authMessage(path: string, body: unknown): Promise<AuthMessageResponse> {
-    const response = await firstValueFrom(this.http.post<unknown>(`${this.apiUrl}${path}`, body));
-    return AuthMessageResponseSchema.parse(response);
-  }
-
   private async markInitializationFailed(error: unknown): Promise<void> {
-    console.error('Lobby could not restore the current session.', error);
-    this.clearRefreshTimer();
+    console.error('Lobby could not verify the current Supabase session with the API.', error);
     this.sessionRevision += 1;
     this.authenticatedUser.set(null);
     this.authStatus.set('error');
     this.currentSession = null;
     await this.sessionScope.transitionTo(null);
-    await this.supabase.clearSession();
   }
 
-  private clearRefreshTimer(): void {
-    if (this.refreshTimer) clearTimeout(this.refreshTimer);
-    this.refreshTimer = null;
+  private redirectUrl(path: string): string {
+    if (!isPlatformBrowser(this.platformId)) return path;
+    return new URL(path, window.location.origin).toString();
   }
+}
+
+function toAuthSession(session: Session): AuthSessionResponse {
+  return AuthSessionResponseSchema.parse({
+    user: toAuthUser(session.user),
+    accessToken: session.access_token,
+    expiresAt: session.expires_at ?? null,
+  });
+}
+
+function toAuthUser(user: User): AuthUser {
+  return {
+    id: user.id,
+    email: user.email?.trim() ? user.email : null,
+    isAnonymous: user.is_anonymous === true,
+    userMetadata: user.user_metadata,
+  };
 }

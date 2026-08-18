@@ -40,7 +40,13 @@ export class ConfirmEmailPage {
     }
 
     if (!tokenHash && !type) {
-      this.state.set('missing');
+      try {
+        const restored = await this.auth.restoreEmailConfirmationRedirect();
+        this.state.set(restored ? 'success' : 'missing');
+      } catch (error: unknown) {
+        this.failureMessage.set(getAuthErrorMessage(error, 'confirmation'));
+        this.state.set('failure');
+      }
       return;
     }
 

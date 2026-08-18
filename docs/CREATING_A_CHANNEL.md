@@ -6,16 +6,13 @@ See `docs/EVENT_CONTRACT.md` for the exact RPC and REST contracts and `docs/ARCH
 
 ## 1. Establish an auth session
 
-The web app initializes auth once through NestJS. If no registered or anonymous session exists, it calls:
+The web app restores auth through its singleton Supabase client. If no registered or anonymous session exists, it calls Supabase Anonymous Auth directly:
 
-```http
-POST /auth/anonymous
-Content-Type: application/json
-
-{}
+```typescript
+await supabase.auth.signInAnonymously();
 ```
 
-NestJS creates a Supabase anonymous user, returns the short-lived access token in the response, and stores only the refresh token in an HttpOnly cookie. The web app supplies that access token to its singleton Supabase client and Realtime connection.
+Supabase persists and refreshes that first-party browser session. The same current access token authorizes guest RPC/Realtime work and is attached as a Bearer token whenever Angular calls a protected NestJS endpoint. NestJS's `/auth/anonymous` cookie flow remains available for independent API/Postman testing.
 
 ## 2. Create or join
 

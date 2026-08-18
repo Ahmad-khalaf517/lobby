@@ -23,13 +23,13 @@ The goal is consistent, safe changes regardless of which assistant is used.
 
 1. `apps/api` handles authentication, privileged REST operations, and LiveKit token minting.
 2. LiveKit media does not pass through `apps/api`; backend only mints short-lived tokens.
-3. Registered and anonymous Supabase sessions are restored through NestJS HttpOnly cookies.
+3. Angular restores and refreshes registered and anonymous sessions through its singleton public-key Supabase client. NestJS continues to support HttpOnly-cookie sessions for API/Postman testing.
 4. Service-role Supabase access stays server-side. The browser may use its public key and user JWT for the `guest` schema only.
 5. Map DB snake_case rows to camelCase contract objects via feature-local mappers when data crosses a NestJS contract boundary.
 
 ## 4) Frontend Boundaries
 
-1. `apps/web` uses NestJS for auth/privileged operations and the user-scoped Supabase client for guest reads, RPCs, and Realtime.
+1. `apps/web` uses its singleton Supabase client for browser authentication and user-scoped reads, RPCs, and Realtime; it uses NestJS Bearer-authenticated endpoints for privileged operations.
 2. Validate API payloads against shared schemas and use generated database types for guest data.
 3. Keep call UI on LiveKit client SDK; do not build custom WebRTC signaling.
 

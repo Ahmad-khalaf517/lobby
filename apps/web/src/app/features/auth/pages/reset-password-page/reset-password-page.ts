@@ -129,7 +129,13 @@ export class ResetPasswordPage {
     }
 
     if (!tokenHash && !type) {
-      this.state.set('missing');
+      try {
+        const restored = await this.auth.restorePasswordRecoveryRedirect();
+        this.state.set(restored ? 'ready' : 'missing');
+      } catch (error: unknown) {
+        this.failureMessage.set(getAuthErrorMessage(error, 'password-recovery'));
+        this.state.set('failure');
+      }
       return;
     }
 

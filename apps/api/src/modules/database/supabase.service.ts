@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient, type User } from '@supabase/supabase-js';
 import type { Database } from '../../database/app-database.types';
 
 @Injectable()
@@ -62,5 +62,14 @@ export class SupabaseService implements OnModuleInit {
         detectSessionInUrl: false,
       },
     });
+  }
+
+  /**
+   * Verify a Supabase access token against this project's Auth service.
+   * Both bearer and cookie transports use this method after extracting a JWT.
+   */
+  async verifyAccessToken(accessToken: string): Promise<User | null> {
+    const { data, error } = await this._adminClient.auth.getUser(accessToken);
+    return error ? null : data.user;
   }
 }

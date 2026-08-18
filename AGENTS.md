@@ -15,7 +15,7 @@ If your agent supports only one instruction file, treat this file as the entry p
 
 1. Guest chat has no Socket.IO transport; do not add guest socket events without an explicit contract and architecture change.
 2. Do not duplicate shared payload types outside `packages/shared`.
-3. Do not access Supabase directly from `apps/web`.
+3. `apps/web` may use its singleton public-key Supabase client for Auth and existing user-scoped RLS/RPC/Realtime access; privileged operations and the service-role key remain in `apps/api`.
 4. Do not expose server secrets (especially `SUPABASE_SERVICE_ROLE_KEY`).
 5. Keep API module work under `apps/api/src/modules` and keep changes scoped.
 
